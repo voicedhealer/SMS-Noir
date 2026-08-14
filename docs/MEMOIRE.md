@@ -4,7 +4,66 @@
 
 ---
 
-## 2026-08-14 (3/3) — Phase 1 (migration) : **TERMINÉE, en attente de validation**
+## 2026-08-14 (4/4) — Phase 2 (seed du chapitre 1) : **TERMINÉE, en attente de validation**
+
+Écart C validé par Vivien (`contact_id` = fil de conversation). Phase 1 committée (`051384c`).
+
+### Ce qui a été fait
+
+- `supabase/seed.sql` — **SQL et non TypeScript** : Deno n'est pas installé, `db reset` exécute
+  `seed.sql` automatiquement (une commande reproduit tout l'état), et le contenu est statique donc
+  versionnable et diffable à côté de la migration.
+- Seedé : histoire (`draft`), contact Léna, chapitre 1, **stub du chapitre 2**, **21 nœuds**,
+  **65 messages**, **33 choix** (23 reply / 3 ignore / **7 interaction**), N9 `ai_moment`
+  (prompt verbatim, fallback N21, 4 échanges), N22 `chapter_end`.
+- `scripts/verify-graph.sql` — **36 contrôles**, tous OK depuis un `db reset` propre.
+
+### Le piège qui a coûté le plus de temps
+
+Le seed passait en `psql` mais **échouait sous `supabase db reset`** :
+`function _seed_node(unknown) does not exist`.
+
+Cause : **la CLI Supabase envoie le fichier en batch**, donc toutes les requêtes sont *analysées*
+avant que la première ne s'exécute. Une fonction créée dans le fichier n'existe pas encore au
+moment où les requêtes suivantes sont analysées — alors qu'en `psql`, chaque requête est envoyée
+et exécutée séquentiellement, et ça marche.
+
+**Règle à retenir : jamais de `create function` utilisée dans le même fichier de seed.** Les nœuds
+sont désormais résolus par jointure sur `code`. Corollaire : tester le seed avec
+`supabase db reset`, jamais seulement avec `psql`, sinon le bug reste invisible.
+
+### Fidélité du texte au chapitre (règle 6) — vérifiée automatiquement
+
+54 répliques de Léna extraites de `chapitre-1-v2.md` et comparées à la base :
+**52 retrouvées à l'identique en messages, 2 en `inline_response`**, plus les **4 réponses inline**
+des interactions, mot pour mot. Zéro divergence, zéro reformulation.
+
+### Décisions de seed (paramètres techniques, pas du contenu)
+
+- **Délais** : ⏱ explicite → sa valeur · séparateur → le délai réel masqué par l'ellipse ·
+  absent du doc → 4 s (défaut de la colonne).
+- **Typing** : 3 s par défaut, 0 pour séparateurs et messages système, = au délai là où le doc
+  décrit une hésitation visible (N2 40 s, N13 50 s).
+- **`inline_response`** : réplique joueur immédiate, réponse de Léna à 8 s / typing 4.
+- **« Léna est hors ligne »** (N19) : deux messages `system`, un à l'entrée du nœud et un après
+  « merde ». Le silence de 90 s est porté par le séparateur « 00h34 » du N20.
+- **Écran de fin** (« Quelqu'un est entré chez Léna… ») : message `system` en N22#4, pour ne pas
+  perdre le texte narratif. Le client le sort du fil et l'affiche en plein écran.
+- **Zooms N10, N16, N21** : `inline_response` nulle, effets **silencieux**. Le doc ne donne aucune
+  réponse de Léna à ces gestes — le zoom lui-même est le retour. Ne pas inventer de réplique.
+
+### Reste à trancher
+
+`contacts.display_name = 'Léna'` alors qu'**elle ne se nomme jamais dans le chapitre 1**. La liste
+de conversations afficherait donc son prénom avant qu'on le connaisse. Voir TODO Q6.
+
+### Prochaine étape
+
+Validation → **Phase 3** : Edge Functions `get-state` et `advance` + simulation de partie complète.
+
+---
+
+## 2026-08-14 (3/4) — Phase 1 (migration) : **TERMINÉE, validée** (commit `051384c`)
 
 Vivien a validé Q1→Q4 (`nodes.next_node_id` oui · `player_messages.seq` oui, indexé, `created_at`
 informatif seulement · indice `TELEPHONE` attribué au zoom du ch. 1 · `ai_system_prompt` recopié
@@ -55,7 +114,7 @@ vérification du graphe.
 
 ---
 
-## 2026-08-14 (2/3) — Phase 0 (audit) : **TERMINÉE, validée**
+## 2026-08-14 (2/4) — Phase 0 (audit) : **TERMINÉE, validée**
 
 Vivien a fourni `chapitre-1-v2.md` et `schema-supabase-v2.md`. Audit croisé effectué.
 
@@ -135,7 +194,7 @@ Validation de Vivien sur les 4 questions → **Phase 1** : `supabase init`, migr
 
 ---
 
-## 2026-08-14 (1/3) — Phase 0 : blocage initial, fichiers sources manquants
+## 2026-08-14 (1/4) — Phase 0 : blocage initial, fichiers sources manquants
 
 Le repo ne contenait que `README.md` (1 commit, `05f2fad`), la bible et le prompt. Les fichiers
 `chapitre-1-v2.md` et `schema-supabase-v2.md` étaient absents.

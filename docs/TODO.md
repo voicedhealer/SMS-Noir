@@ -1,12 +1,14 @@
 # TODO.md
 
-## 🔴 Question ouverte — réponse de Vivien requise avant la Phase 2
+## 🔴 Question ouverte
 
-- [ ] **Q5 — `player_messages.contact_id` = fil de conversation (`not null`) ?** *(écart C)*
-      Le schéma de référence prévoyait `null` pour les messages du joueur ; les réponses du joueur
-      seraient alors rattachables à aucun fil dès qu'il y a plusieurs contacts (twist ch. 4).
-      `sender` porte déjà « qui parle ». *Recommandé : oui, garder `not null`.* Déjà en base,
-      réversible avant le seed.
+- [ ] **Q6 — `contacts.display_name` de Léna au chapitre 1.** Elle est seedée `'Léna'`, mais
+      **elle ne se nomme jamais dans le chapitre 1** : le joueur apprend le prénom de Chloé (N5),
+      pas le sien. La liste de conversations afficherait donc « Léna » avant qu'on le sache, ce qui
+      contredit le titre même de l'histoire. Le schéma n'a pas de champ « nom révélé à partir de ».
+      Pistes : (a) afficher le numéro tant qu'aucun message reçu ne la nomme, (b) ajouter une colonne
+      `contacts.display_name_initial`, (c) assumer « Léna » dès le début. Décision UI surtout —
+      peut attendre le prompt 2, mais (b) impliquerait une migration.
 
 ## Phases
 
@@ -16,27 +18,29 @@
       (9 tables, 28 index, 21 CHECK, 16 FK, 7 UNIQUE, RLS + 4 policies, 1 trigger),
       `supabase db reset` vert, RLS et contraintes vérifiées fonctionnellement.
       ⏸ En attente de validation.
-- [ ] **Phase 2 — Seed chapitre 1** : histoire (`draft`), contact Léna, chapitre 1 + stub chapitre 2,
-      21 nœuds, ~62 messages, ~33 choix, N9 `ai_moment` (fallback N21), N22 `chapter_end`
-      + script de vérification du graphe.
+- [x] **Phase 2 — Seed chapitre 1** : `supabase/seed.sql` (21 nœuds, 65 messages, 33 choix,
+      stub du chapitre 2) + `scripts/verify-graph.sql` (36 contrôles, tous OK).
+      ⏸ En attente de validation.
 - [ ] **Phase 3 — Edge Functions** `get-state` et `advance` + script de partie simulée
       (parcours « allié » et parcours « refus »).
 
-## Checklist du script de vérification (Phase 2)
+## Vérification du graphe — `scripts/verify-graph.sql`
 
-- [ ] Aucun nœud orphelin (tous atteignables depuis `chapters.entry_node_id` = N1)
-- [ ] Aucun `next_node_id` pointant vers un nœud inexistant
-- [ ] Tous les chemins mènent à **N22**
-- [ ] Tout nœud sans choix `reply`/`ignore` a un `nodes.next_node_id` (sauf N9 et N22)
-- [ ] Les **6 interactions cachées** présentes :
-  - [ ] Relance N8 — 2 questions, `RELANCE_N8` → `PROFIL_SUSPECT` / `BORNAGE`
-  - [ ] Zoom récépissé N10 → `lucidite +1`
-  - [ ] Insister N13 → `lucidite +1`
-  - [ ] Zoom autocollant N16 → `AUTOCOLLANT`
-  - [ ] Réécoute vocal N17 → `lucidite +1`
-  - [ ] Zoom téléphone N21 → `TELEPHONE` *(cf. Q3)*
-- [ ] Aucun `delay_seconds > 90` (règle de rythme du ch. 1)
-- [ ] `ai_fallback_node_id` du N9 = N21 · N22 est bien le seul `chapter_end`
+```
+docker exec -i supabase_db_SMS-Noir psql -U postgres -d postgres \
+  -v ON_ERROR_STOP=1 < scripts/verify-graph.sql
+```
+
+36 contrôles, sortie en erreur si un seul échoue : structure (nœuds, entrée, `chapter_end`,
+`ai_moment` + fallback, stub ch. 2), intégrité du graphe (orphelins, convergence vers N22,
+impasses, transitions auto), les **6 interactions cachées**, cohérence moteur (usage unique,
+`refus` porté par le seul N11, aucun `effect` ne code le plafond de `confiance`, 4 branches,
+5 indices) et contenu (délai ≤ 90 s, positions contiguës, médias, décomptes).
+
+⚠️ **Tester le seed avec `supabase db reset`, jamais seulement avec `psql`.** La CLI envoie le
+fichier en **batch** (toutes les requêtes analysées avant exécution) : une `create function`
+utilisée dans le même fichier passe en `psql` et échoue sous la CLI. C'est pour ça que le seed
+n'utilise aucune fonction et résout les nœuds par jointure sur `code`.
 
 ## 🎬 Médias à produire (Vivien) — 4 fichiers
 

@@ -107,6 +107,30 @@ maximum de 90 s (règle du ch. 1 seulement — les ch. 2+ ont de vraies attentes
 `ai_fallback_node_id` sur les `ai_moment` (le N9 référence le N21, qui doit exister avant lui :
 une contrainte CHECK, non différable, empêcherait le seed).
 
+## Contenu seedé (Phase 2)
+
+`supabase/seed.sql`, exécuté automatiquement par `supabase db reset` (`config.toml` → `db.seed`).
+
+| | |
+|---|---|
+| Histoire | « Numéro Inconnu », slug `numero-inconnu`, `status = 'draft'` |
+| Contacts | 1 — Léna (`lena`) |
+| Chapitres | 2 — « Le mauvais numéro » (ch. 1, complet) et « Chloé » (**stub**, `unlock_delay_minutes = 480`, sans nœud) |
+| Nœuds | **21** — N1..N22 sans N15 · 19 `scripted`, 1 `ai_moment` (N9), 1 `chapter_end` (N22) |
+| Messages | **65** — 52 `text`, 6 `separator`, 4 médias (3 `image`, 1 `audio`), 3 `system` |
+| Choix | **33** — 23 `reply`, 3 `ignore`, 7 `interaction` (pour 6 interactions cachées) |
+| Médias | 4 `placeholder://…` — à produire, brief détaillé dans TODO.md |
+
+**Format SQL et non TypeScript** : Deno n'est pas installé, `db reset` exécute `seed.sql` sans
+outillage supplémentaire (une seule commande reproduit tout l'état), et un contenu statique gagne à
+être versionnable et diffable à côté de la migration.
+
+⚠️ **Le seed ne définit aucune fonction SQL, volontairement.** La CLI Supabase envoie le fichier en
+**batch** : toutes les requêtes sont analysées avant que la première ne s'exécute, donc une fonction
+créée dans le fichier n'existe pas encore au moment de l'analyse des suivantes. Le même fichier
+passe en `psql` (exécution séquentielle) et échoue sous `supabase db reset`. Les nœuds sont donc
+résolus par jointure sur `code`. **Corollaire : toujours tester un seed avec `db reset`.**
+
 ## Sécurité — RLS
 
 Règle générale : **RLS activé sur toutes les tables dès leur création**, sans exception.
