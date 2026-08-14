@@ -4,7 +4,56 @@
 
 ---
 
-## 2026-08-14 (4/4) — Phase 2 (seed du chapitre 1) : **TERMINÉE, en attente de validation**
+## 2026-08-14 (5/5) — Phase 3 (Edge Functions) : **TERMINÉE, en attente de validation**
+
+### Ce qui a été fait
+
+- `get-state` et `advance`, avec un `_shared/` en 4 morceaux : `types.ts` (contrat client),
+  `engine.ts` (effects / conditions / plafonds, **sans dépendance Supabase, testable seul**),
+  `moteur.ts` (base + parcours du graphe), `http.ts` (CORS, erreurs typées).
+- Migration `20260814194049_advance_idempotency.sql` : `last_choice_id` + `last_choice_seq`.
+- `scripts/simulate-playthrough.py` : **47 contrôles**, tous OK.
+
+### Trois décisions de conception
+
+1. **`advance` déroule la chaîne** des transitions automatiques d'un seul appel et s'arrête là où
+   le joueur doit agir. Sinon le client devrait enchaîner N5 → N8 lui-même, donc connaître le graphe.
+2. **`{continue: true}`** en seconde forme d'entrée : indispensable pour les nœuds en pause sur
+   interaction (N13, N16, N21) que le joueur ne veut pas explorer. Sans ça, il resterait bloqué.
+3. **`continue` sur un `ai_moment` emprunte `ai_fallback_node_id`.** Sans ça, **aucune partie ne
+   pouvait franchir le N9** avant le prompt 3 — donc aucune simulation complète. C'est le chemin
+   déjà prévu pour « IA indisponible », on ne fait que l'emprunter.
+
+### Le contrat qui a demandé un arbitrage
+
+`ClientNode` ne porte **pas** ses messages. Ils sont déjà dans l'historique au moment où le nœud
+est atteint : `advance` les renvoie avec leurs délais (le client joue les timers), `get-state` les
+rend via `history` avec des délais à 0 (rejeu instantané). Les porter aux deux endroits aurait
+conduit le client à rejouer les timers de messages déjà vus à chaque réouverture de l'app.
+
+### Ce que la simulation prouve vraiment
+
+Le parcours « refus » est construit pour que les gains de confiance vaillent **7** : le test échoue
+si le plafond à 6 saute. C'est le garde-fou de la règle la plus facile à casser par inadvertance,
+puisqu'elle ne vit nulle part dans le contenu. Le script inspecte aussi les réponses brutes pour
+confirmer qu'aucun `next_node_id`, `effects`, `conditions` ni variable ne fuit.
+
+### Pièges rencontrés
+
+- Un helper `contactDuFil()` écrit avec un cache module jamais alimenté aurait planté au premier
+  appel. Remplacé par `contactDuNoeud()`, qui résout le fil par le locuteur des messages du nœud —
+  et qui fonctionnera tel quel au ch. 3, quand un nœud appartiendra au fil de Karim.
+- `--no-verify-jwt` sur `functions serve` ne dispense pas d'un vrai jeton : le code appelle
+  `auth.getUser()` lui-même. Le script crée donc un vrai utilisateur via l'API admin.
+
+### Prochaine étape
+
+Prompt 1 terminé. Restent les prompts 2 (Flutter), 3 (`ai-chat`), 4 (notifications, cron, premium).
+Et deux trous de contenu ouverts : TODO Q7 (branche N6 sans révélation) et Q8 (doc source non patché).
+
+---
+
+## 2026-08-14 (4/5) — Phase 2 (seed du chapitre 1) : **TERMINÉE, validée** (commit `0580fad`)
 
 Écart C validé par Vivien (`contact_id` = fil de conversation). Phase 1 committée (`051384c`).
 
@@ -76,7 +125,7 @@ donc la base diverge de 2 messages de sa source de vérité.
 
 ---
 
-## 2026-08-14 (3/4) — Phase 1 (migration) : **TERMINÉE, validée** (commit `051384c`)
+## 2026-08-14 (3/5) — Phase 1 (migration) : **TERMINÉE, validée** (commit `051384c`)
 
 Vivien a validé Q1→Q4 (`nodes.next_node_id` oui · `player_messages.seq` oui, indexé, `created_at`
 informatif seulement · indice `TELEPHONE` attribué au zoom du ch. 1 · `ai_system_prompt` recopié
@@ -127,7 +176,7 @@ vérification du graphe.
 
 ---
 
-## 2026-08-14 (2/4) — Phase 0 (audit) : **TERMINÉE, validée**
+## 2026-08-14 (2/5) — Phase 0 (audit) : **TERMINÉE, validée**
 
 Vivien a fourni `chapitre-1-v2.md` et `schema-supabase-v2.md`. Audit croisé effectué.
 
@@ -207,7 +256,7 @@ Validation de Vivien sur les 4 questions → **Phase 1** : `supabase init`, migr
 
 ---
 
-## 2026-08-14 (1/4) — Phase 0 : blocage initial, fichiers sources manquants
+## 2026-08-14 (1/5) — Phase 0 : blocage initial, fichiers sources manquants
 
 Le repo ne contenait que `README.md` (1 commit, `05f2fad`), la bible et le prompt. Les fichiers
 `chapitre-1-v2.md` et `schema-supabase-v2.md` étaient absents.

@@ -313,20 +313,117 @@ joueur « C'est quoi ce bruit derrière vous ? », suivie de la réponse de Lén
 
 ## Contrat des Edge Functions
 
-⛔ **À rédiger en Phase 3** (payloads JSON complets, codes d'erreur). Invariants déjà acquis :
+Types TypeScript de référence : `supabase/functions/_shared/types.ts`.
+Les deux endpoints sont en **POST**, authentifiés par le JWT du joueur
+(`Authorization: Bearer …`). Sans jeton valide : `401`.
 
-**`get-state`**
-- Crée la progression si première visite (`current_node_id` ← `chapters.entry_node_id` du ch. 1).
-- Renvoie : conversations (dérivées des `contact_id` distincts de l'historique), `player_messages`,
-  nœud courant avec ses messages et **seulement** les choix dont les `conditions` sont vraies.
-- Ne renvoie **jamais** `next_node_id`, `effects`, `conditions`.
+### Ce qui ne sort JAMAIS
 
-**`advance`**
-- Entrée : `choice_id`.
-- Erreurs : choix hors nœud courant · conditions non remplies · progression corrompue ·
-  double-appel (idempotent, pas d'erreur).
-- Sortie : nouveaux messages avec délais · ou `inline_response` seule · ou `ai_moment_pending`
-  (N9, exécution au prompt 3) · ou l'état de fin de chapitre (N22).
+`next_node_id` · `effects` · `conditions` · les choix dont les `conditions` sont fausses ·
+**les variables de partie** (`confiance`, `lucidite`, `indices`…). Le joueur ne voit jamais ses
+compteurs : c'est à la fois l'anti-triche et le refus du 4e mur (DESIGN.md).
+*Vérifié par `scripts/simulate-playthrough.py`, qui inspecte les réponses brutes.*
+
+### `get-state`
+
+Entrée : `{}` — l'identité vient du jeton. Crée la progression à la première visite, entre dans le
+nœud d'entrée et déroule sa chaîne.
+
+```jsonc
+{
+  "story": { "slug": "numero-inconnu", "title": "Numéro Inconnu" },
+  "conversations": [
+    { "contact_id": "uuid", "display_name": "Numéro inconnu",  // ou « Léna » après révélation
+      "avatar_url": null, "revealed": false }
+  ],
+  "history": [                       // tout l'historique, ordonné par seq
+    { "seq": 1, "contact_id": "uuid", "sender": "contact", "content_type": "separator",
+      "body": "jeudi — 22h47", "media_url": null,
+      "delay_seconds": 0, "typing_seconds": 0,   // toujours 0 : l'historique se rejoue d'un bloc
+      "push_notification": false, "push_text": null }
+  ],
+  "node": {
+    "code": "N1", "kind": "scripted",
+    "choices": [ { "id": "uuid", "position": 0, "label": "…", "kind": "reply" } ],
+    "awaiting_interaction": false,
+    "can_continue": false
+  },
+  "chapter_end": null,
+  "ai_moment_pending": false
+}
+```
+
+### `advance`
+
+Deux formes d'entrée :
+
+| Entrée | Effet |
+|---|---|
+| `{ "choice_id": "uuid" }` | Applique un choix (`reply`, `ignore` ou `interaction`) |
+| `{ "continue": true }` | Franchit la transition automatique du nœud courant. Sur un `ai_moment`, emprunte le **fallback** — le chemin prévu quand l'IA est indisponible |
+
+```jsonc
+{
+  "new_messages": [                  // à dérouler AVEC leurs délais (timers côté client)
+    { "seq": 12, "contact_id": "uuid", "sender": "player", "content_type": "text",
+      "body": "Qui ça, \"elle\" ?", "media_url": null,
+      "delay_seconds": 0, "typing_seconds": 0, "push_notification": false, "push_text": null },
+    { "seq": 13, "contact_id": "uuid", "sender": "contact", "content_type": "text",
+      "body": "Attends", "media_url": null,
+      "delay_seconds": 25, "typing_seconds": 3, "push_notification": false, "push_text": null }
+  ],
+  "node": { /* comme get-state, ou null */ },
+  "conversations": [ /* renvoyées à chaque coup : une révélation peut changer un nom */ ],
+  "chapter_end": null,
+  "ai_moment_pending": false,
+  "idempotent_replay": false
+}
+```
+
+Au N22, `chapter_end` est renseigné :
+
+```jsonc
+{
+  "chapter_title": "Le mauvais numéro",
+  "next_chapter_title": "Chloé",
+  "unlocked_at": "2026-08-15T03:58:00.000Z",   // now() + unlock_delay_minutes du chapitre suivant
+  "next_chapter_pending": true                  // le stub existe, son contenu non
+}
+```
+
+### Erreurs
+
+Toutes de la forme `{ "error": { "code": "…", "message": "…" } }`.
+
+| Statut | Code | Quand |
+|---|---|---|
+| 400 | `requete_invalide` | Ni `choice_id` ni `continue` |
+| 401 | `non_authentifie` | Jeton absent ou invalide |
+| 403 | `choix_invalide` | Le choix n'appartient pas au nœud courant — **même réponse si le choix n'existe pas du tout**, pour ne rien révéler du graphe |
+| 403 | `choix_verrouille` | `conditions` non remplies (interaction déjà consommée, par exemple) |
+| 409 | `choix_attendu` | `continue` sur un nœud qui propose des réponses |
+| 409 | `sans_suite` | `continue` sur un nœud sans transition automatique |
+| 409 | `progression_corrompue` | Aucun nœud courant |
+| 500 | `erreur_interne` | Le détail reste dans les logs serveur |
+
+### Idempotence
+
+Un `advance` rejouant le **même `choice_id`** (retransmission réseau) ne réapplique aucun `effect` :
+il renvoie à l'identique les messages produits au premier appel, avec `idempotent_replay: true` et
+des délais à 0 — ils ont déjà été joués.
+
+Le mécanisme repose sur `player_progress.last_choice_id` et `last_choice_seq` (le `seq` du premier
+message produit par ce coup, qui sert de curseur). Sans cette trace, le second appel serait rejeté
+en `403` : le choix n'appartient plus au nœud courant, qui a avancé.
+
+### Où le client doit appeler `continue`
+
+Quand `node.can_continue` est vrai. Deux situations :
+
+1. **`awaiting_interaction: true`** — le nœud est en pause sur une interaction cachée (N13, N16,
+   N21). Le joueur qui n'interagit pas doit pouvoir poursuivre. Voir § Règle d'arrêt sur interaction.
+2. **`ai_moment_pending: true`** — le moment IA (N9). Au prompt 3, la saisie libre appellera
+   `ai-chat` ; en attendant, `continue` emprunte le fallback vers le N21.
 
 ## Fin de chapitre (N22)
 

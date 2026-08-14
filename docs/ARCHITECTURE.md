@@ -1,7 +1,7 @@
 # ARCHITECTURE.md — état technique réel
 
-> **Statut au 2026-08-14 : Phase 1 terminée.** Le schéma décrit ici **existe** en base locale.
-> Migration : `supabase/migrations/20260814190318_initial_schema.sql`.
+> **Statut au 2026-08-14 : Phase 3 terminée.** Tout ce qui est décrit ici **existe** en local :
+> schéma, contenu du chapitre 1, et les Edge Functions `get-state` / `advance`.
 
 ## Environnement
 
@@ -171,10 +171,27 @@ quitte jamais le serveur.
 
 ## Edge Functions du prompt 1
 
+```
+supabase/functions/
+├── _shared/
+│   ├── types.ts     # contrat client (rien de narratif n'y transite)
+│   ├── engine.ts    # effects, conditions, plafonds — sans dépendance Supabase, testable seul
+│   ├── moteur.ts    # accès base, parcours du graphe, écriture des messages
+│   └── http.ts      # CORS, méthode, erreurs typées
+├── get-state/index.ts
+└── advance/index.ts
+```
+
 | Function | Rôle |
 |---|---|
-| `get-state` | Conversations du joueur + historique `player_messages` + nœud courant filtré. Crée la progression à la première visite |
-| `advance` | Reçoit un `choice_id`, valide, applique les `effects`, écrit les `player_messages`, avance `current_node_id`, renvoie les nouveaux messages **avec leurs délais** (les timers sont joués par le client) |
+| `get-state` | Conversations + historique + nœud courant filtré. Crée la progression à la première visite et déroule le nœud d'entrée |
+| `advance` | `{choice_id}` ou `{continue:true}` → valide, applique les `effects`, écrit les `player_messages`, avance `current_node_id`, renvoie les nouveaux messages **avec leurs délais** (timers joués par le client) |
+
+Contrat complet (payloads, codes d'erreur, idempotence) : **LOGIQUE.md § Contrat des Edge Functions**.
+
+Le découpage isole `engine.ts` — application des `effects`, évaluation des `conditions`, plafonds —
+de tout accès base : c'est la partie où une erreur serait la plus coûteuse, et elle se relit seule.
+C'est là que vit le **plafond de `confiance`**, en dur, hors du contenu.
 
 La **liste des conversations** est dérivée : `distinct contact_id` dans les `player_messages` du
 joueur. Au ch. 1 il n'y en a qu'une (Léna), mais le contrat est multi-conversations dès maintenant
@@ -194,3 +211,6 @@ Contrats détaillés (payloads entrée/sortie) : voir `LOGIQUE.md`.
 | 6 | `messages.contact_id` étant `not null`, les séparateurs sont **rattachés à Léna** | Ils vivent dans son fil. Aucun impact d'affichage : le client se fie à `content_type` |
 | 7 | Trigger `trg_player_progress_updated_at` sur `player_progress` | `updated_at` fiable sans dépendre de la rigueur des Edge Functions |
 | 8 | Aucune contrainte CHECK sur le délai max de 90 s | Règle du **ch. 1 seulement** (bible §9) : les ch. 2+ ont de vraies attentes. Vérifiée par script, pas par le schéma |
+| 9 | `advance` **déroule la chaîne** des transitions automatiques d'un seul appel | Sinon le client devrait enchaîner N5 → N8 lui-même, donc connaître le graphe. Il s'arrête là où le joueur doit agir |
+| 10 | `continue` sur un `ai_moment` emprunte `ai_fallback_node_id` | C'est le chemin déjà prévu pour « IA indisponible ». Sans lui, aucune partie ne pourrait franchir le N9 avant le prompt 3 |
+| 11 | Idempotence via `player_progress.last_choice_id` / `last_choice_seq` | Une retransmission réseau ne doit ni rejouer les `effects` ni renvoyer une erreur. Migration `20260814194049_advance_idempotency.sql` |

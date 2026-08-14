@@ -26,8 +26,9 @@
 - [x] **Phase 2 — Seed chapitre 1** : `supabase/seed.sql` (21 nœuds, 67 messages, 33 choix,
       stub du chapitre 2) + `scripts/verify-graph.sql` (40 contrôles, tous OK). ✅ validée
       (commit `0580fad`), complétée par le correctif Q6 (révélation d'identité).
-- [ ] **Phase 3 — Edge Functions** `get-state` et `advance` + script de partie simulée
-      (parcours « allié » et parcours « refus »).
+- [x] **Phase 3 — Edge Functions** `get-state` et `advance` + `scripts/simulate-playthrough.py`
+      (parcours « allié », parcours « refus » avec test du plafond, erreurs, idempotence,
+      anti-spoiler). 47 contrôles, tous OK. ⏸ En attente de validation.
 
 ## Vérification du graphe — `scripts/verify-graph.sql`
 
@@ -47,6 +48,23 @@ d'identité (`display_name_initial`, `reveal_contact` sur N5/N7 ciblant un conta
 fichier en **batch** (toutes les requêtes analysées avant exécution) : une `create function`
 utilisée dans le même fichier passe en `psql` et échoue sous la CLI. C'est pour ça que le seed
 n'utilise aucune fonction et résout les nœuds par jointure sur `code`.
+
+## Simulation de partie — `scripts/simulate-playthrough.py`
+
+```
+supabase start && supabase functions serve &     # laisser tourner
+python3 scripts/simulate-playthrough.py
+```
+
+Joue deux parties entières de N1 à N22 via les Edge Functions, puis relit les variables en
+`service_role` (le client ne les voit jamais). Sort en code 1 au premier écart.
+
+- **« allié »** — confiance 7, 4 indices, branche `allié`, Léna révélée au N5, compte à rebours posé.
+- **« refus »** — `refus` posé par le nœud N11, **confiance écrêtée à 6** alors que les gains
+  valent 7 : c'est le test qui protège la règle du plafond.
+- **Robustesse** — choix hors nœud, choix inexistant, requête vide, appel non authentifié,
+  `continue` mal placé, rejeu du même `choice_id`, et inspection des réponses brutes pour
+  confirmer qu'aucun `next_node_id` / `effects` / `conditions` / variable ne fuit.
 
 ## 🎬 Médias à produire (Vivien) — 4 fichiers
 
