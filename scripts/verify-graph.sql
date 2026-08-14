@@ -195,7 +195,7 @@ select _chk(43, 'Aucun média sans URL', '',
   coalesce((select string_agg(n.code || '#' || m.position, ', ') from _n n join messages m on m.node_id = n.id
             where m.content_type in ('image','audio') and m.media_url is null), ''));
 
-select _chk(44, 'Nombre total de messages', '65',
+select _chk(44, 'Nombre total de messages', '67',
   (select count(*)::text from _n n join messages m on m.node_id = n.id));
 
 select _chk(45, 'Nombre total de choix', '33',
@@ -209,6 +209,28 @@ select _chk(46, 'Répartition des choix (ignore/interaction/reply)', '3/7/23',
 
 select _chk(47, 'Séparateurs horaires (ellipses narratives)', '6',
   (select count(*)::text from _n n join messages m on m.node_id = n.id where m.content_type = 'separator'));
+
+-- ---------------------------------------------------------------------------
+-- RÉVÉLATION D'IDENTITÉ
+-- ---------------------------------------------------------------------------
+select _chk(50, 'Léna arrive anonyme (display_name_initial)', 'Numéro inconnu',
+  coalesce((select ct.display_name_initial from contacts ct join stories s on s.id = ct.story_id
+            where s.slug = 'numero-inconnu' and ct.code = 'lena'), '<absent>'));
+
+select _chk(51, 'reveal_contact posé sur N5 et N7', 'N5,N7',
+  coalesce((select string_agg(code, ',' order by code) from _n
+            where effects ? 'reveal_contact'), '<aucun>'));
+
+select _chk(52, 'reveal_contact cible un contact existant', '',
+  coalesce((select string_agg(n.code, ', ') from _n n
+            where n.effects ? 'reveal_contact'
+              and not exists (select 1 from contacts ct join stories s on s.id = ct.story_id
+                              where s.slug = 'numero-inconnu'
+                                and ct.code = n.effects->>'reveal_contact')), ''));
+
+select _chk(53, 'Léna se nomme sur chaque nœud de révélation', '2',
+  (select count(*)::text from _n n join messages m on m.node_id = n.id
+   where n.effects ? 'reveal_contact' and m.body like 'Moi c''est Léna%'));
 
 -- ---------------------------------------------------------------------------
 -- RAPPORT

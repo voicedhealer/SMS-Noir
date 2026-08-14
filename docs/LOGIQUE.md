@@ -162,6 +162,48 @@ messages qui « reviennent en arrière » de façon inexplicable après un redé
 4. **Un succès d'écriture non vérifié n'est pas un succès.** Si du code client venait à écrire un
    jour, il devrait contrôler le nombre de lignes affectées, pas l'absence d'erreur.
 
+## Révélation d'identité d'un contact
+
+Un contact peut arriver anonyme et être révélé plus tard — ou ne jamais l'être. C'est un ressort
+narratif récurrent, pas un cas particulier du chapitre 1 :
+
+| Contact | Arrivée | Révélation |
+|---|---|---|
+| **Léna** | ch. 1, numéro inconnu | se nomme au **N5** et au **N7** |
+| **Karim** | ch. 3, numéro inconnu (Léna crée le groupe) | à définir |
+| **Le suspect** | ch. 4, numéro inconnu | **jamais** — il reste anonyme jusqu'au bout |
+
+Le mécanisme tient en deux moitiés :
+
+1. **`contacts.display_name_initial`** — le nom affiché *avant* révélation (« Numéro inconnu »).
+   `null` = contact connu dès le départ.
+2. **L'effect `reveal_contact`** sur le nœud où l'identité se dévoile :
+   `nodes.effects = {"reveal_contact": "lena"}`. Le moteur ajoute le code du contact à
+   `player_progress.variables.contacts_reveles` (liste, sans doublon).
+
+Le nom à afficher se calcule donc côté serveur, à chaque `get-state` :
+
+```
+nom_affiché = si code ∈ contacts_reveles  ->  display_name
+              sinon                       ->  coalesce(display_name_initial, display_name)
+```
+
+**Pourquoi l'état vit dans `variables` et pas dans le contenu** : la révélation dépend du chemin
+parcouru. Deux joueurs au même instant n'en sont pas au même point — l'un a croisé le N5, l'autre
+non. C'est un état de partie, comme `indices` ou `interactions_faites`.
+
+**Pourquoi sur le nœud et pas sur un choix** : plusieurs chemins mènent à la révélation (N5 *et*
+N7), exactement comme pour `refus` au N11. Poser l'effect sur chaque choix entrant serait fragile.
+
+**Un contact jamais révélé n'est la cible d'aucun `reveal_contact`** — il n'y a rien à désactiver,
+il suffit de ne pas poser l'effect. Le suspect du ch. 4 garde son `display_name_initial` pour
+toujours.
+
+⚠️ **Un joueur peut terminer le chapitre 1 sans jamais connaître le nom de Léna** : la branche
+du N6 (N2-B ou N4-B → N6 → N8/N10/N11) atteint N22 sans passer par N5 ni N7. Ce n'est pas un bug
+du mécanisme — c'est un trou de contenu, voir TODO Q7. Le moteur, lui, se comporte correctement :
+la conversation reste « Numéro inconnu ».
+
 ## `refus` : deux mécanismes à ne pas confondre
 
 Le refus du joueur produit **deux choses de nature complètement différente**. Les mélanger est
@@ -233,6 +275,7 @@ Liste d'opérations déclaratives sur `player_progress.variables`. Trois opérat
 | `set` | Affectation directe (`branche_ch1`, `refus`) |
 | `inc` | Incrément borné (`confiance`, `lucidite`) — les bornes et le plafond `refus` sont appliqués par le moteur |
 | `append` | Ajout à une liste, **sans doublon** (`indices`, `interactions_faites`) |
+| `reveal_contact` | Ajoute un code de contact à `contacts_reveles` — voir § Révélation d'identité |
 
 ## Format JSONB `conditions`
 

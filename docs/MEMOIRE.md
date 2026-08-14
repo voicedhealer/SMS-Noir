@@ -52,14 +52,27 @@ des interactions, mot pour mot. Zéro divergence, zéro reformulation.
 - **Zooms N10, N16, N21** : `inline_response` nulle, effets **silencieux**. Le doc ne donne aucune
   réponse de Léna à ces gestes — le zoom lui-même est le retour. Ne pas inventer de réplique.
 
-### Reste à trancher
+### Correctif Q6 — révélation d'identité (validé et intégré après coup)
 
-`contacts.display_name = 'Léna'` alors qu'**elle ne se nomme jamais dans le chapitre 1**. La liste
-de conversations afficherait donc son prénom avant qu'on le connaisse. Voir TODO Q6.
+Léna ne se nommait **jamais** du chapitre : afficher « Léna » dans la liste de conversations
+trahissait le titre de l'histoire dès la première seconde. Vivien a validé un correctif de contenu
+(« Moi c'est Léna, au passage. Puisqu'on en est là. », délai 12 s, au N5 et au N7) et demandé un
+mécanisme généralisable — Karim arrive aussi anonyme au ch. 3, et le suspect n'est jamais révélé.
+
+- Migration `20260814193538_contact_reveal.sql` : `contacts.display_name_initial`.
+- Effect `reveal_contact` posé sur `nodes.effects` de N5 et N7 → le moteur alimentera
+  `variables.contacts_reveles`. Sur le nœud et non sur un choix, exactement comme `refus` au N11 :
+  plusieurs chemins mènent à la révélation.
+- 4 contrôles de plus dans `verify-graph.sql` (**40/40**). Totaux : 67 messages, 33 choix.
+
+⚠️ **Deux trous restent ouverts, tous deux côté contenu** (TODO Q7 et Q8) :
+la branche du N6 atteint N22 **sans passer par N5 ni N7**, donc un joueur peut finir le chapitre
+sans jamais connaître le prénom de Léna ; et `docs/chapitre-1-v2.md` ne contient pas le correctif,
+donc la base diverge de 2 messages de sa source de vérité.
 
 ### Prochaine étape
 
-Validation → **Phase 3** : Edge Functions `get-state` et `advance` + simulation de partie complète.
+**Phase 3** : Edge Functions `get-state` et `advance` + simulation de partie complète.
 
 ---
 

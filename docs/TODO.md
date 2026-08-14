@@ -1,14 +1,19 @@
 # TODO.md
 
-## 🔴 Question ouverte
+## 🔴 Questions ouvertes
 
-- [ ] **Q6 — `contacts.display_name` de Léna au chapitre 1.** Elle est seedée `'Léna'`, mais
-      **elle ne se nomme jamais dans le chapitre 1** : le joueur apprend le prénom de Chloé (N5),
-      pas le sien. La liste de conversations afficherait donc « Léna » avant qu'on le sache, ce qui
-      contredit le titre même de l'histoire. Le schéma n'a pas de champ « nom révélé à partir de ».
-      Pistes : (a) afficher le numéro tant qu'aucun message reçu ne la nomme, (b) ajouter une colonne
-      `contacts.display_name_initial`, (c) assumer « Léna » dès le début. Décision UI surtout —
-      peut attendre le prompt 2, mais (b) impliquerait une migration.
+- [ ] **Q7 — Trou de contenu : la branche N6 ne révèle jamais le nom de Léna.** Le correctif Q6
+      ajoute « Moi c'est Léna, au passage. » au N5 et au N7, mais **un joueur peut atteindre N22
+      sans passer par aucun des deux** : `N1 → N2/N4 → N6 → N8/N10/N11 → … → N22`. Sur cette
+      branche il finit le chapitre sans connaître son prénom (ni celui de Chloé, d'ailleurs, sauf
+      s'il déclenche la relance du N8). Le moteur se comporte correctement — la conversation reste
+      « Numéro inconnu » — mais c'est probablement pas l'intention. Décision de contenu :
+      ajouter la réplique au N6 aussi ? La déplacer au N8, point de convergence de tous les chemins ?
+- [ ] **Q8 — `docs/chapitre-1-v2.md` ne contient pas le correctif Q6.** Les deux répliques
+      « Moi c'est Léna, au passage. Puisqu'on en est là. » (N5#3 et N7#3) sont en base mais pas dans
+      le doc source, marqué lecture seule par le prompt 1. La base et la source de vérité divergent
+      donc de 2 messages, et le contrôle de fidélité les signalera. À patcher par Vivien (ou sur
+      son feu vert).
 
 ## Phases
 
@@ -18,9 +23,9 @@
       (9 tables, 28 index, 21 CHECK, 16 FK, 7 UNIQUE, RLS + 4 policies, 1 trigger),
       `supabase db reset` vert, RLS et contraintes vérifiées fonctionnellement.
       ⏸ En attente de validation.
-- [x] **Phase 2 — Seed chapitre 1** : `supabase/seed.sql` (21 nœuds, 65 messages, 33 choix,
-      stub du chapitre 2) + `scripts/verify-graph.sql` (36 contrôles, tous OK).
-      ⏸ En attente de validation.
+- [x] **Phase 2 — Seed chapitre 1** : `supabase/seed.sql` (21 nœuds, 67 messages, 33 choix,
+      stub du chapitre 2) + `scripts/verify-graph.sql` (40 contrôles, tous OK). ✅ validée
+      (commit `0580fad`), complétée par le correctif Q6 (révélation d'identité).
 - [ ] **Phase 3 — Edge Functions** `get-state` et `advance` + script de partie simulée
       (parcours « allié » et parcours « refus »).
 
@@ -31,11 +36,12 @@ docker exec -i supabase_db_SMS-Noir psql -U postgres -d postgres \
   -v ON_ERROR_STOP=1 < scripts/verify-graph.sql
 ```
 
-36 contrôles, sortie en erreur si un seul échoue : structure (nœuds, entrée, `chapter_end`,
+40 contrôles, sortie en erreur si un seul échoue : structure (nœuds, entrée, `chapter_end`,
 `ai_moment` + fallback, stub ch. 2), intégrité du graphe (orphelins, convergence vers N22,
 impasses, transitions auto), les **6 interactions cachées**, cohérence moteur (usage unique,
 `refus` porté par le seul N11, aucun `effect` ne code le plafond de `confiance`, 4 branches,
-5 indices) et contenu (délai ≤ 90 s, positions contiguës, médias, décomptes).
+5 indices), contenu (délai ≤ 90 s, positions contiguës, médias, décomptes) et révélation
+d'identité (`display_name_initial`, `reveal_contact` sur N5/N7 ciblant un contact existant).
 
 ⚠️ **Tester le seed avec `supabase db reset`, jamais seulement avec `psql`.** La CLI envoie le
 fichier en **batch** (toutes les requêtes analysées avant exécution) : une `create function`

@@ -36,8 +36,9 @@ insert into stories (slug, title, tagline, genre, status, is_premium) values (
   false
 );
 
-insert into contacts (story_id, code, display_name)
-select id, 'lena', 'Léna' from stories where slug = 'numero-inconnu';
+-- Léna n'est qu'un numéro inconnu jusqu'à ce qu'elle se nomme (N5 / N7).
+insert into contacts (story_id, code, display_name, display_name_initial)
+select id, 'lena', 'Léna', 'Numéro inconnu' from stories where slug = 'numero-inconnu';
 
 insert into chapters (story_id, position, title, unlock_delay_minutes)
 select id, 1, 'Le mauvais numéro', 0 from stories where slug = 'numero-inconnu';
@@ -58,9 +59,10 @@ from (values
     ('N2' , 'scripted'   , '{}'),
     ('N3' , 'scripted'   , '{}'),
     ('N4' , 'scripted'   , '{}'),
-    ('N5' , 'scripted'   , '{}'),
+    -- N5 et N7 : Léna se nomme -> révélation du contact (voir migration contact_reveal)
+    ('N5' , 'scripted'   , '{"reveal_contact": "lena"}'),
     ('N6' , 'scripted'   , '{}'),
-    ('N7' , 'scripted'   , '{}'),
+    ('N7' , 'scripted'   , '{"reveal_contact": "lena"}'),
     ('N8' , 'scripted'   , '{}'),
     ('N9' , 'ai_moment'  , '{}'),
     ('N10', 'scripted'   , '{}'),
@@ -160,6 +162,7 @@ from (values
 ('N5', 0, 'text', $$Désolée. J'aurais jamais dû envoyer ça à un inconnu.$$, null, 45, 3, false, null),
 ('N5', 1, 'text', $$C'est ma sœur. Chloé. Elle a disparu il y a 7 mois.$$, null, 10, 3, false, null),
 ('N5', 2, 'text', $$La police a classé. "Départ volontaire". Mon cul.$$, null, 8, 3, false, null),
+('N5', 3, 'text', $$Moi c'est Léna, au passage. Puisqu'on en est là.$$, null, 12, 3, false, null),
 
 -- N6 — Elle décroche... presque
 ('N6', 0, 'text', $$Ouais. Désolée du dérangement.$$, null, 20, 3, false, null),
@@ -171,6 +174,7 @@ from (values
 ('N7', 0, 'text', $$Quelqu'un qui cherche sa sœur. Depuis 7 mois.$$, null, 35, 3, false, null),
 ('N7', 1, 'text', $$Et toi t'es le mec au bout d'un mauvais numéro qui pose beaucoup de questions.$$, null, 6, 3, false, null),
 ('N7', 2, 'text', $$...ce qui tombe bien. Tout le monde a arrêté d'en poser sur Chloé.$$, null, 5, 3, false, null),
+('N7', 3, 'text', $$Moi c'est Léna, au passage. Puisqu'on en est là.$$, null, 12, 3, false, null),
 
 -- ===== LE DILEMME CENTRAL ===================================================
 
