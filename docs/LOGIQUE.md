@@ -1,9 +1,9 @@
 # LOGIQUE.md — règles du moteur
 
-> **Statut au 2026-08-14 : Phase 1 terminée.** Les colonnes qui portent ces formats existent en base
-> (`effects`, `conditions`, `inline_response`, `nodes.next_node_id`). Les **formats JSONB ci-dessous
-> sont désormais le contrat** : ils seront appliqués tels quels au seed (Phase 2) puis interprétés
-> par le moteur (Phase 3). Le contrat exact des Edge Functions sera rédigé en Phase 3.
+> **Statut au 2026-08-14 : prompt 1 terminé.** Tout ce document décrit du code qui tourne :
+> les formats JSONB sont ceux du seed, et le contrat des Edge Functions est celui que
+> `scripts/simulate-playthrough.py` exerce à chaque exécution.
+> Implémentation : `supabase/functions/_shared/engine.ts` (effects, conditions, plafonds).
 
 ## Vocabulaire
 
@@ -80,6 +80,7 @@ par le client (timers locaux + typing indicator + notifications locales programm
 | Nœud | Enchaîne vers | Contexte |
 |---|---|---|
 | N5, N7 | N8 | Léna se livre / elle teste |
+| N6 | *(a des choix)* | — non concerné, listé ici pour mémoire : c'est la 3e branche vers N8 |
 | N12 | N14 | « Merci. Sérieux. » |
 | N13 | N14 | après l'interaction « Insister » (optionnelle) |
 | N16 | N19 | après l'interaction « Zoom autocollant » (optionnelle) |
@@ -169,7 +170,7 @@ narratif récurrent, pas un cas particulier du chapitre 1 :
 
 | Contact | Arrivée | Révélation |
 |---|---|---|
-| **Léna** | ch. 1, numéro inconnu | se nomme au **N5** et au **N7** |
+| **Léna** | ch. 1, numéro inconnu | se nomme au **N5**, au **N6** et au **N7** — les trois branches vers le N8, chacune avec son ton |
 | **Karim** | ch. 3, numéro inconnu (Léna crée le groupe) | à définir |
 | **Le suspect** | ch. 4, numéro inconnu | **jamais** — il reste anonyme jusqu'au bout |
 
@@ -199,10 +200,10 @@ N7), exactement comme pour `refus` au N11. Poser l'effect sur chaque choix entra
 il suffit de ne pas poser l'effect. Le suspect du ch. 4 garde son `display_name_initial` pour
 toujours.
 
-⚠️ **Un joueur peut terminer le chapitre 1 sans jamais connaître le nom de Léna** : la branche
-du N6 (N2-B ou N4-B → N6 → N8/N10/N11) atteint N22 sans passer par N5 ni N7. Ce n'est pas un bug
-du mécanisme — c'est un trou de contenu, voir TODO Q7. Le moteur, lui, se comporte correctement :
-la conversation reste « Numéro inconnu ».
+**Pourquoi les trois branches** : N5, N6 et N7 sont les trois seuls chemins vers le N8. Ne couvrir
+que N5 et N7 laissait la branche du N6 atteindre N22 sans jamais nommer Léna. Le contrôle n° 54 de
+`verify-graph.sql` interdit désormais toute route de N1 à N22 qui éviterait un nœud de révélation :
+si un chapitre futur rouvre ce trou, le script le dira.
 
 ## `refus` : deux mécanismes à ne pas confondre
 

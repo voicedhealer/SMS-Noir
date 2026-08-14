@@ -1,19 +1,8 @@
 # TODO.md
 
-## 🔴 Questions ouvertes
+## Questions ouvertes
 
-- [ ] **Q7 — Trou de contenu : la branche N6 ne révèle jamais le nom de Léna.** Le correctif Q6
-      ajoute « Moi c'est Léna, au passage. » au N5 et au N7, mais **un joueur peut atteindre N22
-      sans passer par aucun des deux** : `N1 → N2/N4 → N6 → N8/N10/N11 → … → N22`. Sur cette
-      branche il finit le chapitre sans connaître son prénom (ni celui de Chloé, d'ailleurs, sauf
-      s'il déclenche la relance du N8). Le moteur se comporte correctement — la conversation reste
-      « Numéro inconnu » — mais c'est probablement pas l'intention. Décision de contenu :
-      ajouter la réplique au N6 aussi ? La déplacer au N8, point de convergence de tous les chemins ?
-- [ ] **Q8 — `docs/chapitre-1-v2.md` ne contient pas le correctif Q6.** Les deux répliques
-      « Moi c'est Léna, au passage. Puisqu'on en est là. » (N5#3 et N7#3) sont en base mais pas dans
-      le doc source, marqué lecture seule par le prompt 1. La base et la source de vérité divergent
-      donc de 2 messages, et le contrôle de fidélité les signalera. À patcher par Vivien (ou sur
-      son feu vert).
+*Aucune.* Q1→Q8 tranchées. Les décisions et leur raison sont dans MEMOIRE.md et ARCHITECTURE.md.
 
 ## Phases
 
@@ -27,8 +16,8 @@
       stub du chapitre 2) + `scripts/verify-graph.sql` (40 contrôles, tous OK). ✅ validée
       (commit `0580fad`), complétée par le correctif Q6 (révélation d'identité).
 - [x] **Phase 3 — Edge Functions** `get-state` et `advance` + `scripts/simulate-playthrough.py`
-      (parcours « allié », parcours « refus » avec test du plafond, erreurs, idempotence,
-      anti-spoiler). 47 contrôles, tous OK. ⏸ En attente de validation.
+      (parcours « allié », « refus » avec test du plafond, branche N6, erreurs, idempotence,
+      anti-spoiler). 51 contrôles, tous OK. ✅ **Prompt 1 terminé.**
 
 ## Vérification du graphe — `scripts/verify-graph.sql`
 
@@ -62,9 +51,23 @@ Joue deux parties entières de N1 à N22 via les Edge Functions, puis relit les 
 - **« allié »** — confiance 7, 4 indices, branche `allié`, Léna révélée au N5, compte à rebours posé.
 - **« refus »** — `refus` posé par le nœud N11, **confiance écrêtée à 6** alors que les gains
   valent 7 : c'est le test qui protège la règle du plafond.
+- **branche N6** — Léna rembarrée puis insistante : vérifie qu'elle se nomme là aussi (V2.1).
 - **Robustesse** — choix hors nœud, choix inexistant, requête vide, appel non authentifié,
   `continue` mal placé, rejeu du même `choice_id`, et inspection des réponses brutes pour
   confirmer qu'aucun `next_node_id` / `effects` / `conditions` / variable ne fuit.
+
+## Fidélité du texte — `scripts/verify-fidelity.py`
+
+```
+python3 scripts/verify-fidelity.py
+```
+
+Compare **dans les deux sens** les répliques de Léna du chapitre et les textes en base : une
+réplique du doc absente de la base, ou un texte en base absent du doc, fait échouer le script.
+C'est le garde-fou de la règle 6 (recopie fidèle, jamais de reformulation) et le détecteur de
+divergence entre la base et sa source de vérité. **58 = 58 actuellement.**
+
+À relancer après toute modification de `docs/chapitre-1-v2.md` ou du seed.
 
 ## 🎬 Médias à produire (Vivien) — 4 fichiers
 
@@ -103,6 +106,20 @@ Seedés en `placeholder://…`, à remplacer par des URL de bucket Storage.
 - [ ] **N19 « Léna est hors ligne »** : modélisable en `content_type='system'`. À confirmer au seed.
 - [ ] Durée du silence du N19 (60 s puis 90 s) : « paramétrable en base pour tes tests » — c'est
       `delay_seconds`, à ajuster au ressenti après le prompt 2.
+
+## Prochaine session — prompt 2 (app Flutter)
+
+Points d'entrée pour la reprise :
+
+1. `docs/MEMOIRE.md` — où en est le projet et pourquoi.
+2. `docs/LOGIQUE.md § Contrat des Edge Functions` — payloads exacts de `get-state` et `advance`.
+3. `docs/LOGIQUE.md § Contraintes client` et `§ Règle d'arrêt sur interaction` — ce que l'app a
+   le droit de faire, et ce qu'elle doit offrir sur un nœud en pause.
+4. `docs/DESIGN.md` — principes UI déjà arrêtés.
+
+Décisions UI en suspens pour le prompt 2 : le typing intermittent (N2, N13), l'affichage du
+message `system` de fin de chapitre (N22#4) en plein écran plutôt que dans le fil, et le geste de
+continuation quand `node.can_continue` est vrai sans signaler l'interaction disponible.
 
 ## Hors périmètre du prompt 1
 

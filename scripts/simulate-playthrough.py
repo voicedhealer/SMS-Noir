@@ -259,6 +259,30 @@ def parcours_refus():
 
 
 # ---------------------------------------------------------------------------
+# PARCOURS 3 — branche N6 (la seule qui n'a longtemps rien révélé)
+# ---------------------------------------------------------------------------
+
+def parcours_branche_n6():
+    """Le joueur rembarre Léna, elle revient. Ton plus formel, et elle se nomme
+    quand même : c'est le trou de contenu Q7, refermé en V2.1."""
+    print('\n' + '=' * 78)
+    print('  BRANCHE N6 — Léna rembarrée puis insistante')
+    print('=' * 78)
+    p = Partie('branche6@test.local', 'N6')
+
+    p.choisir('Je crois que vous vous trompez')   # -> N2
+    verifier('Toujours anonyme au N2', p.etat['conversations'][0]['display_name'], 'Numéro inconnu')
+
+    p.choisir('Non. Bonne soirée')                # -> N6
+    verifier('Nœud N6 atteint', p.noeud['code'], 'N6')
+    verifier('Révélée au N6 aussi', p.etat['conversations'][0]['display_name'], 'Léna')
+
+    v = variables_en_base(p.email)['variables']
+    verifier('contacts_reveles alimenté par le N6', v['contacts_reveles'], ['lena'])
+    return p
+
+
+# ---------------------------------------------------------------------------
 # Robustesse
 # ---------------------------------------------------------------------------
 
@@ -333,12 +357,13 @@ def erreurs_et_idempotence():
 if __name__ == '__main__':
     allie = parcours_allie()
     refus = parcours_refus()
+    n6 = parcours_branche_n6()
     erreurs_et_idempotence()
 
     print('\n' + '=' * 78)
     print('  CHEMINS PARCOURUS')
     print('=' * 78)
-    for nom, p in (('allié', allie), ('refus', refus)):
+    for nom, p in (('allié', allie), ('refus', refus), ('branche N6', n6)):
         print(f'\n  ── {nom} ──')
         print('\n'.join(p.journal))
 

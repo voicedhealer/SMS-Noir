@@ -2,6 +2,8 @@
 
 **Changements vs V1 :** délais compressés (max 90s), moment IA déplacé après l'entrepôt, branche du refus avec conséquences durables, 3 interactions "enquêteur", scripts vocaux complets pour TTS, callbacks préparés pour le ch. 2, bouton « Ignorer » explicite.
 
+**V2.1 — révélation d'identité, ajoutée en phase 2/3.** Léna ne se nommait jamais du chapitre : la liste de conversations affichait « Léna » avant que le joueur le sache, ce qui trahissait le titre de l'histoire dès la première seconde. Une réplique de présentation est ajoutée sur **chacune des trois branches** qui mènent au N8 (N5, N6, N7), chacune avec son ton. Techniquement : `contacts.display_name_initial` = « Numéro inconnu » jusqu'à l'effect `reveal_contact` porté par ces trois nœuds (voir `docs/LOGIQUE.md`).
+
 ## Variables
 
 | Variable | Valeurs | Rôle |
@@ -77,6 +79,9 @@
 **[Léna]** C'est ma sœur. Chloé. Elle a disparu il y a 7 mois.
 ⏱ 8s
 **[Léna]** La police a classé. "Départ volontaire". Mon cul.
+⏱ 12s
+**[Léna]** Moi c'est Léna, au passage. Puisqu'on en est là.
+*(V2.1 — révélation du contact)*
 → N8
 
 ### N6 — Elle décroche... presque
@@ -87,6 +92,9 @@
 **[Léna]** En fait non. J'ai personne d'autre. Karim répond pas et j'ai plus le temps.
 ⏱ 6s
 **[Léna]** Ma sœur a disparu il y a 7 mois et ce soir je sais enfin où chercher. Je peux vous parler ? Juste ce soir.
+⏱ 10s
+**[Léna]** Léna. Je m'appelle Léna, tant qu'à vous déranger.
+*(V2.1 — révélation du contact, ton formel propre à cette branche)*
 **CHOIX :**
 - A. « Ok. Je vous écoute » → N8 *(confiance +1)*
 - B. « Appelez la police, pas un inconnu » → N10
@@ -99,6 +107,9 @@
 **[Léna]** Et toi t'es le mec au bout d'un mauvais numéro qui pose beaucoup de questions.
 ⏱ 5s
 **[Léna]** ...ce qui tombe bien. Tout le monde a arrêté d'en poser sur Chloé.
+⏱ 12s
+**[Léna]** Moi c'est Léna, au passage. Puisqu'on en est là.
+*(V2.1 — révélation du contact)*
 → N8
 
 ---

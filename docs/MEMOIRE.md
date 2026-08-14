@@ -46,10 +46,21 @@ confirmer qu'aucun `next_node_id`, `effects`, `conditions` ni variable ne fuit.
 - `--no-verify-jwt` sur `functions serve` ne dispense pas d'un vrai jeton : le code appelle
   `auth.getUser()` lui-même. Le script crée donc un vrai utilisateur via l'API admin.
 
+### Clôture — Q7 et Q8 refermées
+
+- **Q7** : la réplique de révélation est ajoutée au **N6** avec son ton propre (« Léna. Je m'appelle
+  Léna, tant qu'à vous déranger. ») — Léna y a été rembarrée puis revient, elle est plus formelle.
+  Les **trois** branches vers le N8 révèlent donc le prénom, chacune à sa manière. Un contrôle
+  (n° 54) interdit désormais toute route de N1 à N22 qui éviterait un nœud de révélation.
+- **Q8** : `docs/chapitre-1-v2.md` est patché en **V2.1**, avec un encadré en tête qui explique le
+  quoi et le pourquoi. Une source de vérité qui diverge de la base est pire que pas de source.
+- `scripts/verify-fidelity.py` compare désormais les deux **dans les deux sens** : 58 = 58.
+  À relancer après toute modification du chapitre ou du seed.
+
 ### Prochaine étape
 
-Prompt 1 terminé. Restent les prompts 2 (Flutter), 3 (`ai-chat`), 4 (notifications, cron, premium).
-Et deux trous de contenu ouverts : TODO Q7 (branche N6 sans révélation) et Q8 (doc source non patché).
+**Prompt 1 terminé.** Restent les prompts 2 (Flutter), 3 (`ai-chat`), 4 (notifications, cron,
+premium). Aucune question ouverte. Points d'entrée de la prochaine session listés dans TODO.md.
 
 ---
 

@@ -117,8 +117,8 @@ une contrainte CHECK, non différable, empêcherait le seed).
 | Contacts | 1 — Léna (`lena`), arrivée anonyme : `display_name_initial = 'Numéro inconnu'` |
 | Chapitres | 2 — « Le mauvais numéro » (ch. 1, complet) et « Chloé » (**stub**, `unlock_delay_minutes = 480`, sans nœud) |
 | Nœuds | **21** — N1..N22 sans N15 · 19 `scripted`, 1 `ai_moment` (N9), 1 `chapter_end` (N22) |
-| `nodes.effects` | 3 nœuds — N11 (`refus`), N5 et N7 (`reveal_contact`) |
-| Messages | **67** — 54 `text`, 6 `separator`, 4 médias (3 `image`, 1 `audio`), 3 `system` |
+| `nodes.effects` | 4 nœuds — N11 (`refus`), N5 / N6 / N7 (`reveal_contact`) |
+| Messages | **68** — 55 `text`, 6 `separator`, 4 médias (3 `image`, 1 `audio`), 3 `system` |
 | Choix | **33** — 23 `reply`, 3 `ignore`, 7 `interaction` (pour 6 interactions cachées) |
 | Médias | 4 `placeholder://…` — à produire, brief détaillé dans TODO.md |
 

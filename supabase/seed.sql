@@ -59,9 +59,10 @@ from (values
     ('N2' , 'scripted'   , '{}'),
     ('N3' , 'scripted'   , '{}'),
     ('N4' , 'scripted'   , '{}'),
-    -- N5 et N7 : Léna se nomme -> révélation du contact (voir migration contact_reveal)
+    -- N5, N6 et N7 : les trois branches vers le N8. Léna s'y nomme, chacune
+    -- avec son ton -> révélation du contact (voir migration contact_reveal).
     ('N5' , 'scripted'   , '{"reveal_contact": "lena"}'),
-    ('N6' , 'scripted'   , '{}'),
+    ('N6' , 'scripted'   , '{"reveal_contact": "lena"}'),
     ('N7' , 'scripted'   , '{"reveal_contact": "lena"}'),
     ('N8' , 'scripted'   , '{}'),
     ('N9' , 'ai_moment'  , '{}'),
@@ -169,6 +170,8 @@ from (values
 ('N6', 1, 'separator', $$23h18$$, null, 60, 0, false, null),
 ('N6', 2, 'text', $$En fait non. J'ai personne d'autre. Karim répond pas et j'ai plus le temps.$$, null, 4, 3, true, null),
 ('N6', 3, 'text', $$Ma sœur a disparu il y a 7 mois et ce soir je sais enfin où chercher. Je peux vous parler ? Juste ce soir.$$, null, 6, 3, false, null),
+-- V2.1 : elle a été rembarrée puis revient — elle se présente plus formellement ici.
+('N6', 4, 'text', $$Léna. Je m'appelle Léna, tant qu'à vous déranger.$$, null, 10, 3, false, null),
 
 -- N7 — Elle teste
 ('N7', 0, 'text', $$Quelqu'un qui cherche sa sœur. Depuis 7 mois.$$, null, 35, 3, false, null),
