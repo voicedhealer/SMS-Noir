@@ -29,8 +29,14 @@ tapageur. Ce que le joueur gagne (`confiance`, `lucidite`, `indices`) ne s'affic
   d'une messagerie — zoomer sur une photo, réécouter un vocal, relancer, insister. Le joueur qui
   ne les fait pas ne doit pas se sentir puni ; celui qui les fait ne doit pas voir de récompense
   clignoter. Une `inline_response` arrive comme un message ordinaire.
-- **Fin de chapitre** : compte à rebours de déblocage (8 h ; immédiat en premium, bible §9). Doit
-  savoir afficher un chapitre **« à venir »** tant que le chapitre 2 n'existe pas.
+- **« Ignorer » est un bouton explicite**, jamais un timeout réel (chapitre §Conventions : trop
+  ambigu). Ne pas répondre est un choix assumé du joueur, pas une absence d'action.
+- **Statut « Léna est hors ligne »** (N19) : message de type `system` dans le fil. Le silence de 90 s
+  du N19 est le plus long du chapitre — c'est un effet dramatique, pas un temps mort à combler.
+  Vibration discrète à 60 s si activée.
+- **Fin de chapitre** : écran dédié (« Quelqu'un est entré chez Léna. Quelqu'un sait qu'elle
+  cherche. ») puis compte à rebours de déblocage (8 h ; immédiat en premium, bible §9). Doit savoir
+  afficher « **Chapitre 2 : Chloé** — à venir » alors que le chapitre 2 n'a pas encore de contenu.
 - **Saisie libre (moment IA, N9)** : champ de texte normal. L'IA ne mentionne **jamais** être une IA.
   Consentement RGPD à la première saisie libre (bible §9).
 
