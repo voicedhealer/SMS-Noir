@@ -200,10 +200,34 @@ divergence entre la base et sa source de vérité. **58 = 58 actuellement.**
 2. `scripts/upload-media.sh` — téléverse dans le bucket, remplace les `placeholder://`, affiche
    l'état. Rejouable, et accepte les fichiers **un par un**.
 
-- [ ] `photo-N10-recepisse` — date d'il y a 2 mois (incohérence volontaire)
-- [ ] `photo-N16-plaque` — macaron « SENTINEL PRO » lisible au zoom
-- [ ] `photo-N21-porte-cles` — silhouettes gravées + téléphone à coque rose au zoom
-- [ ] `audio-N17-reperage` — script TTS n° 1, **fond radio à ne pas nettoyer**
+- [x] `photo-N10-recepisse` — livré. Capture d'un mail de la police, 720×1466.
+      Lisible **sans zoomer**. Date « 12 juin 2026 » = l'incohérence des 2 mois. ✅
+- [x] `photo-N16-plaque` — livré, 2816×1536. Macaron « SENTINEL PRO » lisible à 5× sur téléphone. ✅
+      ⚠️ voir « Plaque du N16 » ci-dessous.
+- [x] `photo-N21-porte-cles` — livré, 2816×1536. Silhouettes gravées et téléphone à coque
+      rose fissuré tous deux nets au zoom. ✅ Le meilleur des trois.
+- [x] `audio-N17-reperage` — livré, MP3 22,1 s. ⚠️ fond radio à vérifier à l'oreille (non contrôlable ici).
+
+### ⚠️ Plaque du N16 — décision de contenu
+
+La photo ne montre **aucune plaque** : le véhicule est cadré de trois-quarts arrière et
+l'emplacement de la plaque porte une **retouche visible** (masquage sombre). Deux conséquences :
+
+- `chapitre-1-v2.md` décrit « plaque partielle « …-843-… » » — la photo ne correspond pas.
+- La retouche se lit comme une censure, ce qui est une rupture du 4e mur dans une photo
+  censée être prise par Léna.
+
+La réplique « C'est tout ce que j'arrive à choper sans m'approcher » couvre en partie l'absence.
+Trois options : reprendre la photo avec une plaque factice lisible, salir la zone de façon
+diégétique (boue, reflet, angle) plutôt que par un aplat, ou aligner le texte du chapitre sur
+la photo. **Non bloquant** : l'indice `PLAQUE` vient du choix au N14, pas d'un zoom.
+
+### ⚠️ La date du N10 vieillira
+
+« 12 juin 2026 » ne se lit comme « il y a 2 mois » que si le joueur joue vers août 2026. Rien
+dans le jeu ne donne la date du jour — les séparateurs ne portent que des heures. Dans un an, la
+même capture dira « il y a 14 mois » et l'incohérence changera de sens. À garder en tête pour les
+chapitres suivants : soit une date relative, soit un rafraîchissement périodique de la capture.
 
 ⚠️ **Lisibilité au zoom** : ≥ 2400 px sur le côté long pour N16 et N21, et surtout le détail doit
 occuper **≥ 15 % de la largeur** du cadre. La visionneuse plafonne à 5× — elle grossit, elle

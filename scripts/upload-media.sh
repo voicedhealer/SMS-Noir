@@ -28,10 +28,26 @@ MEDIAS=(
   audio-N17-reperage
 )
 
-trouver() { # cherche le fichier quelle que soit son extension
+# Cherche le fichier correspondant à un média.
+#
+# Tolérant sur le nommage : on accepte le nom canonique, mais aussi n'importe
+# quel fichier dont le nom contient le code du nœud (« N10 — le mail de la
+# police.png »). C'est ainsi qu'on nomme naturellement en produisant, et c'est
+# le code de nœud qui identifie sans ambiguïté.
+trouver() {
   local base="$1"
+  local code="${base#*-}"; code="${code%%-*}"   # photo-N10-recepisse -> N10
+  local f
+
   for f in "$DOSSIER/$base".*; do
     [ -e "$f" ] && { echo "$f"; return 0; }
+  done
+  for f in "$DOSSIER"/*; do
+    [ -e "$f" ] || continue
+    case "$f" in *.md) continue;; esac
+    case "$(basename "$f")" in
+      *"$code"*) echo "$f"; return 0 ;;
+    esac
   done
   return 1
 }

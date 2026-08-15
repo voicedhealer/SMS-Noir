@@ -76,7 +76,7 @@ Future<void> monter(
 
   await tester.pumpWidget(ProviderScope(
     overrides: [
-      authPreteProvider.overrideWith((ref) async {}),
+      authPreteProvider.overrideWith((ref) async => 'joueur-test'),
       engineApiProvider.overrideWithValue(api),
     ],
     child: MaterialApp(theme: AppTheme.sombre, home: const ConversationScreen()),

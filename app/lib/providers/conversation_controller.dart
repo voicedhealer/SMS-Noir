@@ -13,7 +13,10 @@ import '../services/playback.dart';
 import '../widgets/composer.dart';
 import 'session_providers.dart';
 
-final localStoreProvider = FutureProvider<LocalStore>((ref) => LocalStore.ouvrir());
+final localStoreProvider = FutureProvider<LocalStore>((ref) async {
+  final joueur = await ref.watch(authPreteProvider.future);
+  return LocalStore.ouvrir(joueur);
+});
 
 /// État affichable de la conversation.
 class ConversationState {

@@ -1,7 +1,14 @@
 # Médias du chapitre 1
 
-Dépose les quatre fichiers **ici**, avec ces noms exacts (l'extension est libre :
+> **Les quatre fichiers sont livrés et en base.** Ce document reste la référence
+> pour les reproduire ou les remplacer. Réserves relevées à la relecture :
+> voir `docs/TODO.md` § Plaque du N16 et § La date du N10 vieillira.
+
+Dépose les fichiers **ici**, avec ces noms (l'extension est libre :
 `.jpg`, `.png`, `.webp` pour les images ; `.mp3`, `.m4a`, `.wav` pour l'audio).
+
+Le script est **tolérant sur le nommage** : il reconnaît aussi tout fichier dont le
+nom contient le code du nœud — « N10 — le mail de la police.png » fonctionne.
 
 Puis, une seule commande :
 

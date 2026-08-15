@@ -144,18 +144,28 @@ class PhotoBubble extends StatelessWidget {
           onTap: onOuvrir,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(AppSpacing.rayonBulle),
-            child: SizedBox(
-              width: largeurMax,
-              child: message.isPlaceholderMedia
-                  ? const MediaPlaceholder(type: ContentType.image)
-                  : Image.network(
-                      message.urlAbsolue(Env.supabaseUrl)!,
-                      fit: BoxFit.cover,
-                      // Un média illisible ne casse pas le fil : on retombe sur
-                      // le cartouche, comme pour un placeholder.
-                      errorBuilder: (_, _, _) =>
-                          const MediaPlaceholder(type: ContentType.image),
-                    ),
+            child: ConstrainedBox(
+              // Une capture d'écran est en portrait : sans plafond, la vignette
+              // ferait deux fois la hauteur de l'écran. Une vraie messagerie
+              // recadre l'aperçu — et ici c'est heureux : le détail ne se lit
+              // qu'en ouvrant, donc le geste d'ouverture reste la mécanique.
+              constraints: BoxConstraints(maxWidth: largeurMax, maxHeight: 300),
+              child: SizedBox(
+                width: largeurMax,
+                child: message.isPlaceholderMedia
+                    ? const MediaPlaceholder(type: ContentType.image)
+                    : Image.network(
+                        message.urlAbsolue(Env.supabaseUrl)!,
+                        fit: BoxFit.cover,
+                        // Recadrage par le haut : on montre le début du document,
+                        // pas son milieu.
+                        alignment: Alignment.topCenter,
+                        // Un média illisible ne casse pas le fil : on retombe sur
+                        // le cartouche, comme pour un placeholder.
+                        errorBuilder: (_, _, _) =>
+                            const MediaPlaceholder(type: ContentType.image),
+                      ),
+              ),
             ),
           ),
         ),

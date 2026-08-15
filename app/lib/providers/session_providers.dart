@@ -71,13 +71,15 @@ Future<Session> _connexionAnonyme(SupabaseClient supabase) async {
   return session;
 }
 
-/// Point d'attente unique de l'authentification.
+/// Identifiant du joueur, une fois l'authentification faite.
 ///
 /// Le contrôleur de conversation dépend de ce provider plutôt que de
 /// `sessionProvider` : un test peut ainsi le neutraliser sans avoir à
-/// fabriquer une `Session` Supabase.
-final authPreteProvider = FutureProvider<void>((ref) async {
-  await ref.watch(sessionProvider.future);
+/// fabriquer une `Session` Supabase. Il sert aussi à cloisonner la mémoire
+/// locale — voir LocalStore.
+final authPreteProvider = FutureProvider<String>((ref) async {
+  final session = await ref.watch(sessionProvider.future);
+  return session.user.id;
 });
 
 /// État de jeu courant. `get-state` fait toujours foi : ce provider est la

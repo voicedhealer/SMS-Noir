@@ -20,14 +20,22 @@ import '../models/client_message.dart';
 /// Perdre ce store ne perd aucun message et n'en duplique aucun : au pire le
 /// nœud courant s'affiche d'un coup.
 class LocalStore {
-  LocalStore(this._prefs);
+  LocalStore(this._prefs, this._joueur);
   final SharedPreferences _prefs;
 
-  static Future<LocalStore> ouvrir() async => LocalStore(await SharedPreferences.getInstance());
+  /// ⚠️ **Le store est cloisonné par joueur.** Les `seq` sont attribués par une
+  /// séquence globale : ceux d'un joueur n'ont aucun sens pour un autre. Un
+  /// store partagé ferait remonter les messages décoratifs d'une session
+  /// précédente **en haut** du fil d'un nouveau joueur, ancrés à des `seq`
+  /// inférieurs à tout son historique. Constaté à l'écran.
+  final String _joueur;
 
-  static const _cleCurseur = 'curseur_affichage';
-  static const _cleEnAttente = 'file_en_attente';
-  static const _cleDecoratifs = 'messages_decoratifs';
+  static Future<LocalStore> ouvrir(String joueur) async =>
+      LocalStore(await SharedPreferences.getInstance(), joueur);
+
+  String get _cleCurseur => 'curseur_affichage:$_joueur';
+  String get _cleEnAttente => 'file_en_attente:$_joueur';
+  String get _cleDecoratifs => 'messages_decoratifs:$_joueur';
 
   // --- Curseur d'affichage --------------------------------------------------
 
