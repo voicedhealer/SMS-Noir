@@ -1,19 +1,19 @@
 # ARCHITECTURE.md — état technique réel
 
-> **Statut au 2026-08-14 : Phase 3 terminée.** Tout ce qui est décrit ici **existe** en local :
-> schéma, contenu du chapitre 1, et les Edge Functions `get-state` / `advance`.
+> **Statut au 2026-08-14 : prompt 1 terminé, prompt 2 en Phase 1.** Tout ce qui est décrit ici
+> **existe** en local : schéma, contenu du chapitre 1, Edge Functions, et le squelette Flutter.
 
 ## Environnement
 
 | Élément | État | Remarque |
 |---|---|---|
 | Repo git | ✅ propre, branche `main` | |
-| CLI Supabase | ✅ **v2.75.0** | v2.114.0 disponible — voir TODO |
+| CLI Supabase | ✅ **v2.114.0** | Mise à jour obligée en Phase 1 du prompt 2 — voir MEMOIRE |
 | Projet Supabase local | ✅ **initialisé** (`supabase/config.toml`) | `supabase start` OK |
 | Projet Supabase distant | ❌ **non lié** | Aucun `project_ref` — tout se fait en local pour l'instant |
 | Docker | ✅ daemon démarré (28.5.1) | |
 | Deno (standalone) | ❌ absent | Non bloquant : la CLI exécute les Edge Functions dans Docker |
-| Flutter | ✅ présent | Hors périmètre du prompt 1 |
+| Flutter | ✅ **3.41.9** / Dart 3.11.5 | Xcode 26.6, Android SDK 36.1.0, 2 émulateurs |
 
 ⚠️ `supabase db reset` termine sur une erreur `502` au redémarrage des conteneurs : **imgproxy** et
 **pooler** ne démarrent pas. Sans effet sur le travail en cours (la base, l'API REST, l'auth et les
@@ -107,6 +107,32 @@ maximum de 90 s (règle du ch. 1 seulement — les ch. 2+ ont de vraies attentes
 `ai_fallback_node_id` sur les `ai_moment` (le N9 référence le N21, qui doit exister avant lui :
 une contrainte CHECK, non différable, empêcherait le seed).
 
+## Application Flutter (`app/`)
+
+```
+app/lib/
+├── config/env.dart          # URL + clé publishable via --dart-define, adaptation émulateur
+├── models/                  # projection cliente du CONTRAT (jamais du schéma SQL)
+├── services/                # engine_api.dart (seul point de contact) + erreurs typées
+├── providers/               # session anonyme, état de jeu (Riverpod)
+├── theme/                   # jetons + thème sombre
+├── screens/ · widgets/      # Phase 2 et 3
+└── main.dart
+app/tool/run_local.sh        # lance l'app contre le Supabase local, sans clé dans le repo
+```
+
+**Riverpod** retenu : l'état de jeu est asynchrone, dérivé, et invalidé en bloc à chaque
+resynchronisation — `FutureProvider` + `invalidate` dit exactement ça. Un `ChangeNotifier` aurait
+demandé de gérer à la main le cycle chargement/erreur que le prompt exige de traiter proprement.
+
+**Aucune clé dans le repo.** `tool/run_local.sh` lit `supabase status` à la volée et passe
+`--dart-define`. Seule la clé **publishable** entre dans l'app ; elle est publique par construction,
+c'est la RLS et les GRANT qui protègent.
+
+⚠️ **L'émulateur Android n'atteint pas `127.0.0.1`** — cette adresse le désigne lui-même.
+`Env` bascule seul sur `10.0.2.2` (alias de la machine hôte). Le simulateur iOS partage la boucle
+locale du Mac et n'a rien à adapter.
+
 ## Contenu seedé (Phase 2)
 
 `supabase/seed.sql`, exécuté automatiquement par `supabase db reset` (`config.toml` → `db.seed`).
@@ -146,13 +172,15 @@ Règle générale : **RLS activé sur toutes les tables dès leur création**, s
 Filtrage anti-spoiler dans `get-state` — ne sortent **jamais** vers le client :
 `next_node_id`, `effects`, `conditions`, et les choix dont les `conditions` sont fausses.
 
-### Vérification fonctionnelle de la RLS (Phase 1)
+### Vérification fonctionnelle de la RLS
 
-Testée en base sous le rôle `authenticated`, avec du contenu réellement inséré :
+Testée en base sous le rôle `authenticated`, avec du contenu réellement inséré.
+**Rejouée après l'ajout des GRANT explicites** — le contenu est désormais refusé au niveau des
+privilèges, *avant* même que la RLS soit consultée : deux verrous au lieu d'un.
 
 | Test | Résultat |
 |---|---|
-| Lire `contacts` / `chapters` / `nodes` / `messages` / `choices` | **0 ligne** sur chaque table (contenu invisible) |
+| Lire `contacts` / `chapters` / `nodes` / `messages` / `choices` | ❌ `permission denied` sur chaque table |
 | Lire `stories` (1 publiée + 1 brouillon en base) | **1 ligne** — seule la publiée |
 | Lire sa propre progression et ses propres messages | ✅ visibles |
 | Insérer une progression | ❌ `new row violates row-level security policy` |
@@ -214,3 +242,5 @@ Contrats détaillés (payloads entrée/sortie) : voir `LOGIQUE.md`.
 | 9 | `advance` **déroule la chaîne** des transitions automatiques d'un seul appel | Sinon le client devrait enchaîner N5 → N8 lui-même, donc connaître le graphe. Il s'arrête là où le joueur doit agir |
 | 10 | `continue` sur un `ai_moment` emprunte `ai_fallback_node_id` | C'est le chemin déjà prévu pour « IA indisponible ». Sans lui, aucune partie ne pourrait franchir le N9 avant le prompt 3 |
 | 11 | Idempotence via `player_progress.last_choice_id` / `last_choice_seq` | Une retransmission réseau ne doit ni rejouer les `effects` ni renvoyer une erreur. Migration `20260814194049_advance_idempotency.sql` |
+| 12 | **GRANT explicites** plutôt que privilèges ambiants | Les privilèges par défaut du rôle `postgres` n'accordent pas `SELECT` aux rôles API : les tables étaient illisibles même en `service_role`. Le schéma déclare désormais lui-même qui a droit à quoi, ce qui rendra aussi le déploiement distant reproductible. Migration `20260814211556_explicit_grants.sql` |
+| 13 | `Content-Type: application/json; charset=utf-8` sur les réponses | Sans `charset`, le paquet `http` de Dart décode en **latin1** : « Léna » devient « LÃ©na ». Le client décode aussi les octets lui-même, pour ne dépendre de personne |

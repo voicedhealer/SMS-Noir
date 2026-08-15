@@ -1,0 +1,121 @@
+/// Un message du fil, tel que le serveur l'envoie.
+///
+/// Contrat : docs/LOGIQUE.md § Contrat des Edge Functions.
+/// Le client ne fabrique jamais de message narratif — il ne fait qu'afficher.
+library;
+
+enum MessageSender { contact, player }
+
+enum ContentType {
+  text,
+  image,
+  audio,
+
+  /// Ellipse narrative. `body` est le libellé horaire exact (« 23h31 »),
+  /// affiché tel quel : jamais reformaté, jamais recalculé côté client.
+  separator,
+
+  /// Jamais une bulle. Deux usages selon le nœud :
+  ///  • présence      -> `body` est le libellé du sous-titre d'en-tête
+  ///  • chapter_end   -> texte de l'écran de fin, sorti du fil
+  system,
+}
+
+class ClientMessage {
+  const ClientMessage({
+    required this.seq,
+    required this.contactId,
+    required this.sender,
+    required this.contentType,
+    required this.body,
+    required this.mediaUrl,
+    required this.delaySeconds,
+    required this.typingSeconds,
+    required this.pushNotification,
+    required this.pushText,
+    this.isLocalDecorative = false,
+  });
+
+  /// Ordinal serveur croissant. ⚠️ `bigserial` **global**, partagé entre tous
+  /// les joueurs : c'est une clé de tri opaque, jamais un index de position.
+  final int seq;
+
+  /// Fil de conversation, pas locuteur — voir `sender` pour savoir qui parle.
+  final String contactId;
+  final MessageSender sender;
+  final ContentType contentType;
+  final String? body;
+  final String? mediaUrl;
+
+  /// Attente avant affichage. Jouée par le client (timers locaux).
+  /// Vaut 0 dans l'historique : le déjà-vu se rejoue d'un bloc.
+  final int delaySeconds;
+  final int typingSeconds;
+
+  final bool pushNotification;
+  final String? pushText;
+
+  /// Message décoratif saisi par le joueur : local, jamais envoyé, jamais
+  /// délivré. Voir DESIGN.md § Champ de saisie.
+  final bool isLocalDecorative;
+
+  /// Le média n'a pas encore été produit (`placeholder://…` en base).
+  bool get isPlaceholderMedia => mediaUrl?.startsWith('placeholder://') ?? false;
+
+  /// Marque de contenu d'une hésitation visible (N2, N13) : le typing doit
+  /// être joué en rafales et non en continu. Convention documentée dans
+  /// docs/LOGIQUE.md § Convention de contenu : typing intermittent.
+  bool get hasIntermittentTyping => typingSeconds >= intermittentTypingThreshold;
+  static const int intermittentTypingThreshold = 15;
+
+  factory ClientMessage.fromJson(Map<String, dynamic> json) => ClientMessage(
+        seq: (json['seq'] as num).toInt(),
+        contactId: json['contact_id'] as String,
+        sender: json['sender'] == 'player' ? MessageSender.player : MessageSender.contact,
+        contentType: _contentType(json['content_type'] as String?),
+        body: json['body'] as String?,
+        mediaUrl: json['media_url'] as String?,
+        delaySeconds: (json['delay_seconds'] as num?)?.toInt() ?? 0,
+        typingSeconds: (json['typing_seconds'] as num?)?.toInt() ?? 0,
+        pushNotification: json['push_notification'] as bool? ?? false,
+        pushText: json['push_text'] as String?,
+      );
+
+  static ContentType _contentType(String? brut) => switch (brut) {
+        'image' => ContentType.image,
+        'audio' => ContentType.audio,
+        'separator' => ContentType.separator,
+        'system' => ContentType.system,
+        // Un type inconnu (chapitre futur) se dégrade en texte plutôt que de
+        // faire tomber tout le fil.
+        _ => ContentType.text,
+      };
+
+  /// Construit un message décoratif local. Il n'a pas de `seq` serveur : on
+  /// l'ancre juste après le dernier message serveur connu pour qu'il garde sa
+  /// place dans le fil au rechargement.
+  factory ClientMessage.decorative({
+    required String contactId,
+    required String texte,
+    required int ancreSeq,
+  }) =>
+      ClientMessage(
+        seq: ancreSeq,
+        contactId: contactId,
+        sender: MessageSender.player,
+        contentType: ContentType.text,
+        body: texte,
+        mediaUrl: null,
+        delaySeconds: 0,
+        typingSeconds: 0,
+        pushNotification: false,
+        pushText: null,
+        isLocalDecorative: true,
+      );
+
+  Map<String, dynamic> toLocalJson() => {
+        'seq': seq,
+        'contact_id': contactId,
+        'body': body,
+      };
+}

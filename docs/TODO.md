@@ -1,10 +1,104 @@
 # TODO.md
 
-## Questions ouvertes
+## 🔴 Décisions UI — prompt 2, Phase 0
+
+### ✅ Tranchées par l'addendum — le champ de saisie, pièce centrale
+
+`docs/prompts/addenum-au -prompt-2.md`. **D1 (geste de continuation) et D2 (silence du N19) sont
+remplacées** : les deux reposent sur le même composant, un champ de saisie **toujours actif**.
+
+**Un composant, trois modes visuellement identiques** — si l'apparence changeait selon le mode, le
+joueur saurait instantanément quels moments « comptent », et perdrait le doute qui fait tout
+l'intérêt du champ décoratif.
+
+| Mode | Quand | Effet d'un envoi |
+|---|---|---|
+| `decorative` | Le nœud propose des `reply`/`ignore` | Le texte s'affiche à droite, **non délivré**. Rien n'est envoyé au serveur |
+| `continuation` | `awaiting_interaction` ou `can_continue` sans réponse à donner | Le texte s'affiche à droite, puis déclenche `advance {continue:true}` |
+| `ai_input` | `ai_moment_pending` (**prompt 3**) | Saisie réelle, envoyée à `ai-chat` |
+
+Le mode se déduit entièrement du contrat : aucune connaissance du graphe côté client.
+
+**Règles non négociables du mode décoratif** : les messages sont persistés **localement** (les
+relire une fois la tension retombée fait partie du plaisir), affichés en **non délivré**, et
+**aucun feedback ne trahit jamais leur inutilité** — pas d'erreur, pas de grisage, pas de
+« Léna ne peut pas répondre ».
+
+**Fallback de continuation** : pour le joueur qui n'écrit rien et ne touche à rien, une affordance
+très discrète après **25 s** d'inactivité. À spécifier dans DESIGN.md en Phase 1.
+
+**Conséquence technique à ne pas rater** : un message décoratif n'existe pas côté serveur, donc
+`get-state` ne le renverra jamais. Pour qu'il reste à sa place dans le fil après redémarrage, il
+doit être **ancré au dernier `seq` serveur connu au moment de l'écriture**, et ré-intercalé au
+rechargement. Même stockage local que le curseur d'affichage (D4).
+
+### 🔴 D5 — Le typing fantôme du N19 *(arbitrage demandé par l'addendum)*
+
+Vers 45-50 s du grand silence : le typing apparaît 2 s puis disparaît, **sans qu'aucun message
+n'arrive**. L'addendum le désigne comme l'élément le plus important de la séquence. Le serveur n'a
+aucune notion de « faux typing ».
+
+| Option | Verdict |
+|---|---|
+| Heuristique client : tout `delay_seconds >= 60` déclenche un typing fantôme | ❌ S'appliquerait aussi au N11, N16, N17, N21. Un effet dramatique qui se produit cinq fois n'est plus un effet |
+| Message `system` invisible portant l'instruction | ⚠️ Surcharge un type qui signifie déjà « présence », et `body` est ailleurs du texte affiché |
+| **Deux colonnes de mise en scène sur `messages`** | ✅ **Recommandé** |
+
+**Proposition** : `messages.phantom_typing_at int` et `messages.haptic_at int` — des secondes
+**dans l'attente** portée par `delay_seconds`. Seedées uniquement là où le chapitre les demande :
+sur **N20#0** (le séparateur « 00h34 », qui porte les 90 s), `phantom_typing_at = 47`,
+`haptic_at = 60`.
+
+*Pourquoi* : explicite, greppable, vérifiable par script, et ça se généralise aux vraies attentes
+des chapitres 2-5 sans rien réinventer. Le coût est une petite migration + deux valeurs au seed.
+
+### 🔴 D6 — « vu 00h29 » : le client ne connaît pas l'heure de fiction *(découvert en intégrant l'addendum)*
+
+L'addendum veut un statut qui passe de « en ligne » à **« vu 00h29 »** puis « hors ligne ». Or
+`00h29` est une heure **de fiction** : le joueur joue à n'importe quelle heure réelle, et le client
+n'a aucun moyen de la déduire — les séparateurs donnent bien « 23h31 » et « 00h34 », mais
+l'intervalle entre les deux est une ellipse, pas du temps réel.
+
+**Proposition, sans schéma ni code : le message `system` porte déjà le libellé de présence.**
+Il suffit de seeder la séquence dans le contenu, là où elle appartient — remplacer l'unique
+`system` de N19#6 (« Léna est hors ligne ») par deux :
+
+1. `« Vu à 00h29 »` — à l'entrée du silence
+2. `« Léna est hors ligne »` — quelques secondes plus tard
+
+Le client se contente d'afficher le `body` du dernier `system` reçu comme sous-titre de l'en-tête.
+Aucune heure inventée côté client, aucune colonne de plus. **C'est une modification de contenu :
+elle a besoin de ton feu vert, et `chapitre-1-v2.md` devra être patché en même temps** (règle Q8).
+
+### En attente de ta réponse (inchangées)
+
+- **D3 — typing intermittent** : seuil `typing_seconds >= 15`, qui isole exactement N2#0 (40/40) et
+  N13#0 (50/50). Rafales ≈ 5 s visible / 3 s masqué.
+- **D4 — curseur d'affichage local** : le client retient le `seq` du dernier message affiché ;
+  au rechargement, tout ce qui précède est instantané, le reste se déroule. État de *présentation*,
+  pas de jeu — la vérité reste `get-state`.
+
+---
+
+## Questions ouvertes (prompt 1)
 
 *Aucune.* Q1→Q8 tranchées. Les décisions et leur raison sont dans MEMOIRE.md et ARCHITECTURE.md.
 
-## Phases
+## Phases — prompt 2 (app Flutter)
+
+- [x] **Phase 0 — Audit** : environnement, payloads réels confrontés au contrat, mapping
+      serveur → widget, 6 angles morts, décisions UI. ✅ validée.
+- [x] **Phase 1 — Squelette, modèles, client API** : projet Flutter, modèles depuis le contrat,
+      `EngineApi` (8 codes d'erreur, rejeu asymétrique, anti-double-tap), session anonyme vérifiée,
+      thème complet, **DESIGN.md rédigé**, 16 tests, app validée sur simulateur iOS.
+      ⏸ En attente de validation.
+- [ ] **Phase 2 — Écran de conversation** : fil (bulles, séparateurs, visionneuse zoomable, lecteur
+      audio réécoutable), moteur de déroulé temporel, zone de choix, bouton skip debug,
+      widget-tests sur le déroulé (ordre, timings, reprise).
+- [ ] **Phase 3 — Interactions cachées, liste, fin de chapitre** + recette manuelle des deux parties
+      sur émulateur.
+
+## Phases — prompt 1 (moteur) · terminé
 
 - [x] **Phase 0 — Audit** : environnement, lecture des 3 sources, audit croisé chapitre ↔ schéma,
       système documentaire. ✅ validée.
@@ -18,6 +112,14 @@
 - [x] **Phase 3 — Edge Functions** `get-state` et `advance` + `scripts/simulate-playthrough.py`
       (parcours « allié », « refus » avec test du plafond, branche N6, erreurs, idempotence,
       anti-spoiler). 51 contrôles, tous OK. ✅ **Prompt 1 terminé.**
+
+## Tests de l'app — `cd app && flutter test`
+
+16 tests. Ils tiennent lieu de **contrat exécutable** : les payloads viennent d'une capture réelle
+du moteur, donc un changement de forme côté serveur les fait tomber. Couvrent la désérialisation,
+la séparation réponses / interactions (protection de mécanique du N17), les 8 codes d'erreur, la
+politique de rejeu asymétrique (`choice_id` retenté, `continue` jamais), l'anti-double-tap et le
+seuil de typing intermittent.
 
 ## Vérification du graphe — `scripts/verify-graph.sql`
 
@@ -69,6 +171,13 @@ divergence entre la base et sa source de vérité. **58 = 58 actuellement.**
 
 À relancer après toute modification de `docs/chapitre-1-v2.md` ou du seed.
 
+## ✍️ Contenu manquant (Vivien) — pour le prompt 4
+
+- [ ] **`push_text` absent sur 5 des 6 messages à notification.** Seul le N11 en a un
+      (« Léna : 1 nouveau message »). Les N4, N6, N14, N19 et N20 ont `push_notification = true`
+      mais `push_text = null`. Sans texte, les notifications locales du prompt 4 devront se replier
+      sur un libellé générique — ce qui gâche l'effet, surtout au N19 (« il sort »).
+
 ## 🎬 Médias à produire (Vivien) — 4 fichiers
 
 Seedés en `placeholder://…`, à remplacer par des URL de bucket Storage.
@@ -91,7 +200,8 @@ Seedés en `placeholder://…`, à remplacer par des URL de bucket Storage.
 - [ ] **`supabase db reset` finit sur une erreur 502** : imgproxy et pooler ne démarrent pas.
       Sans impact aujourd'hui (base, API, auth, Edge Functions tournent, la migration s'applique).
       À traiter quand le Storage d'images servira (production des médias).
-- [ ] Mettre à jour la CLI Supabase (v2.75.0 → v2.114.0) avant de figer le format des migrations ?
+- [x] ~~Mettre à jour la CLI Supabase~~ — fait (2.75.0 → **2.114.0**), sous la contrainte : la 2.75
+      ne savait plus valider les jetons ES256 émis par sa propre auth.
 - [ ] Lier le projet au Supabase distant : `supabase link --project-ref eszsdfbalmpnpefnvnsh`.
       Tout est local pour l'instant ; le distant est vide. À faire avant de pousser la migration
       (`supabase db push`), pas avant.
@@ -106,6 +216,31 @@ Seedés en `placeholder://…`, à remplacer par des URL de bucket Storage.
 - [ ] **N19 « Léna est hors ligne »** : modélisable en `content_type='system'`. À confirmer au seed.
 - [ ] Durée du silence du N19 (60 s puis 90 s) : « paramétrable en base pour tes tests » — c'est
       `delay_seconds`, à ajuster au ressenti après le prompt 2.
+
+## Mapping serveur → widget (établi en Phase 0 du prompt 2)
+
+| Ce que renvoie le serveur | Widget | Note |
+|---|---|---|
+| `content_type: 'text'`, `sender: 'contact'` | Bulle gauche | |
+| `content_type: 'text'`, `sender: 'player'` | Bulle droite, couleur d'accent | |
+| `content_type: 'separator'` | Pastille centrée, `body` tel quel (« 23h31 ») | Jamais reformaté côté client |
+| `content_type: 'image'` | Miniature dans le fil → visionneuse plein écran zoomable | Le zoom est une **mécanique de jeu** |
+| `content_type: 'audio'` | Lecteur inline réécoutable | La réécoute est une **interaction cachée** |
+| `content_type: 'system'` **+ nœud `chapter_end`** | **Écran de fin plein écran** | Sort du fil |
+| `content_type: 'system'` (autre) | **Sous-titre de présence** de l'en-tête — le `body` EST le libellé affiché | Jamais une bulle |
+| `media_url` en `placeholder://…` | Cartouche de remplacement lisible | Les médias réels n'existent pas encore |
+| `choices[].kind: 'reply'` | Bouton de réponse | |
+| `choices[].kind: 'ignore'` | Bouton effacé, visuellement distinct | Vrai choix, jamais un timeout |
+| `choices[].kind: 'interaction'` | **Jamais un bouton** — un geste (tap média, réécoute, « + » discret) | Le `label` peut être un spoiler (N17) |
+| `awaiting_interaction: true` | Aucune zone de choix — champ de saisie en mode `continuation` | Écrire fait avancer |
+| `can_continue: true` | Autorise `advance {continue:true}` | |
+| `ai_moment_pending: true` | Champ en mode `ai_input` — **apparence strictement identique** aux deux autres modes | Traversé par `continue` en attendant le prompt 3 |
+| `chapter_end` non nul | Écran 3 + compte à rebours décoratif | Seul le serveur débloque |
+
+**Cas non couverts par le contrat**, à traiter côté client : le retour « en ligne » (jamais
+annoncé, déduit de l'arrivée d'un message) · les **messages décoratifs**, qui n'existent que
+localement et doivent être ancrés à un `seq` serveur pour rester à leur place · le repli de `push_text` quand il est `null`
+(5 messages sur 6 — prompt 4) · le fait que `seq` soit un ordinal **global** et non un index.
 
 ## Prochaine session — prompt 2 (app Flutter)
 

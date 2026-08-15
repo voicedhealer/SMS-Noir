@@ -4,7 +4,139 @@
 
 ---
 
-## 2026-08-14 (5/5) — Phase 3 (Edge Functions) : **TERMINÉE, en attente de validation**
+## 2026-08-14 (7) — PROMPT 2, Phase 1 (squelette, modèles, client API) : **TERMINÉE, en attente de validation**
+
+### Ce qui existe
+
+`app/` — projet Flutter 3.41.9, Riverpod, arborescence `config / models / services / providers /
+theme / screens / widgets`. Modèles typés depuis le **contrat**, client API avec les 8 codes
+d'erreur, session anonyme, thème sombre complet, **DESIGN.md rédigé** (il n'était qu'un squelette).
+16 tests unitaires verts, `flutter analyze` propre, app lancée et vérifiée sur simulateur iOS.
+
+### Trois vrais bugs trouvés, dont deux invisibles autrement
+
+1. **Accents corrompus (UTF-8).** Un test a échoué sur « Numéro » : sans `charset` dans le
+   `Content-Type`, le paquet `http` de Dart décode en **latin1**. En production « Léna » se serait
+   affichée « LÃ©na » — dans TOUT le contenu du jeu. Corrigé des deux côtés : `charset=utf-8`
+   côté serveur, et `utf8.decode(bodyBytes)` côté client pour ne dépendre de personne.
+2. **GRANT manquants après mise à jour de la CLI.** Les privilèges par défaut du rôle `postgres`
+   n'accordent pas `SELECT` aux rôles API : les tables devenaient illisibles **même en
+   `service_role`** (erreur 42501), donc les Edge Functions ne voyaient plus l'histoire. Migration
+   `explicit_grants` : le schéma déclare désormais lui-même qui a droit à quoi. Bénéfice de bord —
+   le contenu narratif est maintenant refusé *avant* la RLS, deux verrous au lieu d'un.
+3. **Session persistée invalide.** Après régénération des clés, l'app restaurait une session signée
+   par une paire que le serveur ne reconnaissait plus, et affichait une erreur au lancement.
+   `sessionProvider` **vérifie** désormais la session avant de s'en servir, la rafraîchit si elle a
+   expiré, et repart sur une connexion anonyme propre si elle est morte. Cas réel, pas artefact.
+
+### La mise à jour de CLI n'était pas optionnelle
+
+`supabase stop` / `start` a régénéré les clés de signature en **ES256** (asymétriques). La CLI 2.75
+ne savait pas les valider : sa propre passerelle rejetait les jetons émis par sa propre auth
+(`{"msg":"Invalid JWT"}`). Passage en **2.114.0**. À retenir : sur cette pile, un redémarrage peut
+changer le format des jetons — si tout tombe en 401 d'un coup, regarder l'`alg` du JWT avant de
+chercher ailleurs.
+
+### Décisions de conception
+
+- **Riverpod** : l'état de jeu est asynchrone, dérivé et invalidé en bloc à chaque
+  resynchronisation. `FutureProvider` + `invalidate` dit exactement ça.
+- **`EngineApi` prend un fournisseur de jeton, pas un `SupabaseClient`** : testable sans initialiser
+  toute la pile.
+- **Politique de rejeu asymétrique** : un `choice_id` est retenté (le serveur est idempotent
+  dessus), **`continue` ne l'est jamais** — le serveur n'a pas de clé d'idempotence pour lui, et un
+  rejeu ferait avancer deux fois. En cas d'échec, on resynchronise sur `get-state`.
+- **Anti-double-tap** dans le service : deux appels concurrents partagent le même `Future`.
+- **Aucune police embarquée** : SF Pro / Roboto système. C'est ce qui vend l'illusion.
+
+### Prochaine étape
+
+Validation → **Phase 2** : écran de conversation, moteur de déroulé temporel, zone de choix,
+bouton skip debug, widget-tests sur le déroulé.
+D5 (typing fantôme) et D6 (« vu 00h29 ») restent en attente d'arbitrage — ni l'une ni l'autre ne
+bloquait la Phase 1.
+
+---
+
+## 2026-08-14 (6) — PROMPT 2, Phase 0 (audit app Flutter) : **TERMINÉE, validée**
+
+### Environnement
+
+Flutter **3.41.9** stable / Dart 3.11.5 · Xcode **26.6** · Android SDK **36.1.0** · 2 émulateurs
+(iOS Simulator, Medium Phone API 36.1) · `flutter doctor` tout vert. Stack Supabase et Edge
+Functions actives en local (`get-state` répond 401 sans jeton : normal).
+
+🔴 **`enable_anonymous_sign_ins = false`** dans `supabase/config.toml`. L'auth anonyme est le choix
+retenu pour le MVP : à activer en Phase 1.
+
+### Le contrat correspond à la réalité
+
+Les payloads de `get-state` et `advance` ont été capturés sur une partie réelle et confrontés à
+LOGIQUE.md § Contrat : **conforme**, y compris les cas particuliers (image, audio, séparateur,
+system, `awaiting_interaction`, `ai_moment_pending`, `chapter_end`). Aucun `next_node_id`,
+`effects`, `conditions` ni variable ne transite.
+
+### Six écarts / angles morts relevés
+
+1. **Reprise après arrière-plan — le vrai trou.** Le serveur écrit *tous* les messages d'un nœud
+   dès son entrée. `get-state` ne dit donc pas où le client s'était arrêté d'afficher : si l'app
+   meurt pendant les 90 s du N19, la réouverture fait apparaître la fin du nœud d'un bloc.
+   `player_progress.current_message_position` existe dans le schéma mais n'a jamais été utilisé.
+   → Décision D4, ci-dessous.
+2. **Les interactions arrivent dans le même tableau `choices` que les réponses.** Au N17, le label
+   de l'interaction est `« C'est quoi ce bruit derrière vous ? »` : l'afficher comme un bouton
+   **donnerait l'indice gratuitement**. Le client doit impérativement filtrer sur `kind`.
+3. **Deux natures de `label` pour `kind='interaction'`** : un geste (« Zoomer sur l'autocollant »,
+   jamais affiché) ou une réplique du joueur (« C'est quoi ce bruit… », affichée seulement après
+   la réécoute). Le client ne peut pas les distinguer par le contrat — il les traite par nœud.
+4. **`system` n'est jamais une bulle**, et recouvre deux choses : présence (« Léna est hors ligne »,
+   N19) et écran de fin (N22#4). Règle proposée : `system` + `node.kind == 'chapter_end'` → plein
+   écran, sinon → statut de présence.
+5. **`push_notification: true` avec `push_text: null` sur 5 des 6 messages concernés** (seul le N11
+   a un texte). Un repli sera nécessaire au prompt 4.
+6. **`seq` est un `bigserial` global**, partagé entre tous les joueurs (observé : 1 → 319 sur
+   6 parties). C'est un ordinal croissant opaque, **pas** un index de message : ne jamais s'en
+   servir pour calculer une position.
+
+### Signal exploitable trouvé en base
+
+Le typing intermittent n'a pas besoin d'un nouveau champ : **`typing_seconds >= 15` isole
+exactement N2#0 (40/40) et N13#0 (50/50)**, les deux hésitations décrites par le chapitre. Partout
+ailleurs `typing_seconds = 3`.
+
+### Décisions UI
+
+Vivien a fourni un **addendum** (`docs/prompts/addenum-au -prompt-2.md`) qui tranche D1 et D2 d'un
+seul geste : le **champ de saisie toujours actif**, avec trois modes visuellement identiques
+(`decorative` / `continuation` / `ai_input`). Écrire n'importe quoi fait avancer un nœud en pause —
+donc aucun bouton « continuer », donc rien qui trahisse l'existence d'une interaction cachée.
+Ma proposition d'auto-continuation temporisée survit uniquement comme **fallback** (25 s) pour le
+joueur qui ne touche à rien.
+
+Le mode se déduit entièrement du contrat serveur : le client n'a toujours aucune connaissance du
+graphe.
+
+Restent **quatre points ouverts** (TODO.md § Décisions UI) : D3 (typing intermittent),
+D4 (curseur d'affichage local), et deux soulevés par l'intégration de l'addendum —
+**D5** (mécanisme du typing fantôme, arbitrage explicitement demandé) et **D6** (« vu 00h29 » est
+une heure de fiction que le client ne peut pas connaître).
+
+### Deux conséquences techniques de l'addendum, faciles à rater
+
+- **Un message décoratif n'existe pas côté serveur.** `get-state` ne le renverra jamais : pour
+  qu'il reste à sa place dans le fil après redémarrage, il doit être **ancré au dernier `seq`
+  serveur connu** au moment de l'écriture, puis ré-intercalé. Même stockage local que D4.
+- **Ces textes libres ne quittent jamais l'appareil.** C'est bon pour le RGPD, et ça vaut aussi au
+  prompt 3 : `ai-chat` ne doit recevoir que la saisie du mode `ai_input`, jamais l'historique
+  décoratif — le serveur ne le connaît pas, il ne doit pas se mettre à le connaître.
+
+### Prochaine étape
+
+Validation des 4 décisions → **Phase 1** : projet Flutter, modèles, client API, thème, DESIGN.md.
+
+---
+
+## 2026-08-14 (5/5) — Phase 3 (Edge Functions) : **TERMINÉE, validée** (commit `6097b0f`)
 
 ### Ce qui a été fait
 

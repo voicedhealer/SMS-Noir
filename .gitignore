@@ -1,1 +1,9 @@
 .DS_Store
+
+# Flutter
+app/build/
+app/.dart_tool/
+app/ios/Pods/
+app/ios/.symlinks/
+app/ios/Flutter/Flutter.podspec
+app/.flutter-plugins-dependencies

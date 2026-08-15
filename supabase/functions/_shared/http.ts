@@ -9,7 +9,9 @@ export const CORS = {
 export function json(corps: unknown, status = 200): Response {
   return new Response(JSON.stringify(corps), {
     status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
+    // charset explicite : sans lui, certains clients HTTP (dont le paquet
+    // `http` de Dart) décodent en latin1 et massacrent les accents.
+    headers: { ...CORS, 'Content-Type': 'application/json; charset=utf-8' },
   })
 }
 
