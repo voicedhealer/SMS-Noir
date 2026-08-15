@@ -71,6 +71,19 @@ class ClientMessage {
   /// Le média n'a pas encore été produit (`placeholder://…` en base).
   bool get isPlaceholderMedia => mediaUrl?.startsWith('placeholder://') ?? false;
 
+  /// URL téléchargeable du média.
+  ///
+  /// Le serveur renvoie un **chemin signé relatif** (`/storage/v1/object/sign/…`)
+  /// plutôt qu'une URL absolue : il se signerait lui-même sur son hôte interne,
+  /// que l'appareil ne sait pas résoudre. Le client préfixe avec sa propre base,
+  /// ce qui règle du même coup le 10.0.2.2 de l'émulateur Android.
+  String? urlAbsolue(String base) {
+    final u = mediaUrl;
+    if (u == null || isPlaceholderMedia) return null;
+    if (u.startsWith('http')) return u;
+    return '$base$u';
+  }
+
   /// Marque de contenu d'une hésitation visible (N2, N13) : le typing doit
   /// être joué en rafales et non en continu. Convention documentée dans
   /// docs/LOGIQUE.md § Convention de contenu : typing intermittent.

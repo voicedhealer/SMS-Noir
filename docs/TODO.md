@@ -193,20 +193,22 @@ divergence entre la base et sa source de vérité. **58 = 58 actuellement.**
 
 ## 🎬 Médias à produire (Vivien) — 4 fichiers
 
-Seedés en `placeholder://…`, à remplacer par des URL de bucket Storage.
+**Toute la chaîne technique est prête et testée.** Il ne manque que les fichiers :
 
-- [ ] `placeholder://photo-N10-recepisse` — **N10** · capture d'un récépissé de main courante,
-      tampon « sans suite ». ⚠️ **La date doit être celle d'il y a 2 mois** alors que Léna dit
-      chercher depuis 7 mois — *incohérence volontaire, lisible au zoom, ne pas « corriger »*.
-- [ ] `placeholder://photo-N16-plaque` — **N16** · photo sombre, arrière d'une berline grise, plaque
-      partielle « …-843-… », **autocollant « SENTINEL PRO — Gardiennage & Sûreté » lisible au zoom**.
-- [ ] `placeholder://audio-N17-reperage` — **N17** · 🎙 **SCRIPT TTS n°1 « Repérage »**, 24 s, voix
-      jeune femme chuchotée, tendue, souffle court, débit irrégulier. Texte exact dans
-      `chapitre-1-v2.md` §N17. ⚠️ **Mixer un jingle de radio très faible en fond** — c'est l'indice
-      de l'incohérence audio, **ne pas nettoyer l'audio**.
-- [ ] `placeholder://photo-N21-porteclés` — **N21** · photo floue d'intérieur : établi, cartons, et
-      au mur un trousseau avec porte-clés artisanal (deux silhouettes gravées main). ⚠️ **Au zoom,
-      en arrière-plan sur l'établi : un téléphone à coque rose, écran fissuré.**
+1. Déposer les quatre fichiers dans `media/` — noms exacts, specs et pièges de production
+   dans **`media/README.md`**.
+2. `scripts/upload-media.sh` — téléverse dans le bucket, remplace les `placeholder://`, affiche
+   l'état. Rejouable, et accepte les fichiers **un par un**.
+
+- [ ] `photo-N10-recepisse` — date d'il y a 2 mois (incohérence volontaire)
+- [ ] `photo-N16-plaque` — macaron « SENTINEL PRO » lisible au zoom
+- [ ] `photo-N21-porte-cles` — silhouettes gravées + téléphone à coque rose au zoom
+- [ ] `audio-N17-reperage` — script TTS n° 1, **fond radio à ne pas nettoyer**
+
+⚠️ **Lisibilité au zoom** : ≥ 2400 px sur le côté long pour N16 et N21, et surtout le détail doit
+occuper **≥ 15 % de la largeur** du cadre. La visionneuse plafonne à 5× — elle grossit, elle
+n'invente pas. À vérifier **sur un téléphone**, pas sur un écran d'ordinateur.
+
 
 ## Confort / plus tard
 

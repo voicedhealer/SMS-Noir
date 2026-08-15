@@ -205,6 +205,30 @@ recale l'horloge, si bien qu'une dérive ne peut jamais s'accumuler au-delà d'u
 Quand un chapitre a besoin d'une heure précise à un instant donné, il lui suffit de poser un
 séparateur : le mécanisme existe déjà, c'est celui des ellipses.
 
+## Les médias : bucket privé et URLs signées
+
+Le bucket `media` est **privé**. Un bucket public exposerait des objets aux noms
+parfaitement devinables — `photo-N21-porte-cles.jpg` livrerait la révélation de fin de chapitre à
+quiconque tape l'URL. Ce serait le seul trou dans une architecture entièrement bâtie sur
+l'anti-spoiler.
+
+| | |
+|---|---|
+| En base | `messages.media_url` contient un **chemin d'objet** (`photo-N16-plaque.jpg`), ou `placeholder://…` tant que le fichier n'existe pas |
+| Dans la réponse | Un **chemin signé relatif** : `/storage/v1/object/sign/media/…?token=…`, valable 6 h |
+| Côté client | Le client préfixe avec sa propre base Supabase |
+
+**Pourquoi un chemin relatif et non une URL absolue** : à l'intérieur du réseau Docker, Supabase se
+signe lui-même sur `http://kong:8000`, un hôte que ni un téléphone ni un émulateur ne sait résoudre.
+Laisser le client préfixer règle aussi, gratuitement, le cas du `10.0.2.2` de l'émulateur Android.
+
+**Seuls les médias déjà reçus sont signés** : la signature se fait au moment de construire la
+réponse, sur les messages de l'historique et de la salve courante. Le contenu à venir reste
+inatteignable, comme le reste du graphe.
+
+Un média illisible ne fait jamais tomber la conversation : le client retombe sur son cartouche de
+repli, celui des `placeholder://`.
+
 ## Contraintes client *(prompt 2)*
 
 **Le client n'écrit jamais en base. L'état vient toujours de `get-state`.**

@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-08-15 (2) — Chaîne des médias : bucket, upload, URLs signées
+
+Préparée pendant que Vivien produit les fichiers. **Testée de bout en bout avec des fichiers
+factices**, puis placeholders restaurés — il n'y aura qu'à déposer les vrais et lancer une commande.
+
+- Migration `media_bucket` : bucket **privé**. Un bucket public aurait exposé
+  `photo-N21-porte-cles.jpg` — la révélation de fin de chapitre — à qui tape l'URL. C'eût été le
+  seul trou dans une architecture entièrement bâtie sur l'anti-spoiler.
+- `messages.media_url` stocke un **chemin d'objet** ; les Edge Functions le signent (6 h) au moment
+  de répondre, et uniquement pour les messages déjà reçus.
+- `scripts/upload-media.sh` : téléverse et remplace les placeholders. Rejouable, tolère les fichiers
+  livrés un par un.
+- `media/README.md` : specs, pièges de production, et la contrainte de lisibilité au zoom.
+
+### Deux pièges trouvés en testant
+
+1. **Le délimiteur `:` de mon tableau bash entrait en collision avec le `://` du placeholder** :
+   `${entree%%:*}` renvoyait `placeholder`, l'update ne matchait rien, et les uploads réussissaient
+   quand même — un échec parfaitement silencieux. Le placeholder se déduit désormais du nom de base.
+2. **Supabase se signe lui-même sur `http://kong:8000`**, son hôte interne : l'URL était valide et
+   inutilisable depuis un téléphone. Le serveur renvoie maintenant un **chemin relatif**, que le
+   client préfixe avec sa propre base — ce qui règle du même coup le `10.0.2.2` de l'émulateur.
+
+Vérifié : chemin signé téléchargeable depuis la base client (HTTP 200), et refusé sans jeton
+(HTTP 400) — le bucket est bien privé.
+
+---
+
 ## 2026-08-15 — PROMPT 2, Phase 2 (écran de conversation) : **TERMINÉE, en attente de validation**
 
 D5 et D6 validées. Deux colonnes `phantom_typing_at` / `haptic_at` en base, seedées sur N20#0 (45 et

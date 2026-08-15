@@ -330,7 +330,7 @@ export async function entrerDansNoeud(
 
   return {
     progression: { ...progression, current_node_id: courant, variables: vars, chapter_unlocked_at: unlockedAt },
-    messages,
+    messages: await signerMedias(db, messages),
   }
 }
 
@@ -461,6 +461,64 @@ export async function contactDuNoeud(db: SupabaseClient, nodeId: string): Promis
   throw new ErreurMoteur(500, 'fil_indetermine', `Le nœud ${nodeId} n'a aucun message : fil inconnu`)
 }
 
+/**
+ * Transforme les chemins d'objets en URLs signées.
+ *
+ * Le bucket est privé : `messages.media_url` contient un chemin
+ * (« photo-N16-plaque.jpg »), pas une URL. On ne signe que les médias des
+ * messages que le joueur a **déjà reçus** — le contenu à venir reste
+ * inatteignable, comme le reste du graphe.
+ *
+ * Les placeholders (`placeholder://…`) traversent tels quels : le client sait
+ * les reconnaître et affiche un cartouche de repli.
+ */
+async function signerMedias<T extends { media_url: string | null }>(
+  db: SupabaseClient,
+  messages: T[],
+): Promise<T[]> {
+  const chemins = [...new Set(
+    messages
+      .map((m) => m.media_url)
+      .filter((u): u is string => !!u && !u.startsWith('placeholder://')),
+  )]
+  if (chemins.length === 0) return messages
+
+  const { data, error } = await db.storage
+    .from('media')
+    .createSignedUrls(chemins, DUREE_URL_SIGNEE)
+  if (error) {
+    // Un média illisible ne doit pas faire tomber toute la conversation :
+    // le client retombera sur son cartouche de repli.
+    console.error('Signature des médias impossible :', error.message)
+    return messages
+  }
+
+  // On ne renvoie que le CHEMIN signé, pas une URL absolue : à l'intérieur du
+  // réseau Docker, Supabase se signe lui-même sur « http://kong:8000 », un
+  // hôte que ni un téléphone ni un émulateur ne sait résoudre. Le client
+  // préfixe avec sa propre base — ce qui règle aussi, gratuitement, le cas de
+  // l'émulateur Android et de son 10.0.2.2.
+  const parChemin = new Map(
+    (data ?? [])
+      .filter((d) => d.signedUrl)
+      .map((d) => [d.path ?? '', relativiser(d.signedUrl!)]),
+  )
+  return messages.map((m) =>
+    m.media_url && parChemin.has(m.media_url)
+      ? { ...m, media_url: parChemin.get(m.media_url)! }
+      : m
+  )
+}
+
+/** « http://kong:8000/storage/v1/… » -> « /storage/v1/… ». */
+function relativiser(url: string): string {
+  const i = url.indexOf('/storage/v1/')
+  return i === -1 ? url : url.slice(i)
+}
+
+/** Assez long pour une session de jeu, assez court pour ne pas circuler. */
+const DUREE_URL_SIGNEE = 60 * 60 * 6 // 6 h
+
 export async function historique(
   db: SupabaseClient, progressId: string,
 ): Promise<MessageEcrit[]> {
@@ -471,7 +529,7 @@ export async function historique(
   if (error) throw new ErreurMoteur(500, 'erreur_base', error.message)
 
   // L'historique se rejoue instantanément : pas de re-timing de ce qui a déjà été vu.
-  return (data ?? []).map((m) => ({
+  const messages = (data ?? []).map((m) => ({
     seq: Number(m.seq),
     contact_id: m.contact_id,
     sender: m.sender,
@@ -485,6 +543,7 @@ export async function historique(
     phantom_typing_at: null,
     haptic_at: null,
   }))
+  return await signerMedias(db, messages)
 }
 
-export { chargerChoix, evaluerConditions, appliquerEffects, appliquerPlafonds }
+export { chargerChoix, signerMedias, evaluerConditions, appliquerEffects, appliquerPlafonds }

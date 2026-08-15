@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../config/env.dart';
 import '../models/client_message.dart';
 import '../theme/tokens.dart';
 
@@ -147,7 +148,14 @@ class PhotoBubble extends StatelessWidget {
               width: largeurMax,
               child: message.isPlaceholderMedia
                   ? const MediaPlaceholder(type: ContentType.image)
-                  : Image.network(message.mediaUrl!, fit: BoxFit.cover),
+                  : Image.network(
+                      message.urlAbsolue(Env.supabaseUrl)!,
+                      fit: BoxFit.cover,
+                      // Un média illisible ne casse pas le fil : on retombe sur
+                      // le cartouche, comme pour un placeholder.
+                      errorBuilder: (_, _, _) =>
+                          const MediaPlaceholder(type: ContentType.image),
+                    ),
             ),
           ),
         ),
@@ -197,7 +205,13 @@ class PhotoViewer extends StatelessWidget {
                   padding: EdgeInsets.all(AppSpacing.xxl),
                   child: MediaPlaceholder(type: ContentType.image, hauteur: 320),
                 )
-              : Image.network(message.mediaUrl!),
+              : Image.network(
+                  message.urlAbsolue(Env.supabaseUrl)!,
+                  errorBuilder: (_, _, _) => const Padding(
+                    padding: EdgeInsets.all(AppSpacing.xxl),
+                    child: MediaPlaceholder(type: ContentType.image, hauteur: 320),
+                  ),
+                ),
         ),
       ),
     );

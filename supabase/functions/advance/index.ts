@@ -31,6 +31,7 @@ import {
   evaluerConditions,
   type MessageEcrit,
   type Progression,
+  signerMedias,
   utilisateurCourant,
 } from '../_shared/moteur.ts'
 import type { AdvanceResponse } from '../_shared/types.ts'
@@ -164,7 +165,8 @@ async function appliquerChoix(
     messages.push(...apres.messages)
   } else {
     // Interaction sur place : le nœud courant ne change pas.
-    messages.push(...await ecrireInlineResponse(db, progression.id, contact, choix.inline_response))
+    messages.push(...await signerMedias(
+      db, await ecrireInlineResponse(db, progression.id, contact, choix.inline_response)))
     const { error } = await db.from('player_progress')
       .update({ variables: vars }).eq('id', progression.id)
     if (error) throw new ErreurMoteur(500, 'maj_impossible', error.message)
@@ -207,7 +209,7 @@ async function messagesDuDernierCoup(
     .order('seq')
   if (error) throw new ErreurMoteur(500, 'erreur_base', error.message)
 
-  return (data ?? []).map((m) => ({
+  const messages = (data ?? []).map((m) => ({
     seq: Number(m.seq),
     contact_id: m.contact_id,
     sender: m.sender,
@@ -222,4 +224,5 @@ async function messagesDuDernierCoup(
     phantom_typing_at: null,
     haptic_at: null,
   }))
+  return await signerMedias(db, messages)
 }
