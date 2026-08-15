@@ -265,6 +265,15 @@ join chapters c  on c.story_id = s.id and c.position = 1
 join nodes    n  on n.chapter_id = c.id and n.code = v.node
 join contacts ct on ct.story_id = s.id and ct.code = 'lena';
 
+-- Mise en scène du grand silence (90 s, le plus long du chapitre), porté par le
+-- séparateur « 00h34 ». Offsets en secondes DEPUIS LE DÉBUT de ce délai :
+-- faux typing à 45 s (2 s puis extinction, sans message), vibration à 60 s.
+update messages m set phantom_typing_at = 45, haptic_at = 60
+from nodes n, chapters c, stories s
+where m.node_id = n.id and n.chapter_id = c.id and c.story_id = s.id
+  and s.slug = 'numero-inconnu' and c.position = 1
+  and n.code = 'N20' and m.position = 0;
+
 -- ---------------------------------------------------------------------------
 -- CHOIX
 --   kind='reply'       -> réponse affichée

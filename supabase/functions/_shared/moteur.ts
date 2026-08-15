@@ -182,6 +182,8 @@ interface AEcrire {
   typing_seconds: number
   push_notification: boolean
   push_text: string | null
+  phantom_typing_at: number | null
+  haptic_at: number | null
 }
 
 /**
@@ -218,6 +220,8 @@ async function ecrire(db: SupabaseClient, progressId: string, lignes: AEcrire[])
     typing_seconds: lignes[i].typing_seconds,
     push_notification: lignes[i].push_notification,
     push_text: lignes[i].push_text,
+    phantom_typing_at: lignes[i].phantom_typing_at,
+    haptic_at: lignes[i].haptic_at,
   }))
 }
 
@@ -232,6 +236,7 @@ export async function ecrireMessageJoueur(
     contact_id: contactId, sender: 'player', content_type: 'text', body: texte,
     media_url: null, source, delay_seconds: 0, typing_seconds: 0,
     push_notification: false, push_text: null,
+    phantom_typing_at: null, haptic_at: null,
   }])
 }
 
@@ -254,6 +259,8 @@ export async function ecrireInlineResponse(
     typing_seconds: m.typing_seconds ?? 0,
     push_notification: false,
     push_text: null,
+    phantom_typing_at: null,
+    haptic_at: null,
   }))
   return await ecrire(db, progressId, lignes)
 }
@@ -332,7 +339,7 @@ async function ecrireMessagesDuNoeud(
 ): Promise<MessageEcrit[]> {
   const { data, error } = await db
     .from('messages')
-    .select('position, contact_id, content_type, body, media_url, delay_seconds, typing_seconds, push_notification, push_text')
+    .select('position, contact_id, content_type, body, media_url, delay_seconds, typing_seconds, push_notification, push_text, phantom_typing_at, haptic_at')
     .eq('node_id', nodeId).order('position')
   if (error) throw new ErreurMoteur(500, 'erreur_base', error.message)
 
@@ -347,6 +354,8 @@ async function ecrireMessagesDuNoeud(
     typing_seconds: m.typing_seconds,
     push_notification: m.push_notification,
     push_text: m.push_text,
+    phantom_typing_at: m.phantom_typing_at,
+    haptic_at: m.haptic_at,
   })))
 }
 
@@ -473,6 +482,8 @@ export async function historique(
     typing_seconds: 0,
     push_notification: false,
     push_text: null,
+    phantom_typing_at: null,
+    haptic_at: null,
   }))
 }
 

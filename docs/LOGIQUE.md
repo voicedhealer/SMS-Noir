@@ -132,6 +132,79 @@ l'état normal d'un nœud « en pause sur interaction ».
 6. **Idempotence** : rejouer `advance` avec le même `choice_id` depuis le même nœud ne doit pas
    appliquer les `effects` deux fois (voir § Interactions à usage unique).
 
+## Convention de contenu : typing intermittent
+
+Un `typing_seconds >= 15` **est la marque, dans le contenu, d'une hésitation visible** : le client
+joue alors l'indicateur en rafales (≈ 5 s visible / 3 s masqué, en boucle) au lieu d'un affichage
+continu. En dessous du seuil, affichage continu.
+
+Au chapitre 1, le seuil isole exactement **N2#0** (40/40, « en train d'écrire » qui apparaît et
+disparaît deux fois) et **N13#0** (50/50, hésitation par à-coups). Partout ailleurs
+`typing_seconds = 3`.
+
+⚠️ **C'est une convention de contenu, pas un réglage technique.** Un chapitre futur qui écrirait
+`typing_seconds = 20` pour de simples raisons de rythme déclencherait une hésitation dramatique
+sans le vouloir. Au-dessus de 15 s, le typing *raconte* quelque chose.
+
+## Mise en scène d'une attente : `phantom_typing_at` et `haptic_at`
+
+Certaines attentes ne sont pas du temps mort, ce sont des scènes. Deux colonnes de `messages`
+permettent d'y placer des battements :
+
+| Colonne | Effet |
+|---|---|
+| `phantom_typing_at` | Un **faux** « en train d'écrire » apparaît, dure **2 s**, puis s'éteint **sans qu'aucun message n'arrive** |
+| `haptic_at` | Vibration discrète unique, **sans notification** |
+
+**Sémantique — la seule chose à ne pas se tromper** : les deux valeurs sont des **offsets en
+secondes depuis le DÉBUT du délai du message qui les porte**. Ni depuis le début du nœud, ni depuis
+la fin de l'attente. Une contrainte en base refuse toute valeur `>= delay_seconds` : un battement
+hors de son attente ne se produirait jamais.
+
+La durée de 2 s du faux typing est une **constante du client**, pas une donnée de contenu.
+
+**Chapitre 1** — un seul usage, le grand silence du N19 (90 s, le plus long). Il est porté par le
+séparateur « 00h34 » du **N20#0** : `phantom_typing_at = 45`, `haptic_at = 60`.
+
+*Pourquoi pas une heuristique client (« tout délai > 60 s »)* : elle frapperait aussi N11, N16, N17
+et N21. Un effet dramatique qui se produit cinq fois n'en est plus un.
+
+## Le temps de fiction
+
+**Aucun horodatage affiché ne vient de l'horloge système.** Ni le « vu », ni les bulles, ni le
+dernier message de la liste des conversations. Un joueur qui joue à 14 h verrait « vu 14h12 » deux
+lignes sous un séparateur « 00h29 », et l'illusion tomberait.
+
+**Seule exception : le compte à rebours de fin de chapitre**, qui est du temps réel — c'est une
+attente réelle, pas une heure d'histoire.
+
+### Le mécanisme : une horloge ancrée sur les séparateurs
+
+Le client dérive l'heure de fiction **sans aucune donnée supplémentaire** :
+
+1. Chaque `separator` porte une heure de fiction dans son `body` (« 23h31 », « jeudi — 22h47 »).
+   Il **réancre** l'horloge.
+2. Chaque message suivant avance l'horloge de son propre `delay_seconds`.
+3. L'heure de fiction d'un message est celle de l'horloge à son affichage.
+
+```
+séparateur « 23h31 »            -> ancre  = 23h31
+  message  delay 4              -> 23h31
+  image    delay 60             -> 23h32
+  texte    delay 4              -> 23h32
+  « il sort »       delay 60    -> 23h33
+  … « merde »       delay 2     -> 23h34   <- « vu 23h34 » pendant le silence
+séparateur « 00h34 »            -> réancre = 00h34
+```
+
+**Pourquoi cette solution plutôt qu'une colonne `fiction_time` par message** : zéro coût de contenu,
+zéro valeur à oublier au chapitre 3, et surtout **déterministe** — elle ne dépend d'aucune horloge,
+donc elle donne le même résultat au premier affichage et après un rechargement. Chaque séparateur
+recale l'horloge, si bien qu'une dérive ne peut jamais s'accumuler au-delà d'une ellipse.
+
+Quand un chapitre a besoin d'une heure précise à un instant donné, il lui suffit de poser un
+séparateur : le mécanisme existe déjà, c'est celui des ellipses.
+
 ## Contraintes client *(prompt 2)*
 
 **Le client n'écrit jamais en base. L'état vient toujours de `get-state`.**

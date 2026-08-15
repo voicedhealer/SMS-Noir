@@ -1,7 +1,8 @@
 # DESIGN.md — l'application
 
-> **Statut au 2026-08-14 : Phase 1 du prompt 2.** Le thème et les jetons existent
-> (`app/lib/theme/`). Les composants sont spécifiés ici ; ils seront construits en Phase 2 et 3.
+> **Statut : Phase 2 du prompt 2 terminée.** L'écran de conversation existe et tourne
+> (`app/lib/screens/conversation_screen.dart`, `app/lib/widgets/`). Restent à construire en Phase 3 :
+> les interactions cachées, la liste des conversations et l'écran de fin.
 > Ce document doit permettre de reconstruire l'UI sans son auteur.
 
 ## Le principe qui gouverne tout
@@ -88,6 +89,18 @@ Rien de gratuit. Trois seulement :
 Pas de transition de page élaborée, pas de rebond, pas de parallaxe.
 
 ---
+
+## Les horodatages sont du temps de fiction
+
+**Aucune heure affichée ne vient de l'horloge système** — ni sur les bulles, ni sur le « vu », ni
+dans la liste des conversations. Un joueur qui joue à 14 h verrait « vu 14h12 » deux lignes sous un
+séparateur « 00h29 », et l'illusion tomberait.
+
+Le client dérive l'heure du fil lui-même : chaque séparateur réancre l'horloge, chaque message
+l'avance de son `delay_seconds`. Déterministe, donc identique après un rechargement.
+Implémentation : `app/lib/services/fiction_clock.dart` · règle : LOGIQUE.md § Le temps de fiction.
+
+**Seule exception : le compte à rebours de fin de chapitre**, qui est du temps réel.
 
 ## Écran 1 — Liste des conversations
 
@@ -239,10 +252,18 @@ Tout se joue avec les codes d'une vraie messagerie :
 1. Le statut passe à **« hors ligne »** dans le sous-titre. Rien d'autre, aucun texte explicatif.
 2. Le joueur peut écrire — ses messages s'accumulent en **non délivrés**. Il agit sur son angoisse
    au lieu de la subir.
-3. **Vers 45-50 s : le typing apparaît 2 secondes, puis s'éteint sans qu'aucun message n'arrive.**
+3. **À 45 s : le typing apparaît 2 secondes, puis s'éteint sans qu'aucun message n'arrive.**
    C'est l'élément le plus important de la séquence. Le contraste avec le vide est ce qui rend ces
    deux secondes cruelles — un écran uniformément mort s'en priverait.
-4. Vibration discrète unique vers 60 s, sans notification.
+4. **Vibration discrète unique à 60 s**, sans notification.
+
+Les deux battements ne sont pas des constantes du client : ils sont **portés par le contenu**,
+via `messages.phantom_typing_at` et `haptic_at` sur le séparateur « 00h34 » qui porte les 90 s.
+Un futur chapitre peut donc en placer ailleurs sans toucher au code. Sémantique exacte des offsets :
+LOGIQUE.md § Mise en scène d'une attente.
+
+⚠️ **Le faux typing est visuellement identique au vrai.** C'est tout son intérêt : le joueur ne peut
+pas savoir, avant l'extinction, qu'aucun message ne viendra.
 
 Le sous-titre « hors ligne » est ce qui rend le vide **lisible comme intentionnel** plutôt que comme
 un bug — c'est tout l'argument en faveur de cet emplacement.
@@ -269,6 +290,24 @@ mais n'a pas encore de contenu.
 Prévoir la place d'un futur bouton premium (déblocage immédiat) — non fonctionnel au prompt 2.
 
 ---
+
+## État de l'implémentation
+
+| Composant | Fichier | Statut |
+|---|---|---|
+| Jetons, thème | `theme/tokens.dart`, `theme/app_theme.dart` | ✅ |
+| Bulle, séparateur, photo, visionneuse, audio, typing | `widgets/message_widgets.dart` | ✅ |
+| Champ de saisie et ses 3 modes, zone de choix | `widgets/composer.dart` | ✅ |
+| Moteur de déroulé (délais, typing intermittent, battements, skip, reprise) | `services/playback.dart` | ✅ |
+| Horloge de fiction | `services/fiction_clock.dart` | ✅ |
+| Mémoire locale (curseur, file en attente, décoratifs) | `services/local_store.dart` | ✅ |
+| Écran de conversation | `screens/conversation_screen.dart` | ✅ |
+| Interactions cachées (branchement des gestes) | — | Phase 3 |
+| Liste des conversations | — | Phase 3 |
+| Écran de fin de chapitre | — | Phase 3 |
+
+Le lecteur audio simule la lecture : les fichiers n'existent pas encore. Son signal de **réécoute**
+est en revanche réel — c'est lui qui portera l'interaction cachée du N17 en Phase 3.
 
 ## Outils de développement
 

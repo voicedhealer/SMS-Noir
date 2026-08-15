@@ -249,6 +249,17 @@ select _chk(54, 'Aucun chemin vers N22 n''évite la révélation', 'aucun',
     select 'chemin trouvé' from p
       join _n n on n.id = p.node where n.code = 'N22' limit 1), 'aucun'));
 
+select _chk(60, 'Mise en scène du grand silence (N20#0)', '45/60',
+  coalesce((select m.phantom_typing_at || '/' || m.haptic_at
+            from _n n join messages m on m.node_id = n.id
+            where n.code = 'N20' and m.position = 0), '<absente>'));
+
+select _chk(61, 'Tout battement tombe dans son attente', '',
+  coalesce((select string_agg(n.code || '#' || m.position, ', ')
+            from _n n join messages m on m.node_id = n.id
+            where coalesce(m.phantom_typing_at, -1) >= m.delay_seconds
+               or coalesce(m.haptic_at, -1) >= m.delay_seconds), ''));
+
 -- ---------------------------------------------------------------------------
 -- RAPPORT
 -- ---------------------------------------------------------------------------

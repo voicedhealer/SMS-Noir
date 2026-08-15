@@ -33,6 +33,8 @@ class ClientMessage {
     required this.typingSeconds,
     required this.pushNotification,
     required this.pushText,
+    this.phantomTypingAt,
+    this.hapticAt,
     this.isLocalDecorative = false,
   });
 
@@ -54,6 +56,13 @@ class ClientMessage {
 
   final bool pushNotification;
   final String? pushText;
+
+  /// Battements de mise en scène pendant l'attente de CE message : offsets en
+  /// secondes **depuis le début de [delaySeconds]**. Un faux « en train
+  /// d'écrire » de 2 s qui s'éteint sans message, et une vibration discrète.
+  /// Voir docs/LOGIQUE.md § Mise en scène d'une attente.
+  final int? phantomTypingAt;
+  final int? hapticAt;
 
   /// Message décoratif saisi par le joueur : local, jamais envoyé, jamais
   /// délivré. Voir DESIGN.md § Champ de saisie.
@@ -79,6 +88,8 @@ class ClientMessage {
         typingSeconds: (json['typing_seconds'] as num?)?.toInt() ?? 0,
         pushNotification: json['push_notification'] as bool? ?? false,
         pushText: json['push_text'] as String?,
+        phantomTypingAt: (json['phantom_typing_at'] as num?)?.toInt(),
+        hapticAt: (json['haptic_at'] as num?)?.toInt(),
       );
 
   static ContentType _contentType(String? brut) => switch (brut) {

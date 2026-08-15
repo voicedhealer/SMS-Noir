@@ -4,7 +4,65 @@
 
 ---
 
-## 2026-08-14 (7) — PROMPT 2, Phase 1 (squelette, modèles, client API) : **TERMINÉE, en attente de validation**
+## 2026-08-15 — PROMPT 2, Phase 2 (écran de conversation) : **TERMINÉE, en attente de validation**
+
+D5 et D6 validées. Deux colonnes `phantom_typing_at` / `haptic_at` en base, seedées sur N20#0 (45 et
+60), sémantique documentée dans LOGIQUE.md. Temps de fiction : mécanisme retenu, l'horloge ancrée sur
+les séparateurs.
+
+### Ce qui existe
+
+`services/playback.dart` (moteur de déroulé), `services/fiction_clock.dart`,
+`services/local_store.dart`, `widgets/message_widgets.dart`, `widgets/composer.dart`,
+`providers/conversation_controller.dart`, `screens/conversation_screen.dart`.
+**39 tests verts** (16 contrat, 14 déroulé + horloge, 9 widget), `flutter analyze` propre,
+écran vérifié sur simulateur iOS.
+
+### Le temps de fiction, sans coût de contenu
+
+Plutôt qu'une colonne `fiction_time` sur chaque message — 68 valeurs à seeder, une à oublier à
+chaque chapitre — l'horloge se dérive du fil : **chaque séparateur réancre, chaque message avance
+l'horloge de son `delay_seconds`**. Déterministe (aucune horloge réelle n'entre en jeu), donc
+identique au premier affichage et après rechargement, et la dérive ne peut jamais dépasser une
+ellipse puisque le séparateur suivant recale.
+
+Vérifié à l'écran : la barre d'état du simulateur affiche 12:23 pendant que les bulles portent 22h47.
+
+### Deux pièges rencontrés
+
+1. **Mon horloge de test sérialisait les attentes concurrentes.** Le moteur en a plusieurs en
+   parallèle — le délai d'un message, et par-dessus les rafales de typing. En les faisant avancer
+   l'une après l'autre, le test des rafales échouait pour une mauvaise raison. Les attentes avancent
+   désormais **ensemble**. Sans ce correctif, j'aurais « corrigé » un moteur qui allait bien.
+2. **Riverpod interdit de toucher à `state` pendant un cycle de vie.** `onDispose` appelait
+   `interrompre()`, qui publiait l'état : les 9 tests widget tombaient d'un coup. La publication est
+   coupée avant l'interruption.
+
+### Décisions
+
+- **Le mode du champ de saisie se déduit du contrat**, jamais du graphe : `ai_moment` → `aiInput`,
+  aucune réponse mais `can_continue` → `continuation`, sinon `decorative`.
+- **Le curseur d'affichage ET la file en attente** sont persistés localement. Le serveur écrit tous
+  les messages d'un nœud dès son entrée : sans la file (avec ses délais), une reprise après
+  fermeture afficherait la fin du N19 d'un bloc.
+- **Le lecteur audio simule la lecture** — les fichiers n'existent pas. Son signal de *réécoute* est
+  en revanche réel : c'est lui qui portera l'interaction cachée du N17 en Phase 3.
+
+### Non vérifié
+
+Le déroulé n'a pas pu être observé **en vol sur l'appareil** : automatiser un tap sur le simulateur
+demande l'autorisation d'accès d'aide de macOS, refusée ici. Le comportement est couvert par les
+tests widget (choix masqués pendant le déroulé, typing sur les dernières secondes, messages dans
+l'ordre, retour des choix). À confirmer à la main lors de la recette de Phase 3, qui la prévoit.
+
+### Prochaine étape
+
+**Phase 3** : les 6 interactions cachées, la liste des conversations, l'écran de fin, et la recette
+manuelle des deux parties sur émulateur.
+
+---
+
+## 2026-08-14 (7) — PROMPT 2, Phase 1 (squelette, modèles, client API) : **TERMINÉE, validée** (commit `964d2c4`)
 
 ### Ce qui existe
 

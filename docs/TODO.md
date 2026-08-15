@@ -32,7 +32,19 @@ très discrète après **25 s** d'inactivité. À spécifier dans DESIGN.md en P
 doit être **ancré au dernier `seq` serveur connu au moment de l'écriture**, et ré-intercalé au
 rechargement. Même stockage local que le curseur d'affichage (D4).
 
-### 🔴 D5 — Le typing fantôme du N19 *(arbitrage demandé par l'addendum)*
+### ✅ D5 — Le typing fantôme du N19 *(tranchée)*
+
+Deux colonnes `messages.phantom_typing_at` / `haptic_at`, seedées sur **N20#0** à **45** et **60**.
+Offsets en secondes depuis le début du délai du message porteur ; le faux typing dure 2 s puis
+s'éteint sans message. Sémantique dans LOGIQUE.md § Mise en scène d'une attente.
+
+### ✅ D6 — Le temps de fiction *(tranchée)*
+
+Aucun horodatage ne vient de l'horloge système, **sauf** le compte à rebours de fin de chapitre.
+L'horloge de fiction se dérive du fil : chaque séparateur réancre, chaque message avance de son
+`delay_seconds`. Zéro coût de contenu, déterministe. LOGIQUE.md § Le temps de fiction.
+
+### Historique — D5 tel que posé
 
 Vers 45-50 s du grand silence : le typing apparaît 2 s puis disparaît, **sans qu'aucun message
 n'arrive**. L'addendum le désigne comme l'élément le plus important de la séquence. Le serveur n'a
@@ -92,9 +104,10 @@ elle a besoin de ton feu vert, et `chapitre-1-v2.md` devra être patché en mêm
       `EngineApi` (8 codes d'erreur, rejeu asymétrique, anti-double-tap), session anonyme vérifiée,
       thème complet, **DESIGN.md rédigé**, 16 tests, app validée sur simulateur iOS.
       ⏸ En attente de validation.
-- [ ] **Phase 2 — Écran de conversation** : fil (bulles, séparateurs, visionneuse zoomable, lecteur
-      audio réécoutable), moteur de déroulé temporel, zone de choix, bouton skip debug,
-      widget-tests sur le déroulé (ordre, timings, reprise).
+- [x] **Phase 2 — Écran de conversation** : fil complet, moteur de déroulé (délais, typing
+      intermittent, battements de mise en scène, skip debug, reprise), horloge de fiction,
+      mémoire locale, champ de saisie à 3 modes. **39 tests verts.**
+      ⏸ En attente de validation.
 - [ ] **Phase 3 — Interactions cachées, liste, fin de chapitre** + recette manuelle des deux parties
       sur émulateur.
 

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config/env.dart';
-import 'screens/boot_screen.dart';
+import 'screens/conversation_screen.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -30,7 +30,7 @@ class NumeroInconnuApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.sombre,
       themeMode: ThemeMode.dark,
-      home: const BootScreen(),
+      home: const ConversationScreen(),
     );
   }
 }

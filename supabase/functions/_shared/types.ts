@@ -67,6 +67,12 @@ export interface ClientMessage {
   typing_seconds: number
   push_notification: boolean
   push_text: string | null
+  /**
+   * Directives de mise en scène pendant l'attente de CE message. Offsets en
+   * secondes depuis le début de `delay_seconds`. Voir docs/LOGIQUE.md.
+   */
+  phantom_typing_at: number | null
+  haptic_at: number | null
 }
 
 /** Un choix proposé. Aucune trace de sa cible ni de ses effets. */

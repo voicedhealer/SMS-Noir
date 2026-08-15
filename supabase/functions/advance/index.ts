@@ -219,5 +219,7 @@ async function messagesDuDernierCoup(
     typing_seconds: 0,
     push_notification: false,
     push_text: null,
+    phantom_typing_at: null,
+    haptic_at: null,
   }))
 }
