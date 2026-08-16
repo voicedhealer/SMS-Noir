@@ -200,6 +200,48 @@ class SoundPack {
       );
 }
 
+/// Réponse d'`ai-chat`.
+class AiTurn {
+  const AiTurn({
+    required this.consentRequired,
+    required this.newMessages,
+    required this.node,
+    required this.conversations,
+    required this.chapterEnd,
+    required this.aiMomentPending,
+    required this.exchangesLeft,
+  });
+
+  /// Le serveur réclame le consentement avant tout traitement.
+  final bool consentRequired;
+  final List<ClientMessage> newMessages;
+  final StoryNode? node;
+  final List<Conversation> conversations;
+  final ChapterEnd? chapterEnd;
+
+  /// false = elle a raccroché, l'histoire est repartie au fallback.
+  final bool aiMomentPending;
+  final int exchangesLeft;
+
+  factory AiTurn.fromJson(Map<String, dynamic> json) => AiTurn(
+        consentRequired: json['consent_required'] as bool? ?? false,
+        newMessages: (json['new_messages'] as List<dynamic>? ?? const [])
+            .map((m) => ClientMessage.fromJson(m as Map<String, dynamic>))
+            .toList(),
+        node: json['node'] == null
+            ? null
+            : StoryNode.fromJson(json['node'] as Map<String, dynamic>),
+        conversations: (json['conversations'] as List<dynamic>? ?? const [])
+            .map((c) => Conversation.fromJson(c as Map<String, dynamic>))
+            .toList(),
+        chapterEnd: json['chapter_end'] == null
+            ? null
+            : ChapterEnd.fromJson(json['chapter_end'] as Map<String, dynamic>),
+        aiMomentPending: json['ai_moment_pending'] as bool? ?? false,
+        exchangesLeft: (json['exchanges_left'] as num?)?.toInt() ?? 0,
+      );
+}
+
 /// Réponse de `get-state`.
 class GameState {
   const GameState({

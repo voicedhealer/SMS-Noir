@@ -332,6 +332,34 @@ Boutons empilés en bas, au-dessus de la barre de saisie.
 
 Le mode se déduit **entièrement du contrat serveur**. Le client ne connaît pas le graphe.
 
+### Le mode `ai_input` en pratique
+
+Le texte part vraiment vers `ai-chat`. Trois différences invisibles pour le joueur :
+
+- **La réplique s'affiche avant la réponse du serveur.** Dans une messagerie, ce qu'on envoie
+  apparaît sans attendre que l'autre ait lu. Le serveur la réécrit ensuite avec son vrai `seq`.
+- **Le typing tourne pendant tout l'appel réseau**, puis le déroulé prend le relais avec le délai
+  du message. Une réponse instantanée trahirait la machine.
+- **Une panne ne fige rien** : le typing s'arrête, le champ reste utilisable, et le serveur a de
+  toute façon fait raccrocher Léna.
+
+### L'écran de consentement
+
+Affiché **une seule fois**, à la première saisie libre — jamais avant : tant que le joueur n'écrit
+rien, il n'y a rien à traiter et rien à consentir.
+
+Plein écran, sobre, dans le ton de l'app. Il dit trois choses : le texte est traité par une IA et
+peut être conservé, un seul élément anodin est retenu, et refuser ne fait rien perdre. Case à
+cocher obligatoire — un consentement ne se donne pas par inadvertance — et un « Refuser » qui n'est
+pas caché.
+
+**Un refus n'est pas une impasse** : Léna raccroche, l'histoire repart au N21, et on ne redemande
+jamais. Le message que le joueur avait écrit avant l'écran est rejoué automatiquement s'il accepte.
+
+⚠️ **Le lien vers la politique de confidentialité manque encore** (`PRIVACY_URL`). Tant qu'il est
+absent, le lien n'est pas affiché — mieux vaut rien qu'une URL morte — mais **l'app ne peut pas
+sortir dans cet état** : le RGPD impose de pouvoir consulter le traitement auquel on consent.
+
 ### ⚠️ Les trois modes doivent être visuellement identiques
 
 Si le champ change d'apparence quand l'IA écoute vraiment, le joueur comprend instantanément quels

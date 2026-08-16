@@ -52,4 +52,13 @@ class Env {
       !kReleaseMode && bool.fromEnvironment('DEBUG_TOOLS', defaultValue: true);
 
   static const Duration timeoutRequete = Duration(seconds: 20);
+
+  /// Politique de confidentialité, affichée sur l'écran de consentement.
+  ///
+  /// ⚠️ **Obligatoire avant toute mise en production** : le RGPD impose de
+  /// pouvoir consulter le traitement auquel on consent. Tant qu'elle est vide,
+  /// le lien n'est simplement pas affiché — mieux vaut rien qu'une URL morte,
+  /// mais l'app ne peut pas sortir dans cet état. Voir TODO.
+  static const String? politiqueConfidentialite =
+      bool.hasEnvironment('PRIVACY_URL') ? String.fromEnvironment('PRIVACY_URL') : null;
 }

@@ -59,6 +59,20 @@ class EngineApi {
         .toList();
   }
 
+  /// Saisie libre du moment IA.
+  ///
+  /// ⚠️ **Non rejouable** : chaque appel consomme un échange. En cas d'échec
+  /// réseau, on ne retente pas — on resynchronise sur `get-state`. Le serveur,
+  /// lui, ne bloque jamais : toute panne se solde par un raccrochage en
+  /// personnage.
+  Future<AiTurn> aiChat({String? message, bool? consent}) async {
+    final corps = <String, dynamic>{};
+    if (message != null) corps['message'] = message;
+    if (consent != null) corps['consent'] = consent;
+    final json = await _appeler('ai-chat', corps, rejouable: false);
+    return AiTurn.fromJson(json);
+  }
+
   Future<GameState> getState() async {
     final json = await _appeler('get-state', const {}, rejouable: true);
     return GameState.fromJson(json);

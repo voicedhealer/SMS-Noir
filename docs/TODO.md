@@ -1,5 +1,27 @@
 # TODO.md
 
+## 🔴 Bloquant avant mise en production
+
+- [ ] **Politique de confidentialité** (`PRIVACY_URL`). L'écran de consentement du moment IA n'affiche
+      aucun lien tant qu'elle est absente. Le RGPD impose de pouvoir consulter le traitement auquel
+      on consent — et Mistral doit y être mentionné comme sous-traitant (données en Europe).
+
+## 📊 Coût IA — mesurer par PARTIE, pas par échange
+
+Au chapitre 1 il y a **un** moment IA. Aux chapitres 3 et 5 il y en aura **trois par partie**, et
+le prompt système grossira à chaque fois : Léna aura de plus en plus de choses à ne pas révéler.
+
+Le coût par échange est trompeur — l'entrée domine largement (prompt système rejoué à chaque tour :
+1 813 tokens d'entrée pour 107 de sortie sur deux échanges). **La bonne unité est le coût d'une
+partie complète.**
+
+- [ ] Quand les moments des ch. 3 et 5 existeront, ajouter une mesure par partie plutôt que par
+      jour. `ai_usage` est indexée par `(user_id, day)` : il faudra soit une agrégation par
+      `player_progress`, soit une colonne de cumul sur la progression elle-même.
+- [ ] Surveiller la croissance du prompt système : c'est lui qui pilote le coût, et il ne fera que
+      grossir. Un prompt à 8 000 caractères multiplierait la facture par trois sans que personne
+      ne s'en aperçoive.
+
 ## 🔴 Prompt 3 — décisions requises avant la Phase 1
 
 ### A1 — Modèle Mistral

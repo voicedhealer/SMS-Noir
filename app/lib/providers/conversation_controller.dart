@@ -38,6 +38,7 @@ class ConversationState {
     this.vu,
     this.nonLus = 0,
     this.intro,
+    this.consentementRequis = false,
     this.erreur,
   });
 
@@ -60,6 +61,9 @@ class ConversationState {
 
   /// Séquence d'ouverture à jouer avant tout. Null = déjà vue, ou aucune.
   final IntroSequence? intro;
+
+  /// L'écran de consentement doit s'afficher.
+  final bool consentementRequis;
   final String? erreur;
 
   Conversation? get contact => conversations.isEmpty ? null : conversations.first;
@@ -136,6 +140,7 @@ class ConversationState {
     int? nonLus,
     IntroSequence? intro,
     bool viderIntro = false,
+    bool? consentementRequis,
     String? erreur,
     bool viderErreur = false,
   }) =>
@@ -152,6 +157,7 @@ class ConversationState {
         vu: vu ?? this.vu,
         nonLus: nonLus ?? this.nonLus,
         intro: viderIntro ? null : (intro ?? this.intro),
+        consentementRequis: consentementRequis ?? this.consentementRequis,
         erreur: viderErreur ? null : (erreur ?? this.erreur),
       );
 }
@@ -177,6 +183,17 @@ class ConversationController extends AsyncNotifier<ConversationState> {
 
   /// `seq` du dernier message du joueur qu'elle a lu, d'après le moteur.
   int? _vuAnticipe;
+
+  /// Une réponse de l'IA est en route. Le typing s'affiche pendant tout ce
+  /// temps : sans lui, la latence réseau serait un blanc inexplicable — et une
+  /// réponse instantanée trahirait la machine.
+  bool _attenteIA = false;
+
+  /// Le serveur réclame le consentement. L'écran s'affiche par-dessus le fil.
+  bool _consentementRequis = false;
+
+  /// Le message qu'on rejouera une fois le consentement donné.
+  String? _messageEnAttente;
 
   /// Un déroulé est **imminent** : des messages sont en file, mais leurs timers
   /// n'ont pas encore démarré — typiquement pendant les 4 s de vide qui suivent
@@ -349,12 +366,13 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         node: _node,
         conversations: _conversations,
         chapterEnd: _chapterEnd,
-        typing: _moteur.typing,
+        typing: _attenteIA ? TypingState.reel : _moteur.typing,
         presence: _moteur.presence,
         enDeroule: _moteur.enCours || _derouleImminent,
         mode: _mode(),
         heures: FictionClock.horaires(_fil),
         vu: ReadReceipts.marqueur(_fil, _vuAnticipe),
+        consentementRequis: _consentementRequis,
         nonLus: _nonLus,
         intro: _intro,
       );
@@ -509,6 +527,76 @@ class ConversationController extends AsyncNotifier<ConversationState> {
 
     // En mode continuation, écrire est le geste qui fait avancer.
     if (_mode() == ComposerMode.continuation) await continuer();
+  }
+
+  // --- Moment IA ------------------------------------------------------------
+
+  /// Saisie libre du N9. Le texte part vraiment, contrairement au mode décoratif.
+  Future<void> envoyerAuMomentIA(String texte) async {
+    if (_verrouille || _attenteIA) return;
+    final contactId = _conversations.firstOrNull?.contactId;
+    if (contactId == null) return;
+
+    // Sa réplique s'affiche tout de suite : dans une messagerie, ce qu'on
+    // envoie apparaît avant que l'autre ait lu. Le serveur la réécrira avec son
+    // vrai `seq`, on retire alors la version locale.
+    final provisoire = ClientMessage.decorative(
+      contactId: contactId, texte: texte, ancreSeq: _fil.isEmpty ? 0 : _fil.last.seq);
+    _fil.add(provisoire);
+    _attenteIA = true;
+    _publier();
+
+    try {
+      final tour = await _api.aiChat(message: texte);
+      _fil.remove(provisoire);
+      if (tour.consentRequired) {
+        // Le serveur n'a rien traité : on demande, puis on rejouera ce message.
+        _messageEnAttente = texte;
+        _consentementRequis = true;
+        return;
+      }
+      await _appliquerTourIA(tour);
+    } on EngineException catch (e) {
+      _fil.remove(provisoire);
+      await _traiter(e);
+    } finally {
+      _attenteIA = false;
+      _publier();
+    }
+  }
+
+  /// Réponse à l'écran de consentement. Un refus ne pénalise pas : le serveur
+  /// fait raccrocher Léna et l'histoire repart.
+  Future<void> repondreConsentement(bool accepte) async {
+    _consentementRequis = false;
+    final aRejouer = _messageEnAttente;
+    _messageEnAttente = null;
+    _attenteIA = true;
+    _publier();
+    try {
+      final tour = await _api.aiChat(consent: accepte);
+      await _appliquerTourIA(tour);
+      if (accepte && aRejouer != null) {
+        _attenteIA = false;
+        await envoyerAuMomentIA(aRejouer);
+        return;
+      }
+    } on EngineException catch (e) {
+      await _traiter(e);
+    } finally {
+      _attenteIA = false;
+      _publier();
+    }
+  }
+
+  Future<void> _appliquerTourIA(AiTurn tour) async {
+    _node = tour.node;
+    if (tour.conversations.isNotEmpty) _conversations = tour.conversations;
+    _chapterEnd = tour.chapterEnd;
+    if (tour.newMessages.isEmpty) return;
+    // Le typing du réseau s'arrête ici ; celui du déroulé prend le relais.
+    _attenteIA = false;
+    await _jouer(tour.newMessages);
   }
 
   Future<void> _appliquerAvance(AdvanceResult r) async {

@@ -11,6 +11,7 @@ import '../theme/tokens.dart';
 import '../widgets/composer.dart';
 import '../widgets/message_widgets.dart';
 import 'chapter_end_screen.dart';
+import 'consent_screen.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
   const ConversationScreen({super.key});
@@ -94,6 +95,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           ),
         ),
         data: (etat) {
+          // Le consentement passe par-dessus le fil : c'est une obligation
+          // légale, elle ne se glisse pas entre deux bulles.
+          if (etat.consentementRequis) {
+            return ConsentScreen(onReponse: ctrl.repondreConsentement);
+          }
           final vu = etat.vu;
           return Column(
           children: [
@@ -131,7 +137,14 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 onChoisir: ctrl.choisir,
                 verrouille: false,
               ),
-            Composer(mode: etat.mode, onEnvoyer: ctrl.envoyerTexte),
+            Composer(
+              mode: etat.mode,
+              // Le mode décide de ce que devient le texte — le champ, lui, est
+              // rigoureusement le même. Voir DESIGN.md § Champ de saisie.
+              onEnvoyer: etat.mode == ComposerMode.aiInput
+                  ? ctrl.envoyerAuMomentIA
+                  : ctrl.envoyerTexte,
+            ),
           ],
         );
         },
