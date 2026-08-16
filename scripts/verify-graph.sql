@@ -72,8 +72,25 @@ select _chk(4, 'Un seul ai_moment, et c''est N9', 'N9',
   coalesce((select string_agg(code, ',' order by code) from _n where kind = 'ai_moment'), '<aucun>'));
 select _chk(5, 'Le fallback du N9 pointe sur N21', 'N21',
   coalesce((select f.code from _n n join _n f on f.id = n.ai_fallback_node_id where n.code = 'N9'), '<absent>'));
-select _chk(6, 'N9 a bien un system prompt', 'oui',
-  (select case when ai_system_prompt is not null and length(ai_system_prompt) > 100
+select _chk(6, 'N9 porte un prompt système structuré', 'oui',
+  (select case when ai_system_prompt like '%# Ta voix%'
+                and ai_system_prompt like '%# Ce que tu ignores%'
+                and ai_system_prompt like '%# Interdits absolus%'
+                and ai_system_prompt like '%# Ce que tu renvoies%'
+               then 'oui' else 'non' end from _n where code = 'N9'));
+
+-- L'étanchéité narrative est dans le prompt, pas seulement dans le code.
+select _chk(8, 'Le prompt verrouille l''étanchéité narrative', 'oui',
+  (select case when ai_system_prompt like '%12 mars%'
+                and ai_system_prompt like '%Karim%'
+                and ai_system_prompt like '%intelligence artificielle%'
+                and ai_system_prompt like '%N''invente jamais%'
+               then 'oui' else 'non' end from _n where code = 'N9'));
+
+select _chk(9, 'La liste d''autorisation de detail_perso y figure', 'oui',
+  (select case when ai_system_prompt like '%prenom%' and ai_system_prompt like '%ville%'
+                and ai_system_prompt like '%metier%' and ai_system_prompt like '%animal%'
+                and ai_system_prompt like '%autre chose que ces quatre catégories%'
                then 'oui' else 'non' end from _n where code = 'N9'));
 select _chk(7, 'Chapitre 2 stub présent (cible du compte à rebours)', 'Chloé/480',
   coalesce((select c.title || '/' || c.unlock_delay_minutes from chapters c

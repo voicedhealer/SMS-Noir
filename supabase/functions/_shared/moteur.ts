@@ -67,6 +67,8 @@ interface NoeudBrut {
   kind: 'scripted' | 'ai_moment' | 'chapter_end'
   next_node_id: string | null
   ai_fallback_node_id: string | null
+  ai_system_prompt: string | null
+  ai_max_exchanges: number | null
   effects: Record<string, unknown>
   chapter_id: string
 }
@@ -92,9 +94,18 @@ export interface Progression {
   chapter_unlocked_at: string | null
   last_choice_id: string | null
   last_choice_seq: number | null
+  /** Position dans le moment IA courant. Tenue par le serveur, jamais ailleurs. */
+  ai_exchanges: number
+  ai_consent_at: string | null
+  ai_consent_refuse: boolean
 }
 
-const CHAMPS_NOEUD = 'id, code, kind, next_node_id, ai_fallback_node_id, effects, chapter_id'
+const CHAMPS_NOEUD = 'id, code, kind, next_node_id, ai_fallback_node_id, '
+  + 'ai_system_prompt, ai_max_exchanges, effects, chapter_id'
+const CHAMPS_PROGRESSION = 'id, user_id, story_id, current_node_id, variables, '
+  + 'chapter_unlocked_at, last_choice_id, last_choice_seq, ai_exchanges, '
+  + 'ai_consent_at, ai_consent_refuse'
+
 const CHAMPS_CHOIX =
   'id, node_id, position, label, kind, next_node_id, inline_response, effects, conditions'
 
@@ -136,7 +147,7 @@ export async function chargerOuCreerProgression(
 ): Promise<{ progression: Progression; messagesInitiaux: MessageEcrit[] }> {
   const { data: existante } = await db
     .from('player_progress')
-    .select('id, user_id, story_id, current_node_id, variables, chapter_unlocked_at, last_choice_id, last_choice_seq')
+    .select(CHAMPS_PROGRESSION)
     .eq('user_id', userId).eq('story_id', storyId).maybeSingle()
 
   if (existante) {
@@ -156,7 +167,7 @@ export async function chargerOuCreerProgression(
   const { data: creee, error } = await db
     .from('player_progress')
     .insert({ user_id: userId, story_id: storyId, variables: VARIABLES_INITIALES })
-    .select('id, user_id, story_id, current_node_id, variables, chapter_unlocked_at, last_choice_id, last_choice_seq')
+    .select(CHAMPS_PROGRESSION)
     .single()
   if (error || !creee) throw new ErreurMoteur(500, 'creation_impossible', error?.message ?? 'échec')
 
@@ -315,7 +326,12 @@ export async function entrerDansNoeud(
 
     messages.push(...await ecrireMessagesDuNoeud(db, progression.id, noeud.id))
 
-    if (noeud.kind === 'ai_moment') break
+    if (noeud.kind === 'ai_moment') {
+      // On entre dans un moment IA : le décompte repart de zéro. Sans ça, un
+      // second moment hériterait des échanges du premier.
+      await db.from('player_progress').update({ ai_exchanges: 0 }).eq('id', progression.id)
+      break
+    }
     if (noeud.kind === 'chapter_end') {
       unlockedAt = await calculerDeblocage(db, progression.story_id, noeud.chapter_id)
       break

@@ -229,6 +229,97 @@ inatteignable, comme le reste du graphe.
 Un média illisible ne fait jamais tomber la conversation : le client retombe sur son cartouche de
 repli, celui des `placeholder://`.
 
+## Le moment IA (N9)
+
+Saisie libre : le joueur écrit ce qu'il veut, Léna répond via un modèle de langage. 2 à 4 échanges,
+puis elle raccroche et l'histoire repart au N21.
+
+### Le mode dégradé prime sur la fonctionnalité
+
+Clé absente · API en erreur · timeout · quota atteint · JSON illisible · consentement refusé :
+**dans tous les cas, Léna raccroche en personnage et l'histoire repart au fallback.** Jamais de
+message d'erreur technique, jamais de blocage. Le joueur ne doit pas pouvoir deviner qu'il y avait
+une IA derrière, ni qu'elle est tombée.
+
+Deux répliques de sortie, et deux seulement :
+« Merci. J'en avais besoin. Bon, je rentre. » (fin normale, quota, panne) ·
+« Ok. Laisse tomber. Je rentre. » (hostilité, sortie de cadre).
+
+### Ce que le modèle fait, et ce qu'il ne fait pas
+
+| Le modèle | Le serveur |
+|---|---|
+| Écrit la réplique | Décide de raccrocher ou non |
+| **Classe** la tonalité (`sincere`/`evasif`/`hostile`) | **Applique** les effets sur les variables |
+| **Propose** un `detail_perso` et sa catégorie | **Filtre** et décide de le garder |
+| — | Compte les échanges |
+
+**Le modèle n'écrit jamais une variable.** Le décompte est tenu par
+`player_progress.ai_exchanges`, remis à zéro à l'entrée du nœud — jamais par le modèle, jamais par
+le client. Sans lui, un joueur qui ferme l'app en plein échange repartirait de zéro et pourrait
+tourner indéfiniment.
+
+Effets : `sincere` → confiance +2 · `evasif` → −1 · `hostile` → coupure sans gain. Le plafond
+`confiance ≤ 6 si refus` s'applique comme partout, puisque tout passe par le même chemin d'écriture.
+
+### Sortie de cadre : en couches
+
+1. **Pré-filtre serveur, avant l'appel** — injection de prompt, insultes manifestes. Déterministe
+   et gratuit. Une injection ne doit jamais atteindre le modèle, ne serait-ce que pour ne pas la
+   payer. Et on ne demande pas à un modèle de décider s'il doit s'ignorer lui-même.
+2. **Classification par le modèle** — un jugement sur la tonalité, pas une règle.
+3. **Décision serveur** — c'est lui qui coupe et qui applique.
+
+### `detail_perso` : liste d'autorisation, jamais d'exclusion
+
+**Règle permanente, valable pour tous les moments IA à venir (ch. 3, ch. 5).**
+
+Le modèle renvoie une **catégorie** en plus de la valeur. Le serveur n'accepte que
+`prenom` · `ville` · `metier` · `animal`. **Tout le reste devient `null`.**
+
+*Pourquoi pas une liste d'exclusion* : sur du texte libre, elle ne rattrape que ce qu'on a prévu.
+« Je suis en rémission » ou « je vais à la mosquée le vendredi » passeraient. Une liste
+d'autorisation ferme par défaut ; c'est la seule posture défendable pour des données sensibles.
+
+Filets supplémentaires sur la valeur retenue : longueur ≤ 40, pas de suite de 4 chiffres, et une
+liste de termes sensibles (santé, croyances, opinions, vie intime, origines, coordonnées).
+
+Un `detail_perso` à `null` est un **cas normal** : le payoff du chapitre 4 doit savoir s'en passer.
+
+⚠️ Le texte brut du joueur va dans `player_messages` (`source = 'player_free'`) et suit la cascade
+de suppression du compte. Seul `detail_perso` est conservé comme donnée exploitée.
+
+### Prompt système
+
+Il vit dans `nodes.ai_system_prompt`, **jamais dans le code** : c'est du contenu narratif, et
+l'architecture est multi-histoires. Il est **générique quant à l'état de la partie** — le
+vouvoiement (`refus`), le numéro d'échange et le rappel de raccrochage sont injectés à l'exécution
+dans un second message système. C'est de l'état, pas du contenu.
+
+⚠️ Sa place est le **seed**, pas une migration : les migrations passent avant le seed, qui
+réécraserait aussitôt la valeur.
+
+### Fournisseur
+
+`mistral-small-2603`, **version épinglée** et non un alias `-latest` : Mistral déconseille les
+alias en production, et un changement de modèle sous les pieds changerait la voix de Léna sans
+prévenir. Surchargeable par `MISTRAL_MODEL` pour essayer autre chose sans redéployer.
+
+Sortie contrainte par `json_schema` avec `strict: true`, et non l'ancien `json_object` qui se
+contente de demander poliment du JSON. Le parsing reste défensif malgré tout : clôtures Markdown
+retirées, chaque champ validé, tonalité inconnue traitée comme `evasif` — jamais comme `sincere`,
+la seule qui fait gagner de la confiance.
+
+L'appel est isolé derrière l'interface `FournisseurIA` : changer de maison ne touche à rien
+d'autre.
+
+### Quota et coûts
+
+50 échanges par joueur et par jour (`ai_usage`), vérifiés **avant** tout appel. Les tokens entrée
+et sortie sont cumulés par jour dans la même table, pour pouvoir chiffrer le coût réel par joueur.
+
+Sortie plafonnée à 160 tokens — Léna écrit deux phrases — timeout de 12 s, aucune reprise.
+
 ## Contraintes client *(prompt 2)*
 
 **Le client n'écrit jamais en base. L'état vient toujours de `get-state`.**

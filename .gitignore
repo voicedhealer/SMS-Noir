@@ -7,3 +7,6 @@ app/ios/Pods/
 app/ios/.symlinks/
 app/ios/Flutter/Flutter.podspec
 app/.flutter-plugins-dependencies
+
+# Supabase
+.env
