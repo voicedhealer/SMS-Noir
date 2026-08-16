@@ -1,11 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
 
 import '../config/env.dart';
 import '../models/game_state.dart';
-import '../services/audio_session_config.dart';
+import '../services/intro_music.dart';
 import '../theme/tokens.dart';
 
 /// Séquence d'intronisation.
@@ -30,9 +29,6 @@ class IntroScreen extends StatefulWidget {
   /// Le dernier panneau reste seul un peu plus longtemps : c'est le basculement.
   static const lectureFinale = Duration(milliseconds: 2500);
 
-  /// Montée très courte : la musique doit être là dès le premier mot.
-  static const fonduMusique = Duration(milliseconds: 500);
-
   @override
   State<IntroScreen> createState() => _IntroScreenState();
 }
@@ -41,52 +37,32 @@ class _IntroScreenState extends State<IntroScreen> {
   int _index = 0;
   bool _visible = false;
   bool _fini = false;
-  AudioPlayer? _lecteur;
 
   @override
   void initState() {
     super.initState();
-    unawaited(_demarrerMusique());
+    final musique = widget.intro.musicUrl;
+    if (musique != null) {
+      unawaited(IntroMusic.instance.demarrer('${Env.supabaseUrl}$musique'));
+    }
     unawaited(_derouler());
   }
 
   @override
   void dispose() {
-    // Coupure NETTE, pas de fondu descendant : le silence brutal qui suit fait
-    // partie de l'effet. Les 4 secondes de vide doivent être totalement muettes.
-    _lecteur?.stop();
-    _lecteur?.dispose();
+    // Filet de sécurité seulement : l'arrêt réel se fait dans _terminer(), au
+    // moment précis de la bascule. Compter sur dispose() reviendrait à confier
+    // la coupure à l'ordre de destruction de l'arbre.
+    unawaited(IntroMusic.instance.arreter());
     super.dispose();
   }
 
-  Future<void> _demarrerMusique() async {
-    final chemin = widget.intro.musicUrl;
-    if (chemin == null) return; // séquence muette : parfaitement valide
-    try {
-      // Catégorie « ambient » : respecte le mode silencieux du téléphone et ne
-      // coupe pas la musique que le joueur écoutait déjà.
-      await AudioSessionConfig.ambiance();
-      final lecteur = AudioPlayer();
-      _lecteur = lecteur;
-      await lecteur.setUrl('${Env.supabaseUrl}$chemin');
-      await lecteur.setVolume(0);
-      await lecteur.setLoopMode(LoopMode.off); // une seule lecture, jamais en boucle
-      unawaited(lecteur.play());
-      await _monterLeSon(lecteur);
-    } catch (_) {
-      // Une musique absente ou illisible ne doit jamais empêcher l'histoire de
-      // commencer : on joue la séquence en silence.
-      _lecteur = null;
-    }
-  }
-
-  Future<void> _monterLeSon(AudioPlayer lecteur) async {
-    const pas = 20;
-    const cible = 0.45; // volume modéré : c'est une ambiance, pas une bande-son
-    for (var i = 1; i <= pas && mounted; i++) {
-      await Future<void>.delayed(IntroScreen.fonduMusique ~/ pas);
-      await lecteur.setVolume(cible * i / pas);
-    }
+  /// Fin de la séquence : on coupe la musique **puis** on rend la main.
+  void _terminer() {
+    if (_fini) return;
+    _fini = true;
+    unawaited(IntroMusic.instance.arreter());
+    widget.onTermine();
   }
 
   Future<void> _derouler() async {
@@ -105,16 +81,14 @@ class _IntroScreenState extends State<IntroScreen> {
       setState(() => _visible = false);
       await Future<void>.delayed(IntroScreen.fondu);
     }
-    if (!mounted || _fini) return;
-    _fini = true;
-    widget.onTermine();
+    if (!mounted) return;
+    _terminer();
   }
 
   /// Skip de développement : un tap n'importe où. Absent en release.
   void _sauter() {
-    if (!Env.outilsDebug || _fini) return;
-    _fini = true;
-    widget.onTermine();
+    if (!Env.outilsDebug) return;
+    _terminer();
   }
 
   @override

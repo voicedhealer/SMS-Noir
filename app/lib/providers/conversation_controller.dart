@@ -10,6 +10,7 @@ import '../models/game_state.dart';
 import '../services/engine_api.dart';
 import '../services/engine_exception.dart';
 import '../services/fiction_clock.dart';
+import '../services/intro_music.dart';
 import '../services/local_store.dart';
 import '../services/playback.dart';
 import '../services/sound_effects.dart';
@@ -479,6 +480,10 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   /// Efface la partie et la mémoire locale : le joueur repart du tout début,
   /// intronisation comprise. Outil de développement.
   Future<void> reinitialiser() async {
+    // Une intro va rejouer : on part d'un état sonore propre. `demarrer` coupe
+    // déjà la précédente, mais ne rien laisser tourner pendant l'aller-retour
+    // réseau évite toute superposition.
+    await IntroMusic.instance.arreter();
     _moteur.interrompre();
     await _api.resetProgress();
     await _store.effacerTout();

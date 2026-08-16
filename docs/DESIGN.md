@@ -121,6 +121,13 @@ aucun nœud.
 - Démarre avec le premier panneau, **fondu montant de 500 ms**. Volume modéré (45 %).
 - **Coupure nette à la transition** — pas de fondu descendant, pas de continuation sous le fil.
   Le silence brutal fait partie de l'effet.
+
+  ⚠️ **La coupure est un acte explicite, pas un effet de bord du `dispose()` d'un widget.** La
+  musique appartient à un service à instance unique (`services/intro_music.dart`) : `demarrer()`
+  coupe toujours ce qui jouait avant, et l'arrêt est déclenché au moment précis de la bascule.
+  Le lecteur avait d'abord été confié à l'écran d'intro — et le bouton de réinitialisation, qui
+  reconstruit l'écran, laissait un lecteur orphelin tourner sans que personne ne détienne plus la
+  référence pour l'arrêter.
 - Catégorie **ambient** : respecte le mode silencieux du téléphone, ne coupe pas la musique que le
   joueur écoutait déjà.
 - **Une seule lecture, jamais en boucle.** Si le morceau dépasse la séquence, il est coupé par la
