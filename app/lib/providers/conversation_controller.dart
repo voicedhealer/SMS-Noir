@@ -30,6 +30,7 @@ class ConversationState {
     required this.enDeroule,
     required this.mode,
     required this.heures,
+    this.intro,
     this.erreur,
   });
 
@@ -46,6 +47,9 @@ class ConversationState {
 
   /// Heure **de fiction** par `seq`. Jamais l'horloge système.
   final Map<int, int> heures;
+
+  /// Séquence d'ouverture à jouer avant tout. Null = déjà vue, ou aucune.
+  final IntroSequence? intro;
   final String? erreur;
 
   Conversation? get contact => conversations.isEmpty ? null : conversations.first;
@@ -69,6 +73,8 @@ class ConversationState {
     bool? enDeroule,
     ComposerMode? mode,
     Map<int, int>? heures,
+    IntroSequence? intro,
+    bool viderIntro = false,
     String? erreur,
     bool viderErreur = false,
   }) =>
@@ -82,6 +88,7 @@ class ConversationState {
         enDeroule: enDeroule ?? this.enDeroule,
         mode: mode ?? this.mode,
         heures: heures ?? this.heures,
+        intro: viderIntro ? null : (intro ?? this.intro),
         erreur: viderErreur ? null : (erreur ?? this.erreur),
       );
 }
@@ -97,6 +104,10 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   ChapterEnd? _chapterEnd;
   bool _verrouille = false;
   bool _termine = false;
+  IntroSequence? _intro;
+
+  /// Messages du nœud d'entrée, mis de côté le temps de l'intro.
+  List<ClientMessage> _aJouerApresIntro = const [];
   Timer? _fallbackContinuation;
 
   @override
@@ -132,6 +143,15 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     _conversations = etat.conversations;
     _chapterEnd = etat.chapterEnd;
 
+    // Intro : jouée une seule fois, avant tout le reste.
+    if (!etat.intro.estVide && !_store.introVue) {
+      _intro = etat.intro;
+      _aJouerApresIntro = etat.newMessages;
+    } else {
+      _intro = null;
+      _aJouerApresIntro = const [];
+    }
+
     // L'historique se rejoue d'un bloc : le déjà-vu n'a pas de timers.
     final enAttente = _store.enAttente;
     final aRejouer = enAttente.map((m) => m.seq).toSet();
@@ -144,7 +164,30 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     // Ce qui n'avait pas été joué avant la fermeture reprend avec ses délais.
     if (enAttente.isNotEmpty) {
       unawaited(_moteur.jouer(enAttente));
+    } else if (_intro == null && etat.newMessages.isNotEmpty) {
+      // Première visite sans intro : les messages du nœud d'entrée se JOUENT.
+      unawaited(_moteur.jouer(etat.newMessages));
     }
+  }
+
+  /// Appelé quand la séquence d'ouverture est terminée.
+  ///
+  /// **Les 4 secondes de vide qui suivent ne sont pas négociables** : c'est le
+  /// calme qui rend l'intrusion violente. Ne pas les réduire pour « fluidifier ».
+  static const silenceApresIntro = Duration(seconds: 4);
+
+  Future<void> introTerminee() async {
+    await _store.marquerIntroVue();
+    _intro = null;
+    _publier();
+
+    final aJouer = _aJouerApresIntro;
+    _aJouerApresIntro = const [];
+    if (aJouer.isEmpty) return;
+
+    await Future<void>.delayed(silenceApresIntro);
+    if (_termine) return;
+    await _moteur.jouer(aJouer);
   }
 
   /// Les messages décoratifs n'existent que localement : on les replace à leur
@@ -166,6 +209,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         enDeroule: _moteur.enCours,
         mode: _mode(),
         heures: FictionClock.horaires(_fil),
+        intro: _intro,
       );
 
   /// Le mode se déduit entièrement du contrat : le client ne connaît pas le graphe.

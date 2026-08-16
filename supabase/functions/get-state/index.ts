@@ -17,6 +17,7 @@ import {
   etatFinDeChapitre,
   etatNoeud,
   historique,
+  signerMusiqueIntro,
   utilisateurCourant,
 } from '../_shared/moteur.ts'
 import type { GetStateResponse } from '../_shared/types.ts'
@@ -26,7 +27,12 @@ Deno.serve(servir(async (req) => {
   const db = clientAdmin()
 
   const histoire = await chargerHistoire(db)
-  const { progression } = await chargerOuCreerProgression(db, userId, histoire.id)
+  const { progression, messagesInitiaux } = await chargerOuCreerProgression(db, userId, histoire.id)
+
+  // Les messages écrits à l'instant (nœud d'entrée, première visite) doivent
+  // être JOUÉS avec leurs délais, pas versés dans l'historique : sans ça, le
+  // tout premier message de l'histoire apparaîtrait sans attente ni typing.
+  const seqsAJouer = new Set(messagesInitiaux.map((m) => m.seq))
 
   const noeud = progression.current_node_id
     ? await chargerNoeud(db, progression.current_node_id)
@@ -34,8 +40,13 @@ Deno.serve(servir(async (req) => {
 
   const reponse: GetStateResponse = {
     story: { slug: histoire.slug, title: histoire.title },
+    intro: {
+      panels: (histoire.intro_panels ?? []) as { lines: string[] }[],
+      music_url: await signerMusiqueIntro(db, histoire.intro_music_url),
+    },
+    new_messages: messagesInitiaux,
     conversations: await conversations(db, progression.id, histoire.id, progression.variables),
-    history: await historique(db, progression.id),
+    history: (await historique(db, progression.id)).filter((m) => !seqsAJouer.has(m.seq)),
     node: await etatNoeud(db, progression.current_node_id, progression.variables),
     chapter_end: await etatFinDeChapitre(db, progression, noeud?.code ?? null, noeud?.kind ?? null),
     // Le nœud courant est le moment IA : la saisie libre s'ouvre (exécution au prompt 3).

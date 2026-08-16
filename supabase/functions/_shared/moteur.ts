@@ -103,7 +103,8 @@ const CHAMPS_CHOIX =
 
 export async function chargerHistoire(db: SupabaseClient) {
   const { data, error } = await db
-    .from('stories').select('id, slug, title').eq('slug', STORY_SLUG).single()
+    .from('stories').select('id, slug, title, intro_panels, intro_music_url')
+    .eq('slug', STORY_SLUG).single()
   if (error || !data) throw new ErreurMoteur(500, 'histoire_absente', `Histoire « ${STORY_SLUG} » introuvable`)
   return data
 }
@@ -514,6 +515,16 @@ async function signerMedias<T extends { media_url: string | null }>(
 function relativiser(url: string): string {
   const i = url.indexOf('/storage/v1/')
   return i === -1 ? url : url.slice(i)
+}
+
+/** Signe la musique d'intro, si l'histoire en a une. */
+export async function signerMusiqueIntro(
+  db: SupabaseClient,
+  chemin: string | null,
+): Promise<string | null> {
+  if (!chemin) return null
+  const { data } = await db.storage.from('media').createSignedUrl(chemin, DUREE_URL_SIGNEE)
+  return data?.signedUrl ? relativiser(data.signedUrl) : null
 }
 
 /** Assez long pour une session de jeu, assez court pour ne pas circuler. */

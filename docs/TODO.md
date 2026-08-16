@@ -92,6 +92,19 @@ elle a besoin de ton feu vert, et `chapitre-1-v2.md` devra être patché en mêm
 
 ---
 
+## 🔴 Questions ouvertes — contenu
+
+- [ ] **Q9 — Jour J : le 13 ou le 14 août 2026 ?** Tu as indiqué « Jeudi 14 août 2026 », mais le
+      14 août 2026 est un **vendredi**. Le chapitre affiche « jeudi — 22h47 » et le suspect vient
+      « tous les jeudis » : la date aurait posé une contradiction sur le premier écran du jeu.
+      **J'ai retenu jeudi 13 août 2026** — une seule valeur à changer (`stories.intro_panels`)
+      si tu préfères garder le 14 et ajuster le jour partout ailleurs.
+- [ ] **Q10 — La dispute du « 12 mars ».** La bible la situe « la veille » de la disparition, elle-même
+      à J-7 mois, soit **mi-janvier**. Mars ≠ janvier. L'écart préexistait ; l'ancrage de date le rend
+      simplement visible. Est-ce une **quatrième incohérence plantée** (le 12 mars serait ce que Léna
+      *dit*, pas ce qui s'est passé — ce qui serait très cohérent avec sa culpabilité), ou un simple
+      écart à corriger ? Ça change ce qu'on écrira au ch. 3.
+
 ## Questions ouvertes (prompt 1)
 
 *Aucune.* Q1→Q8 tranchées. Les décisions et leur raison sont dans MEMOIRE.md et ARCHITECTURE.md.

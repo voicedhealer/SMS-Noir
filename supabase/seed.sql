@@ -36,6 +36,23 @@ insert into stories (slug, title, tagline, genre, status, is_premium) values (
   false
 );
 
+-- Séquence d'intronisation. Contenu narratif, donc en base et non dans le code
+-- Dart : l'architecture est multi-histoires, et un texte d'ouverture est du
+-- texte comme un autre.
+--
+-- Le premier panneau DATE l'histoire. C'est ce qui garde les incohérences
+-- plantées lisibles indéfiniment : sans lui, le mail du N10 dirait « il y a
+-- 2 mois » en 2026 puis « il y a 14 mois » un an plus tard. Voir bible §3.
+-- ⚠️ Le 13 août 2026 est un JEUDI ; le 14 est un vendredi, ce qui aurait
+-- contredit le séparateur « jeudi — 22h47 » dès le premier écran.
+update stories set intro_panels = $$[
+  {"lines": ["Jeudi 13 août 2026."]},
+  {"lines": ["Jeudi soir.", "Rien de prévu."]},
+  {"lines": ["Le téléphone posé à côté de vous.", "La soirée sera tranquille."]},
+  {"lines": ["22h47."]}
+]$$::jsonb
+where slug = 'numero-inconnu';
+
 -- Léna n'est qu'un numéro inconnu jusqu'à ce qu'elle se nomme (N5 / N7).
 insert into contacts (story_id, code, display_name, display_name_initial)
 select id, 'lena', 'Léna', 'Numéro inconnu' from stories where slug = 'numero-inconnu';

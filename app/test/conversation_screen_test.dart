@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:numero_inconnu/providers/session_providers.dart';
 import 'package:numero_inconnu/screens/conversation_screen.dart';
+import 'package:numero_inconnu/screens/intro_screen.dart';
 import 'package:numero_inconnu/services/engine_api.dart';
 import 'package:numero_inconnu/theme/app_theme.dart';
 import 'package:numero_inconnu/widgets/composer.dart';
@@ -61,8 +62,9 @@ Future<void> monter(
   WidgetTester tester, {
   required Map<String, dynamic> getState,
   Map<String, dynamic>? advance,
+  Map<String, Object> prefs = const {},
 }) async {
-  SharedPreferences.setMockInitialValues({});
+  SharedPreferences.setMockInitialValues(prefs);
 
   final api = EngineApi(
     jetonAcces: () => 'jeton',
@@ -85,6 +87,71 @@ Future<void> monter(
 }
 
 void main() {
+  group('Séquence d\'intronisation', () {
+    final intro = {
+      'panels': [
+        {'lines': ['Jeudi 13 août 2026.']},
+        {'lines': ['22h47.']},
+      ],
+      'music_url': null,
+    };
+
+    Map<String, dynamic> etatAvecIntro() => {
+          'story': {'slug': 's', 'title': 'T'},
+          'intro': intro,
+          'new_messages': [
+            message(seq: 1, body: 'jeudi — 22h47', type: 'separator'),
+            message(seq: 2, body: 'C\'est bon.', delay: 4, typing: 3),
+          ],
+          'conversations': [conversation()],
+          'history': const [],
+          'node': noeud(),
+          'chapter_end': null,
+          'ai_moment_pending': false,
+        };
+
+    testWidgets('elle précède la conversation et date l\'histoire', (tester) async {
+      await monter(tester, getState: etatAvecIntro());
+      expect(find.byType(IntroScreen), findsOneWidget);
+      expect(find.text('Jeudi 13 août 2026.'), findsOneWidget);
+      // Le fil n'existe pas encore.
+      expect(find.byType(MessageBubble), findsNothing);
+      await tester.pumpAndSettle(const Duration(seconds: 30));
+    });
+
+    testWidgets('elle ne rejoue pas si elle a déjà été vue', (tester) async {
+      await monter(tester, getState: etatAvecIntro(),
+          prefs: {'flutter.intro_vue:joueur-test': true});
+      expect(find.byType(IntroScreen), findsNothing);
+      await tester.pumpAndSettle(const Duration(seconds: 30));
+    });
+
+    testWidgets('4 s de silence total avant que quoi que ce soit n\'arrive', (tester) async {
+      await monter(tester, getState: etatAvecIntro());
+
+      // On saute l'intro (skip debug) pour se placer à l'instant du basculement.
+      await tester.tap(find.byType(IntroScreen));
+      await tester.pump();
+
+      expect(find.byType(SeparatorPill), findsNothing);
+      expect(find.byType(TypingIndicator), findsNothing);
+
+      await tester.pump(const Duration(milliseconds: 3900));
+      expect(find.byType(SeparatorPill), findsNothing,
+          reason: 'les 4 s de vide ne sont pas négociables');
+
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(find.byType(SeparatorPill), findsOneWidget, reason: 'puis le fil démarre');
+
+      await tester.pump(const Duration(seconds: 2));
+      expect(find.byType(TypingIndicator), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 3));
+      expect(find.text('C\'est bon.'), findsOneWidget);
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+    });
+  });
+
   testWidgets('le fil rend bulles et séparateur, avec l\'heure de fiction', (tester) async {
     await monter(tester, getState: {
       'story': {'slug': 's', 'title': 'T'},

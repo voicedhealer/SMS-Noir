@@ -187,9 +187,11 @@ select _chk(41, 'Positions des messages contiguës depuis 0', '',
               from _n n join messages m on m.node_id = n.id group by n.code
             ) t where mn <> 0 or mx <> nb - 1), ''));
 
-select _chk(42, 'Tous les médias en placeholder:// (à produire)', '4',
+-- Le contenu référence 4 médias. Qu'ils soient encore en placeholder ou déjà
+-- téléversés ne regarde pas ce script : c'est leur PRÉSENCE qui est structurelle.
+select _chk(42, 'Le chapitre référence 4 médias', '4',
   (select count(*)::text from _n n join messages m on m.node_id = n.id
-   where m.media_url like 'placeholder://%'));
+   where m.content_type in ('image', 'audio')));
 
 select _chk(43, 'Aucun média sans URL', '',
   coalesce((select string_agg(n.code || '#' || m.position, ', ') from _n n join messages m on m.node_id = n.id
@@ -259,6 +261,12 @@ select _chk(61, 'Tout battement tombe dans son attente', '',
             from _n n join messages m on m.node_id = n.id
             where coalesce(m.phantom_typing_at, -1) >= m.delay_seconds
                or coalesce(m.haptic_at, -1) >= m.delay_seconds), ''));
+
+select _chk(70, 'Séquence d''intronisation : 4 panneaux', '4',
+  (select jsonb_array_length(intro_panels)::text from stories where slug = 'numero-inconnu'));
+
+select _chk(71, 'Le premier panneau date l''histoire (bible §3)', 'Jeudi 13 août 2026.',
+  coalesce((select intro_panels->0->'lines'->>0 from stories where slug = 'numero-inconnu'), '<absent>'));
 
 -- ---------------------------------------------------------------------------
 -- RAPPORT

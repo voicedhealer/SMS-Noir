@@ -90,6 +90,55 @@ Pas de transition de page élaborée, pas de rebond, pas de parallaxe.
 
 ---
 
+## Écran 0 — La séquence d'intronisation
+
+Jouée **une seule fois**, à la toute première ouverture. Aucun bouton, aucun skip visible : elle
+dure une dizaine de secondes et ne mérite pas d'être passée. (Un skip au tap existe en debug.)
+Aucune mention de jeu, de chapitre ou de mécanique — le joueur comprend par l'usage.
+
+**Le texte vient du serveur** (`stories.intro_panels`) : c'est du contenu narratif, pas de
+l'interface, et l'architecture est multi-histoires.
+
+| # | Panneau | Durée lisible |
+|---|---|---|
+| 1 | « Jeudi 13 août 2026. » | 2 s |
+| 2 | « Jeudi soir. » / « Rien de prévu. » | 2 s |
+| 3 | « Le téléphone posé à côté de vous. » / « La soirée sera tranquille. » | 2 s |
+| 4 | « 22h47. » | **2,5 s** — c'est le basculement |
+
+Fondu d'entrée et de sortie : **800 ms** chacun. Fond noir, typographie du thème, texte centré.
+
+**Le premier panneau date l'histoire**, et ce n'est pas décoratif : c'est ce qui garde les
+incohérences plantées lisibles indéfiniment. Sans lui, le mail du N10 dirait « il y a 2 mois » en
+2026 puis « il y a 14 mois » un an plus tard. Voir bible §3.
+
+### Musique
+
+Fichier fourni par histoire (`stories.intro_music_url`, signé comme les autres médias).
+
+- Démarre avec le premier panneau, **fondu montant de 500 ms**. Volume modéré (45 %).
+- **Coupure nette à la transition** — pas de fondu descendant, pas de continuation sous le fil.
+  Le silence brutal fait partie de l'effet.
+- Catégorie **ambient** : respecte le mode silencieux du téléphone, ne coupe pas la musique que le
+  joueur écoutait déjà.
+- **Une seule lecture, jamais en boucle.** Si le morceau dépasse la séquence, il est coupé par la
+  transition — c'est voulu.
+- Aucun contrôle à l'écran. Une musique absente ou illisible ne bloque jamais l'histoire : la
+  séquence se joue en silence.
+
+### Puis : les 4 secondes de vide
+
+Transition vers l'écran de conversation, **vide**. En-tête « Numéro inconnu » / « en ligne ».
+Aucun message. **4 secondes de silence total**, puis le fil démarre : le séparateur, le typing,
+et le premier message de Léna.
+
+⚠️ **Ces 4 secondes ne sont pas négociables.** C'est le calme qui rend l'intrusion violente. Ne
+jamais les réduire pour « fluidifier ». Un test les verrouille.
+
+Corollaire côté serveur : à la première visite, `get-state` renvoie les messages du nœud d'entrée
+dans `new_messages` (avec leurs délais) et **non** dans `history`. Sans ça, le tout premier message
+de l'histoire apparaîtrait d'un bloc, sans attente ni typing.
+
 ## Les horodatages sont du temps de fiction
 
 **Aucune heure affichée ne vient de l'horloge système** — ni sur les bulles, ni sur le « vu », ni

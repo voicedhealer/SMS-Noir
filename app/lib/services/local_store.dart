@@ -36,6 +36,14 @@ class LocalStore {
   String get _cleCurseur => 'curseur_affichage:$_joueur';
   String get _cleEnAttente => 'file_en_attente:$_joueur';
   String get _cleDecoratifs => 'messages_decoratifs:$_joueur';
+  String get _cleIntroVue => 'intro_vue:$_joueur';
+
+  // --- Séquence d'intronisation ---------------------------------------------
+
+  /// L'intro n'est pas de l'état de jeu : un indicateur local suffit. Si le
+  /// joueur réinstalle et la revoit, ce n'est pas grave.
+  bool get introVue => _prefs.getBool(_cleIntroVue) ?? false;
+  Future<void> marquerIntroVue() => _prefs.setBool(_cleIntroVue, true);
 
   // --- Curseur d'affichage --------------------------------------------------
 
@@ -110,5 +118,6 @@ class LocalStore {
     await _prefs.remove(_cleCurseur);
     await _prefs.remove(_cleEnAttente);
     await _prefs.remove(_cleDecoratifs);
+    await _prefs.remove(_cleIntroVue);
   }
 }

@@ -148,11 +148,38 @@ class ChapterEnd {
       );
 }
 
+/// Séquence d'ouverture, jouée une seule fois par le client.
+class IntroSequence {
+  const IntroSequence({required this.panels, required this.musicUrl});
+
+  /// Chaque panneau est une liste de lignes. Vide = pas d'intro.
+  final List<List<String>> panels;
+
+  /// Chemin signé relatif, ou null si la séquence est muette.
+  final String? musicUrl;
+
+  bool get estVide => panels.isEmpty;
+
+  factory IntroSequence.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const IntroSequence(panels: [], musicUrl: null);
+    return IntroSequence(
+      panels: (json['panels'] as List<dynamic>? ?? const [])
+          .map((p) => ((p as Map<String, dynamic>)['lines'] as List<dynamic>? ?? const [])
+              .map((l) => l as String)
+              .toList())
+          .toList(),
+      musicUrl: json['music_url'] as String?,
+    );
+  }
+}
+
 /// Réponse de `get-state`.
 class GameState {
   const GameState({
     required this.storySlug,
     required this.storyTitle,
+    required this.intro,
+    required this.newMessages,
     required this.conversations,
     required this.history,
     required this.node,
@@ -162,6 +189,13 @@ class GameState {
 
   final String storySlug;
   final String storyTitle;
+  final IntroSequence intro;
+
+  /// Messages écrits par CET appel — le nœud d'entrée, à la première visite.
+  /// Ils portent leurs délais et doivent être **joués**, jamais versés dans
+  /// l'historique : sinon le premier message de l'histoire arriverait sans
+  /// attente ni typing. Vide aux appels suivants.
+  final List<ClientMessage> newMessages;
   final List<Conversation> conversations;
 
   /// Historique complet, ordonné par `seq`, délais à 0 : il se rejoue d'un bloc.
@@ -175,6 +209,10 @@ class GameState {
     return GameState(
       storySlug: story['slug'] as String? ?? '',
       storyTitle: story['title'] as String? ?? '',
+      intro: IntroSequence.fromJson(json['intro'] as Map<String, dynamic>?),
+      newMessages: (json['new_messages'] as List<dynamic>? ?? const [])
+          .map((m) => ClientMessage.fromJson(m as Map<String, dynamic>))
+          .toList(),
       conversations: (json['conversations'] as List<dynamic>? ?? const [])
           .map((c) => Conversation.fromJson(c as Map<String, dynamic>))
           .toList(),

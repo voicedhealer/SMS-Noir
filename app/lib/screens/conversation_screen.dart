@@ -11,6 +11,7 @@ import '../services/playback.dart';
 import '../theme/tokens.dart';
 import '../widgets/composer.dart';
 import '../widgets/message_widgets.dart';
+import 'intro_screen.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
   const ConversationScreen({super.key});
@@ -45,6 +46,12 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final ctrl = ref.read(conversationProvider.notifier);
 
     ref.listen(conversationProvider, (_, _) => _versLeBas());
+
+    // La séquence d'ouverture prend tout l'écran, avant la conversation.
+    final intro = async.value?.intro;
+    if (intro != null) {
+      return IntroScreen(intro: intro, onTermine: ctrl.introTerminee);
+    }
 
     return Scaffold(
       appBar: _EnTete(etat: async.value),

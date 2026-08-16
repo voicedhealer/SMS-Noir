@@ -127,10 +127,25 @@ export interface ChapterEndState {
   next_chapter_pending: boolean
 }
 
+/** Séquence d'ouverture, jouée une seule fois par le client. */
+export interface IntroSequence {
+  panels: { lines: string[] }[]
+  music_url: string | null
+}
+
 export interface GetStateResponse {
   story: { slug: string; title: string }
+  /** Panneaux d'intronisation. `panels` vide = pas d'intro pour cette histoire. */
+  intro: IntroSequence
+  /**
+   * Messages produits par CET appel — c'est-à-dire ceux du nœud d'entrée, à la
+   * toute première visite. Ils portent leurs délais et doivent être **joués**,
+   * pas rendus d'un bloc : sinon le tout premier message de l'histoire
+   * apparaîtrait sans attente ni typing. Vide aux appels suivants.
+   */
+  new_messages: (ClientMessage & { contact_id: string })[]
   conversations: ClientConversation[]
-  /** Historique complet, ordonné par seq. */
+  /** Déjà vu, à rendre d'un bloc. N'inclut jamais `new_messages`. */
   history: (ClientMessage & { contact_id: string })[]
   node: ClientNode | null
   chapter_end: ChapterEndState | null

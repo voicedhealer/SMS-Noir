@@ -16,6 +16,34 @@
 
 ## 3. Chronologie interne (ne jamais contredire)
 
+**Jour J = jeudi 13 août 2026.** L'histoire est explicitement datée, et la séquence d'intronisation
+l'annonce au joueur dès le premier panneau. **Toute date figurant sur un média se calcule par
+rapport au 13 août 2026, jamais par rapport à la date réelle du jour où l'on joue.** C'est ce qui
+garde les incohérences plantées lisibles indéfiniment : sans ancrage, le récépissé du N10 aurait
+dit « il y a 2 mois » en 2026, puis « il y a 14 mois » un an plus tard, et l'indice aurait changé
+de sens tout seul.
+
+Dates absolues qui en découlent :
+
+| Repère | Date |
+|---|---|
+| Disparition de Chloé (J-7 mois) | mi-janvier 2026 (~12 janvier) |
+| Dispute avec Léna (« le 12 mars ») | ⚠️ voir note ci-dessous |
+| Premier signalement (J-2 mois) | **12 juin 2026** — la date du mail du N10 (62 jours avant J : bien « 2 mois ») |
+| Disparition du porte-clés (J-3 semaines) | 23 juillet 2026 |
+| **Jour J, chapitre 1** | **jeudi 13 août 2026, 22h47** |
+
+📅 **Pourquoi le 13 et non le 14** : le 14 août 2026 tombe un **vendredi**. Or le chapitre affiche
+« jeudi — 22h47 » en tout premier séparateur, et le suspect vient à l'entrepôt « tous les jeudis ».
+Annoncer « jeudi 14 août » aurait posé une contradiction sur le premier écran du jeu. Le 13 août
+2026 est bien un jeudi, et tout le reste de la chronologie se décale d'un jour sans conséquence.
+
+⚠️ **Incohérence à arbitrer** : la dispute est datée « le 12 mars » et située « la veille » de la
+disparition, mais la disparition tombe à J-7 mois, soit mi-janvier. Mars ≠ janvier. Cette date était
+déjà dans la bible avant l'ancrage — l'ancrage ne fait que la rendre visible. Deux lectures
+possibles : c'est une quatrième incohérence plantée (le 12 mars est ce que Léna *dit*, pas ce qui
+s'est passé), ou c'est un simple écart à corriger. **À trancher par Vivien** — voir docs/TODO.md.
+
 - **J-7 mois** : disparition de Chloé. La veille : dispute violente avec Léna (« le 12 mars »)
 - **J-5 mois → J-2 mois** : Léna cherche seule, ne signale RIEN à la police (culpabilité + une raison révélée au ch. 4)
 - **J-2 mois** : premier signalement (date visible sur le récépissé du N10 — incohérence volontaire repérable)
