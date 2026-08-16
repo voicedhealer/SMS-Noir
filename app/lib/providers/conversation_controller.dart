@@ -162,6 +162,12 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   List<ClientMessage> _aJouerApresIntro = const [];
 
   int _nonLus = 0;
+
+  /// Un déroulé est **imminent** : des messages sont en file, mais leurs timers
+  /// n'ont pas encore démarré — typiquement pendant les 4 s de vide qui suivent
+  /// l'intronisation. Sans ce drapeau, la zone de choix s'afficherait avant que
+  /// Léna ait envoyé quoi que ce soit, puis disparaîtrait, puis reviendrait.
+  bool _derouleImminent = false;
   Timer? _fallbackContinuation;
 
   @override
@@ -220,10 +226,25 @@ class ConversationController extends AsyncNotifier<ConversationState> {
 
     // Ce qui n'avait pas été joué avant la fermeture reprend avec ses délais.
     if (enAttente.isNotEmpty) {
-      unawaited(_moteur.jouer(enAttente));
+      unawaited(_jouer(enAttente));
     } else if (_intro == null && etat.newMessages.isNotEmpty) {
       // Première visite sans intro : les messages du nœud d'entrée se JOUENT.
-      unawaited(_moteur.jouer(etat.newMessages));
+      unawaited(_jouer(etat.newMessages));
+    }
+  }
+
+  /// Déroule une salve en tenant la zone de choix masquée du début à la fin.
+  ///
+  /// Le drapeau est posé **avant** le premier timer, pas au premier message :
+  /// entre les deux il peut s'écouler plusieurs secondes — les 4 s de vide de
+  /// l'intronisation, ou simplement le délai du premier message.
+  Future<void> _jouer(List<ClientMessage> messages) async {
+    _derouleImminent = true;
+    try {
+      await _moteur.jouer(messages);
+    } finally {
+      _derouleImminent = false;
+      if (!_termine) _publier();
     }
   }
 
@@ -234,17 +255,23 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   static const silenceApresIntro = Duration(seconds: 4);
 
   Future<void> introTerminee() async {
-    await _store.marquerIntroVue();
-    _intro = null;
-    _publier();
-
     final aJouer = _aJouerApresIntro;
     _aJouerApresIntro = const [];
+    _intro = null;
+
+    // ⚠️ Posé AVANT le moindre `await`. L'écran de conversation est poussé dans
+    // la foulée : s'il se construit pendant qu'on attend l'écriture du drapeau
+    // « intro vue », il voit encore un état sans déroulé en cours et affiche
+    // les réponses — avant que Léna ait dit un mot.
+    _derouleImminent = aJouer.isNotEmpty;
+    _publier();
+
+    await _store.marquerIntroVue();
     if (aJouer.isEmpty) return;
 
     await Future<void>.delayed(silenceApresIntro);
     if (_termine) return;
-    await _moteur.jouer(aJouer);
+    await _jouer(aJouer);
   }
 
   /// Les messages décoratifs n'existent que localement : on les replace à leur
@@ -263,7 +290,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         chapterEnd: _chapterEnd,
         typing: _moteur.typing,
         presence: _moteur.presence,
-        enDeroule: _moteur.enCours,
+        enDeroule: _moteur.enCours || _derouleImminent,
         mode: _mode(),
         heures: FictionClock.horaires(_fil),
         nonLus: _nonLus,
@@ -375,7 +402,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     _conversations = r.conversations;
     _chapterEnd = r.chapterEnd;
     await _store.poserEnAttente(r.newMessages);
-    await _moteur.jouer(r.newMessages);
+    await _jouer(r.newMessages);
     await _store.poserEnAttente(const []);
   }
 

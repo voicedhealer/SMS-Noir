@@ -34,13 +34,16 @@ class _RootScreenState extends ConsumerState<RootScreen> {
       return IntroScreen(
         intro: intro,
         onTermine: () {
-          final navigateur = Navigator.of(context);
+          // L'ordre compte : la partie synchrone de `introTerminee` marque le
+          // déroulé comme imminent. Elle doit s'exécuter AVANT que l'écran de
+          // conversation ne se construise, sinon il affiche brièvement des
+          // réponses à un message qui n'est pas encore arrivé.
+          ref.read(conversationProvider.notifier).introTerminee();
           // On bascule tout de suite : les 4 s de vide se jouent DANS la
           // conversation, écran ouvert et vide, pas sur le noir de l'intro.
-          navigateur.push(
+          Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const ConversationScreen()),
           );
-          ref.read(conversationProvider.notifier).introTerminee();
         },
       );
     }

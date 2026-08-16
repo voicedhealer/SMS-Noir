@@ -132,6 +132,52 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 30));
     });
 
+    testWidgets('la zone de choix reste masquée pendant les 4 s de vide', (tester) async {
+      // Régression : les réponses proposées s'affichaient dès la fin de
+      // l'intro, avant le moindre message de Léna, puis disparaissaient au
+      // démarrage du déroulé, puis revenaient. Un choix ne peut pas précéder
+      // ce à quoi il répond.
+      await monter(tester, racine: true, getState: {
+        'story': {'slug': 's', 'title': 'T'},
+        'intro': intro,
+        'new_messages': [
+          message(seq: 1, body: 'jeudi — 22h47', type: 'separator'),
+          message(seq: 2, body: 'C\'est bon.', delay: 4, typing: 3),
+        ],
+        'conversations': [conversation()],
+        'history': const [],
+        'node': noeud(choix: [
+          {'id': 'a', 'position': 0, 'label': 'Qui ça, « elle » ?', 'kind': 'reply'},
+          {'id': 'b', 'position': 1, 'label': 'Ignorer', 'kind': 'ignore'},
+        ]),
+        'chapter_end': null,
+        'ai_moment_pending': false,
+      });
+
+      await tester.tap(find.byType(IntroScreen)); // skip debug
+      await tester.pump();
+
+      // Pendant les 4 s de vide.
+      expect(find.text('Qui ça, « elle » ?'), findsNothing);
+      expect(find.text('Ignorer'), findsNothing);
+      await tester.pump(const Duration(seconds: 3));
+      expect(find.text('Qui ça, « elle » ?'), findsNothing,
+          reason: 'toujours rien : Léna n\'a pas encore parlé');
+
+      // Pendant le déroulé du N1 : séparateur à t=4, message à t=8.
+      await tester.pump(const Duration(seconds: 2)); // t=5
+      expect(find.text('Qui ça, « elle » ?'), findsNothing);
+      await tester.pump(const Duration(seconds: 2)); // t=7, message pas encore là
+      expect(find.text('Qui ça, « elle » ?'), findsNothing);
+
+      // Une fois le dernier message arrivé, et seulement là.
+      await tester.pump(const Duration(seconds: 2)); // t=9
+      await tester.pumpAndSettle();
+      expect(find.text('C\'est bon.'), findsOneWidget);
+      expect(find.text('Qui ça, « elle » ?'), findsOneWidget);
+      expect(find.text('Ignorer'), findsOneWidget);
+    });
+
     testWidgets('4 s de silence total avant que quoi que ce soit n\'arrive', (tester) async {
       await monter(tester, getState: etatAvecIntro(), racine: true);
 
