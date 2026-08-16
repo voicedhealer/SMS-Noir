@@ -6,7 +6,6 @@ import '../models/client_message.dart';
 import '../models/game_state.dart';
 import '../providers/conversation_controller.dart';
 import '../services/fiction_clock.dart';
-import '../services/read_receipts.dart';
 import '../services/playback.dart';
 import '../theme/tokens.dart';
 import '../widgets/composer.dart';
@@ -95,7 +94,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           ),
         ),
         data: (etat) {
-          final vu = ReadReceipts.dernierVu(etat.fil);
+          final vu = etat.vu;
           return Column(
           children: [
             Expanded(

@@ -36,6 +36,7 @@ class PlaybackEngine {
     required this.onChangement,
     this.onVibration,
     this.onTypingReel,
+    this.onLecture,
     this.duree = _attenteReelle,
   });
 
@@ -54,6 +55,18 @@ class PlaybackEngine {
   /// laisserait croire qu'un message arrive, et son extinction sans message
   /// perdrait tout son sens.
   final void Function()? onTypingReel;
+
+  /// Le contact prend connaissance du fil : il s'apprête à répondre.
+  ///
+  /// Émis **au début** de l'attente d'un message qu'il va taper, donc bien
+  /// avant l'indicateur de frappe. C'est ce qui donne l'enchaînement d'une
+  /// vraie messagerie — elle lit, puis elle tape, puis elle répond — au lieu
+  /// d'un « Vu. » qui arriverait après coup.
+  ///
+  /// Un message sans frappe (`typing_seconds == 0`) ne l'émet pas : un
+  /// séparateur ou une ellipse ne prouve pas qu'elle a lu. C'est ce qui tient
+  /// le silence du N19, dont les 90 s sont portées par un séparateur.
+  final void Function()? onLecture;
 
   /// Indirection pour les tests : permet de piloter le temps.
   final Future<void> Function(Duration) duree;
@@ -113,6 +126,10 @@ class PlaybackEngine {
 
   /// Attente d'un message, avec ses battements de mise en scène.
   Future<void> _attendre(ClientMessage m, int generation) async {
+    // Elle ouvre la conversation avant de composer : le « Vu. » précède la
+    // frappe, il ne la suit pas.
+    if (m.sender == MessageSender.contact && m.typingSeconds > 0) onLecture?.call();
+
     final total = m.delaySeconds;
     if (total <= 0) return;
 

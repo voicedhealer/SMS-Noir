@@ -20,6 +20,20 @@ import '../models/client_message.dart';
 class ReadReceipts {
   const ReadReceipts._();
 
+  /// `seq` du dernier message du joueur lu, en combinant deux sources.
+  ///
+  /// [anticipe] vient du moteur : il avance le marqueur dès qu'elle commence à
+  /// s'occuper de sa réponse, avant même l'indicateur de frappe. La règle
+  /// dérivée ci-dessous reste indispensable pour **reconstruire** l'état d'un
+  /// fil restitué depuis l'historique, où plus aucun événement ne sera émis.
+  /// On garde le plus avancé des deux.
+  static int? marqueur(List<ClientMessage> fil, int? anticipe) {
+    final derive = dernierVu(fil);
+    if (derive == null) return anticipe;
+    if (anticipe == null) return derive;
+    return derive > anticipe ? derive : anticipe;
+  }
+
   /// `seq` du dernier message du joueur qui porte le marqueur, ou null.
   ///
   /// Un seul marqueur dans tout le fil, sous le dernier message vu — c'est la

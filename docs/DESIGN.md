@@ -223,10 +223,24 @@ Sous la dernière bulle du joueur qui a été lue, aligné à droite, minuscule 
 messagerie il se remarque à peine — **sauf quand on l'attend**, et c'est exactement ce que le N19
 provoque.
 
-**Il est piloté par la fiction, jamais automatique.** La règle, purement cliente :
+**Il est piloté par la fiction, jamais automatique**, et il arrive **avant** la réponse :
 
-> Un message du joueur est vu dès qu'un **vrai message du contact** apparaît après lui dans le fil.
-> Ni un séparateur, ni un changement de présence ne comptent — ce ne sont pas des paroles.
+> Le marqueur descend dès qu'elle commence à s'occuper de sa réponse — c'est-à-dire à l'entrée dans
+> l'attente d'un message qu'elle va **taper**. Bien avant l'indicateur de frappe, et donc bien avant
+> le message lui-même.
+
+L'enchaînement est celui d'une vraie messagerie : **elle lit → elle tape → elle répond.**
+Un « Vu. » qui apparaîtrait après les points serait absurde — elle aurait répondu à un message
+qu'elle n'avait pas encore lu.
+
+Un message **sans frappe** (`typing_seconds == 0`) ne déclenche rien : un séparateur ou une ellipse
+ne prouve pas qu'elle a lu. C'est ce qui tient le silence du N19, dont les 90 secondes sont portées
+par le séparateur « 00h34 » — le marqueur ne tombe qu'à son retour, sur le premier message qu'elle
+compose.
+
+Une **règle dérivée** double le mécanisme, indispensable pour reconstruire un fil restitué depuis
+l'historique où plus aucun événement n'est émis : un message du joueur est vu dès qu'un vrai
+message du contact apparaît après lui. On garde le plus avancé des deux.
 
 | Situation | Résultat |
 |---|---|

@@ -13,6 +13,7 @@ import '../services/fiction_clock.dart';
 import '../services/intro_music.dart';
 import '../services/local_store.dart';
 import '../services/playback.dart';
+import '../services/read_receipts.dart';
 import '../services/sound_effects.dart';
 import '../widgets/composer.dart';
 import 'session_providers.dart';
@@ -34,6 +35,7 @@ class ConversationState {
     required this.enDeroule,
     required this.mode,
     required this.heures,
+    this.vu,
     this.nonLus = 0,
     this.intro,
     this.erreur,
@@ -52,6 +54,9 @@ class ConversationState {
 
   /// Heure **de fiction** par `seq`. Jamais l'horloge système.
   final Map<int, int> heures;
+
+  /// `seq` du message du joueur qui porte le marqueur « Vu. », ou null.
+  final int? vu;
 
   /// Séquence d'ouverture à jouer avant tout. Null = déjà vue, ou aucune.
   final IntroSequence? intro;
@@ -127,6 +132,7 @@ class ConversationState {
     bool? enDeroule,
     ComposerMode? mode,
     Map<int, int>? heures,
+    int? vu,
     int? nonLus,
     IntroSequence? intro,
     bool viderIntro = false,
@@ -143,6 +149,7 @@ class ConversationState {
         enDeroule: enDeroule ?? this.enDeroule,
         mode: mode ?? this.mode,
         heures: heures ?? this.heures,
+        vu: vu ?? this.vu,
         nonLus: nonLus ?? this.nonLus,
         intro: viderIntro ? null : (intro ?? this.intro),
         erreur: viderErreur ? null : (erreur ?? this.erreur),
@@ -168,6 +175,9 @@ class ConversationController extends AsyncNotifier<ConversationState> {
 
   int _nonLus = 0;
 
+  /// `seq` du dernier message du joueur qu'elle a lu, d'après le moteur.
+  int? _vuAnticipe;
+
   /// Un déroulé est **imminent** : des messages sont en file, mais leurs timers
   /// n'ont pas encore démarré — typiquement pendant les 4 s de vide qui suivent
   /// l'intronisation. Sans ce drapeau, la zone de choix s'afficherait avant que
@@ -187,6 +197,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     _derouleImminent = false;
     _verrouille = false;
     _nonLus = 0;
+    _vuAnticipe = null;
 
     await ref.watch(authPreteProvider.future);
     _store = await ref.watch(localStoreProvider.future);
@@ -208,6 +219,9 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       onVibration: () => HapticFeedback.mediumImpact(),
       // Uniquement le typing RÉEL — le moteur ne signale jamais le fantôme.
       onTypingReel: () => _sons.jouer(EffetSonore.frappe),
+      // Elle lit avant de taper : le marqueur « Vu. » descend maintenant, pas
+      // à l'arrivée de sa réponse.
+      onLecture: _marquerLuParElle,
     );
     // Le déroulé s'arrête quand le joueur n'est plus là, et reprend quand il
     // revient. Aucun bouton : ce serait un objet de jeu. C'est aussi le
@@ -340,6 +354,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         enDeroule: _moteur.enCours || _derouleImminent,
         mode: _mode(),
         heures: FictionClock.horaires(_fil),
+        vu: ReadReceipts.marqueur(_fil, _vuAnticipe),
         nonLus: _nonLus,
         intro: _intro,
       );
@@ -399,6 +414,18 @@ class ConversationController extends AsyncNotifier<ConversationState> {
 
   /// Toute action du joueur repousse l'affordance de continuation.
   void signalerActivite() => _armerFallbackContinuation();
+
+  /// Elle vient de prendre connaissance du fil.
+  void _marquerLuParElle() {
+    for (final m in _fil.reversed) {
+      if (m.sender != MessageSender.player) continue;
+      if (_vuAnticipe == null || m.seq > _vuAnticipe!) {
+        _vuAnticipe = m.seq;
+        _publier();
+      }
+      return;
+    }
+  }
 
   /// Le joueur ouvre la conversation : tout est lu.
   void marquerLu() {

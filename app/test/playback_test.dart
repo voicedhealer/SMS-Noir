@@ -185,6 +185,53 @@ void main() {
       expect(frappes, 0, reason: 'et jusqu\'au bout du silence');
     });
 
+    test('elle lit AVANT de taper : Vu. puis points puis réponse', () async {
+      final lectures = <int>[];
+      var frappes = 0;
+      final moteur2 = PlaybackEngine(
+        onMessage: delivres.add,
+        onChangement: () {},
+        onLecture: () => lectures.add(horloge.ecoule),
+        onTypingReel: () => frappes++,
+        duree: horloge.attendre,
+      );
+      // Sa réponse au N3 : 25 s d'attente dont 3 s de frappe.
+      unawaited(moteur2.jouer([msg(seq: 1, body: 'Attends', delay: 25, typing: 3)]));
+
+      await horloge.avancer(1);
+      expect(lectures, [0], reason: 'elle a lu tout de suite');
+      expect(frappes, 0, reason: 'mais elle ne tape pas encore');
+      expect(moteur2.typing, TypingState.aucun);
+
+      await horloge.avancer(21);
+      expect(frappes, 1, reason: 'la frappe démarre bien après la lecture');
+      expect(delivres, isEmpty);
+
+      await horloge.avancer(3);
+      expect(delivres, hasLength(1), reason: 'et la réponse arrive en dernier');
+    });
+
+    test('un séparateur ne vaut pas lecture — les 90 s du N19 restent muettes',
+        () async {
+      final lectures = <int>[];
+      final moteur2 = PlaybackEngine(
+        onMessage: delivres.add,
+        onChangement: () {},
+        onLecture: () => lectures.add(horloge.ecoule),
+        duree: horloge.attendre,
+      );
+      unawaited(moteur2.jouer([
+        msg(seq: 1, body: '00h34', type: ContentType.separator, delay: 90),
+        msg(seq: 2, body: 'C\'est bon.', delay: 4, typing: 3),
+      ]));
+      await horloge.avancer(89);
+      expect(lectures, isEmpty,
+          reason: 'elle est absente : rien ne doit indiquer qu\'elle a lu');
+
+      await horloge.avancer(2);
+      expect(lectures, hasLength(1), reason: 'le Vu. tombe à son retour, pas avant');
+    });
+
     test('le typing RÉEL signale une frappe, une seule par message', () async {
       var frappes = 0;
       final moteurSonore = PlaybackEngine(
