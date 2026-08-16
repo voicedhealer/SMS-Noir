@@ -28,6 +28,11 @@ MEDIAS=(
   audio-N17-reperage
 )
 
+# La musique d'intronisation n'est pas rattachée à un nœud : elle vit sur
+# l'histoire (stories.intro_music_url). Tout fichier de media/ dont le nom ne
+# correspond à aucun nœud et qui est un audio est traité comme tel.
+MUSIQUE_INTRO="intro-music" 
+
 # Cherche le fichier correspondant à un média.
 #
 # Tolérant sur le nommage : on accepte le nom canonique, mais aussi n'importe
@@ -37,6 +42,7 @@ MEDIAS=(
 trouver() {
   local base="$1"
   local code="${base#*-}"; code="${code%%-*}"   # photo-N10-recepisse -> N10
+  [ "$base" = "$MUSIQUE_INTRO" ] && code='@@aucun@@'
   local f
 
   for f in "$DOSSIER/$base".*; do
@@ -102,11 +108,41 @@ for base in "${MEDIAS[@]}"; do
   printf "  ✅ %-28s → %s  (%s, %s)\n" "$base" "$objet" "$type" "$taille"
 done
 
+# --- Musique d'intronisation ------------------------------------------------
+# Repérée par élimination : un audio de media/ qui n'appartient à aucun nœud.
+musique=""
+for f in "$DOSSIER"/*; do
+  [ -e "$f" ] || continue
+  nom="$(basename "$f")"
+  case "$nom" in *.md) continue;; esac
+  case "$nom" in *.mp3|*.m4a|*.aac|*.wav) ;; *) continue;; esac
+  case "$nom" in *N17*|*audio-N*) continue;; esac
+  musique="$f"; break
+done
+
+if [ -n "$musique" ]; then
+  objet="intro-music.${musique##*.}"
+  code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+    "$API_URL/storage/v1/object/$BUCKET/$objet" \
+    -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
+    -H "Content-Type: $(mime "$musique")" -H "x-upsert: true" \
+    --data-binary "@$musique")
+  if [ "$code" = "200" ] || [ "$code" = "201" ]; then
+    sql "update stories set intro_music_url = '$objet' where slug = 'numero-inconnu';" >/dev/null
+    printf "  ✅ %-28s → %s  (musique d'intronisation)\n" "$(basename "$musique")" "$objet"
+  else
+    printf "  ❌ %-28s téléversement refusé (HTTP %s)\n" "$(basename "$musique")" "$code"
+  fi
+else
+  printf "  ⏳ %-28s aucune musique d'intronisation dans media/\n" "—"
+fi
+
 echo
 echo "── état en base ──"
 sql "select '  '||n.code||'#'||m.position||'  '||rpad(m.content_type,6)||'  '||m.media_url
      from messages m join nodes n on n.id = m.node_id
      where m.media_url is not null order by m.media_url;"
+sql "select '  intro   '||coalesce(intro_music_url,'(muette)') from stories where slug='numero-inconnu';"
 
 restants=$(sql "select count(*) from messages where media_url like 'placeholder://%';")
 echo

@@ -5,6 +5,7 @@ import 'package:just_audio/just_audio.dart';
 
 import '../config/env.dart';
 import '../models/game_state.dart';
+import '../services/audio_session_config.dart';
 import '../theme/tokens.dart';
 
 /// Séquence d'intronisation.
@@ -62,11 +63,12 @@ class _IntroScreenState extends State<IntroScreen> {
     final chemin = widget.intro.musicUrl;
     if (chemin == null) return; // séquence muette : parfaitement valide
     try {
-      final lecteur = AudioPlayer();
-      _lecteur = lecteur;
       // Catégorie « ambient » : respecte le mode silencieux du téléphone et ne
       // coupe pas la musique que le joueur écoutait déjà.
-      await lecteur.setAudioSource(AudioSource.uri(Uri.parse('${Env.supabaseUrl}$chemin')));
+      await AudioSessionConfig.ambiance();
+      final lecteur = AudioPlayer();
+      _lecteur = lecteur;
+      await lecteur.setUrl('${Env.supabaseUrl}$chemin');
       await lecteur.setVolume(0);
       await lecteur.setLoopMode(LoopMode.off); // une seule lecture, jamais en boucle
       unawaited(lecteur.play());

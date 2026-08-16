@@ -39,6 +39,7 @@ dependencies:
   http: ^1.6.0
   shared_preferences: ^2.5.5
   just_audio: ^0.10.6
+  audio_session: ^0.2.4
 
 dev_dependencies:
   flutter_test:

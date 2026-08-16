@@ -133,8 +133,10 @@ Vérifié sur simulateur iOS : intro complète (4 panneaux, fondus), 4 s de vide
 typing, photo réelle du N16 dans le fil, bascule « Numéro inconnu » → « Léna », écran de fin avec
 compte à rebours, liste avec aperçu et heure de fiction.
 
-⚠️ **Non vérifié à la main** : les six interactions déclenchées par un vrai geste, et la reprise en
-tuant l'app pendant les 90 s du N19. Automatiser un tap sur le simulateur demande l'autorisation
+⚠️ **Non vérifié à la main** : les six interactions déclenchées par un vrai geste, la reprise en
+tuant l'app pendant les 90 s du N19, et **le son à l'oreille** — le lecteur est réel et les fichiers
+sont servis correctement (MIME `audio/mpeg`, requêtes Range en 206, MP3 valides), mais je ne peux
+pas entendre le simulateur. Automatiser un tap sur le simulateur demande l'autorisation
 d'accès d'aide de macOS, refusée sur cette machine. Le comportement est couvert par les tests
 widget, mais il n'a pas été joué au doigt. **À faire par Vivien** : `app/tool/run_local.sh`.
 

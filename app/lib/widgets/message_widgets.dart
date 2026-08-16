@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 
 import '../config/env.dart';
+import '../services/audio_session_config.dart';
 import '../models/client_message.dart';
 import '../theme/tokens.dart';
 
@@ -230,9 +234,11 @@ class PhotoViewer extends StatelessWidget {
 
 /// Lecteur de note vocale.
 ///
-/// Les médias réels n'existent pas encore : la lecture est simulée, mais le
-/// signal de **réécoute** est réel — c'est lui qui portera l'interaction cachée
-/// du N17. À remplacer par un vrai lecteur quand les fichiers arriveront.
+/// Un vrai lecteur : le vocal du N17 porte un indice (le fond sonore urbain,
+/// bible §7 n° 3), et un lecteur simulé le rendrait inatteignable.
+///
+/// La **réécoute** — toute lecture à partir de la deuxième — est l'interaction
+/// cachée du N17. Ce n'est pas un confort de lecture.
 class AudioBubble extends StatefulWidget {
   const AudioBubble({super.key, required this.message, this.onReecoute});
   final ClientMessage message;
@@ -245,22 +251,82 @@ class AudioBubble extends StatefulWidget {
 }
 
 class _AudioBubbleState extends State<AudioBubble> {
+  AudioPlayer? _lecteur;
   int _lectures = 0;
+  bool _pret = false;
+  Duration _duree = Duration.zero;
+  Duration _position = Duration.zero;
   bool _enLecture = false;
 
-  Future<void> _lire() async {
-    setState(() {
-      _enLecture = true;
-      _lectures++;
-    });
-    if (_lectures >= 2) widget.onReecoute?.call();
-    await Future<void>.delayed(const Duration(seconds: 2));
-    if (mounted) setState(() => _enLecture = false);
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_preparer());
   }
+
+  @override
+  void dispose() {
+    _lecteur?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _preparer() async {
+    final url = widget.message.urlAbsolue(Env.supabaseUrl);
+    if (url == null) return; // média pas encore produit
+    try {
+      await AudioSessionConfig.notevocale();
+      final lecteur = AudioPlayer();
+      _lecteur = lecteur;
+      final duree = await lecteur.setUrl(url);
+      lecteur.positionStream.listen((p) {
+        if (mounted) setState(() => _position = p);
+      });
+      lecteur.playerStateStream.listen((etat) {
+        if (!mounted) return;
+        setState(() => _enLecture = etat.playing && etat.processingState != ProcessingState.completed);
+        if (etat.processingState == ProcessingState.completed) {
+          lecteur.seek(Duration.zero);
+          lecteur.pause();
+        }
+      });
+      if (mounted) {
+        setState(() {
+          _pret = true;
+          _duree = duree ?? Duration.zero;
+        });
+      }
+    } catch (_) {
+      // Un vocal illisible ne casse pas le fil : la bulle reste, muette.
+      _lecteur = null;
+    }
+  }
+
+  Future<void> _basculer() async {
+    final lecteur = _lecteur;
+    if (lecteur == null) return;
+    if (lecteur.playing) {
+      await lecteur.pause();
+      return;
+    }
+    if (lecteur.processingState == ProcessingState.completed) {
+      await lecteur.seek(Duration.zero);
+    }
+    _lectures++;
+    // Deuxième écoute : c'est l'interaction cachée. Rien ne le signale.
+    if (_lectures >= 2) widget.onReecoute?.call();
+    await lecteur.play();
+  }
+
+  String _mmss(Duration d) =>
+      '${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
     final largeurMax = MediaQuery.sizeOf(context).width * AppSpacing.largeurMaxBulle;
+    final progression = (_duree.inMilliseconds == 0)
+        ? 0.0
+        : (_position.inMilliseconds / _duree.inMilliseconds).clamp(0.0, 1.0);
+
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
@@ -275,22 +341,30 @@ class _AudioBubbleState extends State<AudioBubble> {
         child: Row(
           children: [
             GestureDetector(
-              onTap: _lire,
+              onTap: _pret ? _basculer : null,
+              behavior: HitTestBehavior.opaque,
               child: Icon(
                 _enLecture ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                color: AppColors.texteContact,
+                color: _pret ? AppColors.texteContact : AppColors.texteTertiaire,
                 size: 30,
               ),
             ),
             const SizedBox(width: AppSpacing.m),
             Expanded(
-              child: Container(
-                height: 2,
-                decoration: BoxDecoration(
-                  color: AppColors.texteTertiaire,
-                  borderRadius: BorderRadius.circular(1),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(1),
+                child: LinearProgressIndicator(
+                  value: progression,
+                  minHeight: 2,
+                  backgroundColor: AppColors.texteTertiaire,
+                  valueColor: const AlwaysStoppedAnimation(AppColors.texteContact),
                 ),
               ),
+            ),
+            const SizedBox(width: AppSpacing.m),
+            Text(
+              _mmss(_enLecture || _position > Duration.zero ? _position : _duree),
+              style: AppText.horodatage.copyWith(color: AppColors.texteTertiaire),
             ),
           ],
         ),

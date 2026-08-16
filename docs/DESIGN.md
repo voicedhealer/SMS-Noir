@@ -115,6 +115,8 @@ incohérences plantées lisibles indéfiniment. Sans lui, le mail du N10 dirait 
 ### Musique
 
 Fichier fourni par histoire (`stories.intro_music_url`, signé comme les autres médias).
+`scripts/upload-media.sh` la repère par élimination : un audio de `media/` qui n'appartient à
+aucun nœud.
 
 - Démarre avec le premier panneau, **fondu montant de 500 ms**. Volume modéré (45 %).
 - **Coupure nette à la transition** — pas de fondu descendant, pas de continuation sous le fil.
@@ -189,7 +191,7 @@ message suivant.
 | Texte envoyé | Bulle droite, `bulleJoueur` |
 | `separator` | Pastille centrée, `body` **affiché tel quel** (« 23h31 ») — jamais reformaté, jamais recalculé |
 | `image` | Miniature dans le fil, tap → visionneuse plein écran zoomable |
-| `audio` | Lecteur inline, **réécoutable** |
+| `audio` | Lecteur inline réel (just_audio) : lecture/pause, progression, durée. **Réécoutable** |
 | `system` | Jamais une bulle — statut de présence, ou écran de fin (voir plus bas) |
 
 **Médias `placeholder://`** : cartouche neutre aux couleurs `mediaAbsentFond` / `mediaAbsentBord`,
@@ -376,6 +378,22 @@ Prévoir la place d'un futur bouton premium (déblocage immédiat) — non fonct
 
 Le lecteur audio simule la lecture : les fichiers n'existent pas encore. Son signal de **réécoute**
 est en revanche réel — c'est lui qui portera l'interaction cachée du N17 en Phase 3.
+
+## Le son — deux usages, deux politiques
+
+Elles ne sont pas interchangeables : une note vocale et une musique d'ambiance n'ont pas les mêmes
+droits sur le téléphone du joueur. Voir `services/audio_session_config.dart`.
+
+| | Musique d'intronisation | Note vocale de Léna |
+|---|---|---|
+| Catégorie iOS | `ambient` | `playback` |
+| Mode silencieux | **respecté** — si le téléphone est en silencieux, son propriétaire a dit non | **ignoré**, comme dans toutes les messageries |
+| Autre audio en cours | **mixé**, jamais coupé | interrompu |
+| Boucle | jamais | jamais |
+
+**Pourquoi le vocal passe outre le silencieux** : le joueur l'a tapé explicitement, et il porte un
+indice — le fond sonore urbain de la bible §7 n° 3. Un vocal muet rendrait cette incohérence
+inatteignable, donc supprimerait une des six interactions cachées.
 
 ## Outils de développement
 
