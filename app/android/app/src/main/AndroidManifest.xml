@@ -1,6 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Sans ça, le build de release n'a AUCUN accès réseau : le modèle Flutter
+         ne déclare INTERNET que dans les manifests debug et profile, pour l'outil
+         de développement. L'app y perd tout — get-state, médias, moment IA. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
-        android:label="numero_inconnu"
+        android:label="Numéro Inconnu"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

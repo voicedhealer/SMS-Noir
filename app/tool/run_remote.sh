@@ -10,7 +10,8 @@
 #
 # Usage :
 #   app/tool/run_remote.sh                 # lance sur l'appareil branché
-#   app/tool/run_remote.sh --apk           # fabrique un APK à installer
+#   app/tool/run_remote.sh --apk           # APK de debug (outils ↻ et ⏩)
+#   app/tool/run_remote.sh --release       # APK de release (la vraie expérience)
 #   app/tool/run_remote.sh -d <appareil>   # choisit l'appareil
 #
 # Prérequis : supabase link --project-ref <ref>
@@ -42,6 +43,21 @@ echo "API      : $URL"
 echo "Appareil : ${*:-défaut}"
 
 cd "$RACINE/app"
+
+if [ "${1:-}" = "--release" ]; then
+  # Aucun outil de debug : Env.outilsDebug plie `kReleaseMode` dans la constante
+  # elle-même, donc l'arbre est élagué à la compilation. Pas de ↻, pas de ⏩,
+  # pas de skip d'intro — c'est exactement ce qu'un joueur verrait.
+  #
+  # Signé avec les clés de debug (voir le TODO dans build.gradle.kts) : bon pour
+  # un sideload, à refaire avant toute distribution.
+  flutter build apk --release \
+    --dart-define=SUPABASE_URL="$URL" \
+    --dart-define=SUPABASE_PUBLISHABLE_KEY="$CLE"
+  echo
+  echo "APK : $RACINE/app/build/app/outputs/flutter-apk/app-release.apk"
+  exit 0
+fi
 
 if [ "${1:-}" = "--apk" ]; then
   # APK de debug : installable et jouable sans le Mac, et il garde les outils
