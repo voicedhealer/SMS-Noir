@@ -7,6 +7,12 @@
 #   2. supabase start
 #   3. scripts/upload-media.sh
 #
+# Sur le projet HÉBERGÉ (après `supabase link`) :
+#   DISTANT=1 scripts/upload-media.sh
+#
+# Le seed remet des `placeholder://` : ce script est donc à rejouer après
+# chaque `db reset` local ET après chaque `db push --include-seed` distant.
+#
 # Idempotent : réexécutable autant de fois qu'on veut (upsert + update).
 # Les fichiers absents sont signalés et laissent leur placeholder en place, ce
 # qui permet de les livrer un par un.
@@ -17,7 +23,22 @@ DOSSIER="$RACINE/media"
 BUCKET="media"
 
 cd "$RACINE"
-eval "$(supabase status -o env | sed 's/^/export /')"
+
+# En local, tout vient de `supabase status`. En distant, des clés du projet lié.
+# Aucun secret n'est écrit nulle part : ils ne vivent que dans ce shell.
+DISTANT="${DISTANT:-}"
+if [ -n "$DISTANT" ]; then
+  REF=$(supabase projects list -o json 2>/dev/null \
+        | python3 -c 'import json,sys
+d = json.load(sys.stdin)
+print(next(p["ref"] for p in (d["projects"] if isinstance(d, dict) else d) if p["linked"]))')
+  API_URL="https://$REF.supabase.co"
+  SERVICE_ROLE_KEY=$(supabase projects api-keys --project-ref "$REF" -o json \
+        | python3 -c 'import json,sys;print(next(k["api_key"] for k in json.load(sys.stdin) if k["name"]=="service_role"))')
+  echo "  → projet distant $REF"
+else
+  eval "$(supabase status -o env | sed 's/^/export /')"
+fi
 
 # Nom de base attendu dans media/, sans extension.
 # Le placeholder correspondant en base est toujours « placeholder://<base> ».
@@ -71,7 +92,36 @@ mime() {
   esac
 }
 
+# Écritures en base.
+#
+# En local on passe par psql. En distant il n'y a pas de client psql sous la
+# main, mais on n'en a pas besoin : les seules écritures sont des UPDATE sur
+# une égalité, ce que PostgREST fait très bien avec la clé de service.
+rest() {  # rest <méthode> <chemin+filtre> [corps json]
+  curl -s -X "$1" "$API_URL/rest/v1/$2" \
+    -H "apikey: $SERVICE_ROLE_KEY" -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
+    -H 'Content-Type: application/json' ${3:+-d "$3"}
+}
+
 sql() { docker exec -i "supabase_db_${PWD##*/}" psql -U postgres -d postgres -qAt -c "$1"; }
+
+# Rattache un objet téléversé au message qui le porte.
+poser_media() {  # poser_media <placeholder> <objet>
+  if [ -n "$DISTANT" ]; then
+    rest PATCH "messages?or=(media_url.eq.$1,media_url.eq.$2)" "{\"media_url\":\"$2\"}" >/dev/null
+  else
+    sql "update messages set media_url = '$2' where media_url = '$1' or media_url = '$2';" >/dev/null
+  fi
+}
+
+# Pose une colonne de `stories` (musique d'intro, sons de messagerie).
+poser_story() {  # poser_story <colonne> <objet>
+  if [ -n "$DISTANT" ]; then
+    rest PATCH "stories?slug=eq.numero-inconnu" "{\"$1\":\"$2\"}" >/dev/null
+  else
+    sql "update stories set $1 = '$2' where slug = 'numero-inconnu';" >/dev/null
+  fi
+}
 
 mkdir -p "$DOSSIER"
 echo "=============================================================================="
@@ -103,7 +153,7 @@ for base in "${MEDIAS[@]}"; do
     exit 1
   fi
 
-  sql "update messages set media_url = '$objet' where media_url = '$placeholder' or media_url = '$objet';" >/dev/null
+  poser_media "$placeholder" "$objet"
   taille=$(du -h "$fichier" | cut -f1 | tr -d ' ')
   printf "  ✅ %-28s → %s  (%s, %s)\n" "$base" "$objet" "$type" "$taille"
 done
@@ -134,7 +184,7 @@ sonner() { # $1 = motif, $2 = colonne, $3 = libellé
     -H "Content-Type: $(mime "$trouve")" -H "x-upsert: true" \
     --data-binary "@$trouve")
   if [ "$code" = "200" ] || [ "$code" = "201" ]; then
-    sql "update stories set $2 = '$objet' where slug = 'numero-inconnu';" >/dev/null
+    poser_story "$2" "$objet"
     printf "  ✅ %-28s → %s  (%s)\n" "$(basename "$trouve")" "$objet" "$3"
   else
     printf "  ❌ %-28s téléversement refusé (HTTP %s)\n" "$(basename "$trouve")" "$code"
@@ -167,7 +217,7 @@ if [ -n "$musique" ]; then
     -H "Content-Type: $(mime "$musique")" -H "x-upsert: true" \
     --data-binary "@$musique")
   if [ "$code" = "200" ] || [ "$code" = "201" ]; then
-    sql "update stories set intro_music_url = '$objet' where slug = 'numero-inconnu';" >/dev/null
+    poser_story intro_music_url "$objet"
     printf "  ✅ %-28s → %s  (musique d'intronisation)\n" "$(basename "$musique")" "$objet"
   else
     printf "  ❌ %-28s téléversement refusé (HTTP %s)\n" "$(basename "$musique")" "$code"
@@ -178,13 +228,27 @@ fi
 
 echo
 echo "── état en base ──"
-sql "select '  '||n.code||'#'||m.position||'  '||rpad(m.content_type,6)||'  '||m.media_url
-     from messages m join nodes n on n.id = m.node_id
-     where m.media_url is not null order by m.media_url;"
-sql "select '  intro   '||coalesce(intro_music_url,'(muette)') from stories where slug='numero-inconnu';"
-sql "select '  sons    reçu='||coalesce(sound_received_url,'(aucun)')||'  envoi='||coalesce(sound_sent_url,'(aucun)')||'  frappe='||coalesce(sound_typing_url,'(aucun)') from stories where slug='numero-inconnu';"
-
-restants=$(sql "select count(*) from messages where media_url like 'placeholder://%';")
+if [ -n "$DISTANT" ]; then
+  rest GET "messages?media_url=not.is.null&select=media_url,content_type,position,nodes(code)&order=media_url" \
+    | python3 -c 'import json,sys
+for m in json.load(sys.stdin):
+    print("  %s#%s  %-6s  %s" % (m["nodes"]["code"], m["position"], m["content_type"], m["media_url"]))'
+  rest GET "stories?slug=eq.numero-inconnu&select=intro_music_url,sound_received_url,sound_sent_url,sound_typing_url" \
+    | python3 -c 'import json,sys
+s = json.load(sys.stdin)[0]
+print("  intro   %s" % (s["intro_music_url"] or "(muette)"))
+print("  sons    recu=%s  envoi=%s  frappe=%s" % (s["sound_received_url"] or "(aucun)",
+      s["sound_sent_url"] or "(aucun)", s["sound_typing_url"] or "(aucun)"))'
+  restants=$(rest GET "messages?media_url=like.placeholder://*&select=media_url" \
+    | python3 -c 'import json,sys;print(len(json.load(sys.stdin)))')
+else
+  sql "select '  '||n.code||'#'||m.position||'  '||rpad(m.content_type,6)||'  '||m.media_url
+       from messages m join nodes n on n.id = m.node_id
+       where m.media_url is not null order by m.media_url;"
+  sql "select '  intro   '||coalesce(intro_music_url,'(muette)') from stories where slug='numero-inconnu';"
+  sql "select '  sons    reçu='||coalesce(sound_received_url,'(aucun)')||'  envoi='||coalesce(sound_sent_url,'(aucun)')||'  frappe='||coalesce(sound_typing_url,'(aucun)') from stories where slug='numero-inconnu';"
+  restants=$(sql "select count(*) from messages where media_url like 'placeholder://%';")
+fi
 echo
 if [ "$restants" -gt 0 ]; then
   echo "  ⚠️  $restants média(s) encore en placeholder — l'app affichera le cartouche de repli."
