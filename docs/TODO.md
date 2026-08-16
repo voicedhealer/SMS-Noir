@@ -220,19 +220,18 @@ divergence entre la base et sa source de vérité. **58 = 58 actuellement.**
       mais `push_text = null`. Sans texte, les notifications locales du prompt 4 devront se replier
       sur un libellé générique — ce qui gâche l'effet, surtout au N19 (« il sort »).
 
-## 🔊 Sons à produire (Vivien) — 2 fichiers
+## 🔊 Sons de message — en place, personnalisables
 
-Déposer dans `media/`, puis `scripts/upload-media.sh`. Le script les repère par **mot-clé dans le
-nom** : `reception` (ou `recu`) et `envoi`. Tant qu'ils manquent, l'app est silencieuse.
+**Rien à produire.** L'app sonne déjà : sons système neutres sur iOS, assets synthétisés sobres sur
+Android. Voir DESIGN.md § Sons de message.
 
-- [ ] **Son de réception** — 100-200 ms, discret, type messagerie. Il se déclenchera aussi sur les
-      photos et le vocal.
-- [ ] **Son d'envoi** — idem, plus sec.
-- [ ] **Son de frappe** — au démarrage de l'indicateur « en train d'écrire… ». Encore plus discret
-      que les deux autres : il se répète beaucoup. Repéré par le mot-clé `frappe`.
+Pour donner à une histoire son identité sonore, déposer des fichiers dans `media/` — ils prennent
+le dessus. Le script les repère par mot-clé : `reception`, `envoi`, `frappe`.
 
-⚠️ **Jamais ludiques.** Pas de carillon, pas de note montante « réussite ». On n'est pas dans un
-jeu, et un son qui récompense casserait l'illusion aussi sûrement qu'un score à l'écran.
+- [ ] Écouter les trois sons et dire s'ils conviennent. Les identifiants iOS sont trois constantes
+      dans `services/system_sounds.dart`, triviales à changer ; les assets Android sont dans
+      `app/assets/sounds/`.
+
 
 ## 🎬 Médias à produire (Vivien) — 4 fichiers
 

@@ -447,12 +447,42 @@ Deux effets très courts (100-200 ms) : réception d'un message de Léna, envoi 
 joueur. Discrets, type messagerie, **jamais ludiques** — un son qui « récompense » casserait
 l'illusion aussi sûrement qu'un score à l'écran.
 
-Fournis par histoire (`stories.sound_received_url`, `sound_sent_url`), signés comme les autres
-médias, préchargés à l'ouverture. Absents, l'app est simplement silencieuse.
+### Trois niveaux, dans cet ordre
 
-**Catégorie `ambient`**, comme la musique d'intronisation : respecte le mode silencieux et
-n'interrompt pas ce que l'utilisateur écoute. Un bip de messagerie n'a aucune raison de passer
-outre — contrairement à la note vocale, que le joueur tape explicitement.
+| # | Source | Quand |
+|---|---|---|
+| 1 | **Fichier de l'histoire** (`stories.sound_*_url`) | S'il existe. Il gagne toujours : une histoire peut avoir son identité sonore |
+| 2 | **Son système** | Là où le téléphone en offre de courts et neutres — c'est-à-dire **iOS** |
+| 3 | **Asset de repli** synthétisé, sobre | Partout ailleurs, donc **Android** |
+
+*Pourquoi pas les sons système partout* : Android n'a pas d'API publique pour « un son de message
+court et sobre ». On n'y récupère que le son de notification **choisi par l'utilisateur**, dont on
+ne maîtrise ni la durée ni le caractère — ça peut être un jingle de trois secondes. La contrainte
+« 100-200 ms, discret, jamais ludique » y serait invérifiable.
+
+### ⚠️ Jamais le tri-tone SMS
+
+Les identifiants système retenus sont volontairement **neutres** : un « tink » mat (1057) à la
+réception, un tock sec (1306) à l'envoi, le tock du clavier (1104) à la frappe.
+
+Le tri-tone SMS (1003) et le whoosh d'envoi (1004) sont **exclus**. Ce sont les sons que tout le
+monde reconnaît : dans une histoire qui s'ouvre sur « vous recevez un SMS d'un inconnu », les jouer
+ferait quitter l'app au joueur pour vérifier ses vrais messages. L'illusion est déjà portée par
+l'interface, le typing et l'heure de fiction — le son n'a pas besoin d'imiter le système, il a
+besoin de ne pas détonner.
+
+Ces identifiants ne sont pas documentés par Apple. Stables depuis des années et très employés, mais
+ce sont des constantes à ajuster à l'oreille : elles sont isolées dans
+`services/system_sounds.dart` exprès.
+
+### Mode silencieux
+
+Niveaux 1 et 3 en catégorie **`ambient`**, comme la musique d'intronisation : respecte le mode
+silencieux et n'interrompt pas ce que l'utilisateur écoute. Le niveau 2 passe par
+`AudioServicesPlaySystemSound`, qui respecte l'interrupteur silencieux nativement.
+
+Un bip de messagerie n'a aucune raison de passer outre — contrairement à la note vocale, que le
+joueur tape explicitement et qui reste en `playback`.
 
 ### Ce qui sonne, et ce qui ne sonne jamais
 
