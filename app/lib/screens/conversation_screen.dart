@@ -6,6 +6,7 @@ import '../models/client_message.dart';
 import '../models/game_state.dart';
 import '../providers/conversation_controller.dart';
 import '../services/fiction_clock.dart';
+import '../services/read_receipts.dart';
 import '../services/playback.dart';
 import '../theme/tokens.dart';
 import '../widgets/composer.dart';
@@ -93,7 +94,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 style: AppText.corpsMessage.copyWith(color: AppColors.texteSecondaire)),
           ),
         ),
-        data: (etat) => Column(
+        data: (etat) {
+          final vu = ReadReceipts.dernierVu(etat.fil);
+          return Column(
           children: [
             Expanded(
               child: Listener(
@@ -105,7 +108,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                   itemCount: etat.fil.length + (etat.typing != TypingState.aucun ? 1 : 0),
                   itemBuilder: (context, i) {
                     if (i == etat.fil.length) return const TypingIndicator();
-                    return _Element(message: etat.fil[i], etat: etat);
+                    return _Element(message: etat.fil[i], etat: etat, vu: vu);
                   },
                 ),
               ),
@@ -131,7 +134,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               ),
             Composer(mode: etat.mode, onEnvoyer: ctrl.envoyerTexte),
           ],
-        ),
+        );
+        },
       ),
       // Outil de développement, absent en release.
       floatingActionButton: (Env.outilsDebug && (async.value?.enDeroule ?? false))
@@ -158,9 +162,25 @@ class _EnTete extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final contact = etat?.contact;
+    final horsLigne = etat?.presence != null;
     return AppBar(
-      titleSpacing: AppSpacing.l,
-      title: Column(
+      titleSpacing: AppSpacing.s,
+      title: Row(
+        children: [
+          // Avatar générique tant que le contact n'est pas révélé : une
+          // initiale en dirait déjà trop.
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: AppColors.bulleContact,
+            child: Icon(
+              (contact?.revealed ?? false) ? Icons.person : Icons.help_outline,
+              size: 20,
+              color: AppColors.texteTertiaire,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.m),
+          Expanded(
+            child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -179,8 +199,33 @@ class _EnTete extends StatelessWidget implements PreferredSizeWidget {
             ),
           ),
           if (etat != null)
-            Text(etat!.sousTitre,
-                style: AppText.sousTitrePresence.copyWith(color: AppColors.texteSecondaire)),
+            Row(
+              children: [
+                // Pastille de statut : verte en ligne, sourde hors ligne.
+                // Pendant les 90 s du N19, c'est elle qui rend le vide lisible
+                // comme intentionnel plutôt que comme une panne.
+                Container(
+                  width: 7,
+                  height: 7,
+                  margin: const EdgeInsets.only(right: AppSpacing.xs + 2),
+                  decoration: BoxDecoration(
+                    color: horsLigne
+                        ? AppColors.presenceHorsLigne
+                        : AppColors.presenceEnLigne,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Flexible(
+                  child: Text(etat!.sousTitre,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.sousTitrePresence
+                          .copyWith(color: AppColors.texteSecondaire)),
+                ),
+              ],
+            ),
+        ],
+            ),
+          ),
         ],
       ),
     );
@@ -188,9 +233,12 @@ class _EnTete extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class _Element extends ConsumerWidget {
-  const _Element({required this.message, required this.etat});
+  const _Element({required this.message, required this.etat, this.vu});
   final ClientMessage message;
   final ConversationState etat;
+
+  /// `seq` du message qui porte le marqueur « Vu. » dans tout le fil.
+  final int? vu;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -228,7 +276,13 @@ class _Element extends ConsumerWidget {
               ? ref.read(conversationProvider.notifier).declencherInteraction
               : null,
         ),
-      ContentType.text => MessageBubble(message: message, heure: heure),
+      ContentType.text => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            MessageBubble(message: message, heure: heure),
+            if (message.seq == vu) const ReadReceiptMarker(),
+          ],
+        ),
     };
   }
 }

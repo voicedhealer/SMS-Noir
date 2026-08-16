@@ -125,6 +125,39 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 30));
     });
 
+    testWidgets('une file en attente survit à l\'intro et se joue après',
+        (tester) async {
+      // Régression : quand une file persistée et une intro coexistaient, le
+      // déroulé démarrait DERRIÈRE l'écran d'intro, puis `introTerminee`
+      // appelait `jouer` à son tour — ce qui annulait le premier. Les messages
+      // restaient en base et disparaissaient du fil.
+      await monter(tester, racine: true, prefs: {
+        'flutter.file_en_attente:joueur-test': jsonEncode([
+          message(seq: 9, body: 'C\'est bon.', delay: 2),
+        ]),
+      }, getState: {
+        'story': {'slug': 's', 'title': 'T'},
+        'intro': intro,
+        'new_messages': const [],
+        'conversations': [conversation()],
+        'history': [message(seq: 9, body: 'C\'est bon.')],
+        'node': noeud(),
+        'chapter_end': null,
+        'ai_moment_pending': false,
+      });
+
+      expect(find.byType(IntroScreen), findsOneWidget);
+      await tester.tap(find.byType(IntroScreen)); // skip debug
+      await tester.pump();
+      expect(find.text('C\'est bon.'), findsNothing, reason: '4 s de vide');
+
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
+      expect(find.text('C\'est bon.'), findsOneWidget,
+          reason: 'le message n\'a pas été avalé par l\'intro');
+    });
+
     testWidgets('elle ne rejoue pas si elle a déjà été vue', (tester) async {
       await monter(tester, getState: etatAvecIntro(), racine: true,
           prefs: {'flutter.intro_vue:joueur-test': true});

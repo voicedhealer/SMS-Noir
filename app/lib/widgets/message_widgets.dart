@@ -10,9 +10,17 @@ import '../theme/tokens.dart';
 
 /// Bulle de message. Reçue à gauche, envoyée à droite.
 class MessageBubble extends StatelessWidget {
-  const MessageBubble({super.key, required this.message, this.heure});
+  const MessageBubble({
+    super.key,
+    required this.message,
+    this.heure,
+    this.vu = false,
+  });
 
   final ClientMessage message;
+
+  /// Ce message porte le marqueur « Vu. ». Voir ReadReceipts.
+  final bool vu;
 
   /// Heure **de fiction** (« 23h31 »). Jamais l'horloge système.
   final String? heure;
@@ -81,6 +89,25 @@ class MessageBubble extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Marqueur « Vu. », sous la bulle, aligné à droite.
+///
+/// Volontairement minuscule et sans icône : dans une messagerie il se remarque
+/// à peine — sauf quand on l'attend, et c'est exactement ce que le N19 provoque.
+class ReadReceiptMarker extends StatelessWidget {
+  const ReadReceiptMarker({super.key});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(
+            right: AppSpacing.l + AppSpacing.m, top: 1, bottom: AppSpacing.xs),
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: Text('Vu.',
+              style: AppText.horodatage.copyWith(color: AppColors.texteTertiaire)),
+        ),
+      );
 }
 
 /// Ellipse narrative. Le libellé vient du serveur et s'affiche **tel quel**.

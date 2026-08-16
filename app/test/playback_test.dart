@@ -165,6 +165,43 @@ void main() {
       );
     });
 
+    test('le typing FANTÔME ne signale jamais de frappe — sinon le son trahit', () async {
+      var frappes = 0;
+      final moteurSonore = PlaybackEngine(
+        onMessage: delivres.add,
+        onChangement: () {},
+        onVibration: () => vibrations++,
+        onTypingReel: () => frappes++,
+        duree: horloge.attendre,
+      );
+      unawaited(moteurSonore.jouer([
+        msg(seq: 1, body: '00h34', type: ContentType.separator, delay: 90, phantom: 45, haptic: 60),
+      ]));
+      await horloge.avancer(50);
+      expect(moteurSonore.typing, TypingState.aucun);
+      expect(frappes, 0,
+          reason: 'un son de frappe ici laisserait croire qu\'un message arrive');
+      await horloge.avancer(45);
+      expect(frappes, 0, reason: 'et jusqu\'au bout du silence');
+    });
+
+    test('le typing RÉEL signale une frappe, une seule par message', () async {
+      var frappes = 0;
+      final moteurSonore = PlaybackEngine(
+        onMessage: delivres.add,
+        onChangement: () {},
+        onTypingReel: () => frappes++,
+        duree: horloge.attendre,
+      );
+      // N13#0 : 50 s de typing intermittent — plusieurs rafales, une seule prise
+      // de parole, donc un seul son.
+      unawaited(moteurSonore.jouer([msg(seq: 1, delay: 50, typing: 50)]));
+      await horloge.avancer(30);
+      expect(frappes, 1);
+      await horloge.avancer(25);
+      expect(frappes, 1, reason: 'les rafales ne rejouent pas le son');
+    });
+
     test('faux typing à 45 s, 2 s, puis extinction sans message ; vibration à 60 s', () async {
       // Le séparateur « 00h34 » porte les 90 s : phantom 45, haptic 60.
       unawaited(moteur.jouer([

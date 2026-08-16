@@ -228,6 +228,8 @@ nom** : `reception` (ou `recu`) et `envoi`. Tant qu'ils manquent, l'app est sile
 - [ ] **Son de réception** — 100-200 ms, discret, type messagerie. Il se déclenchera aussi sur les
       photos et le vocal.
 - [ ] **Son d'envoi** — idem, plus sec.
+- [ ] **Son de frappe** — au démarrage de l'indicateur « en train d'écrire… ». Encore plus discret
+      que les deux autres : il se répète beaucoup. Repéré par le mot-clé `frappe`.
 
 ⚠️ **Jamais ludiques.** Pas de carillon, pas de note montante « réussite ». On n'est pas dans un
 jeu, et un son qui récompense casserait l'illusion aussi sûrement qu'un score à l'écran.

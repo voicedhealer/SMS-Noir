@@ -137,6 +137,8 @@ export interface IntroSequence {
 export interface SoundPack {
   received: string | null
   sent: string | null
+  /** Frappe. Jamais joué sur le typing fantôme — c'est le client qui arbitre. */
+  typing: string | null
 }
 
 export interface GetStateResponse {

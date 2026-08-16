@@ -194,6 +194,8 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       },
       onChangement: _publier,
       onVibration: () => HapticFeedback.mediumImpact(),
+      // Uniquement le typing RÉEL — le moteur ne signale jamais le fantôme.
+      onTypingReel: () => _sons.jouer(EffetSonore.frappe),
     );
     // Le déroulé s'arrête quand le joueur n'est plus là, et reprend quand il
     // revient. Aucun bouton : ce serait un objet de jeu. C'est aussi le
@@ -223,6 +225,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     unawaited(_sons.precharger(
       reception: _absolue(etat.sounds.received),
       envoi: _absolue(etat.sounds.sent),
+      frappe: _absolue(etat.sounds.typing),
     ));
     _appliquerEtat(etat);
     return _etat();
@@ -237,13 +240,8 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     _chapterEnd = etat.chapterEnd;
 
     // Intro : jouée une seule fois, avant tout le reste.
-    if (!etat.intro.estVide && !_store.introVue) {
-      _intro = etat.intro;
-      _aJouerApresIntro = etat.newMessages;
-    } else {
-      _intro = null;
-      _aJouerApresIntro = const [];
-    }
+    _intro = (!etat.intro.estVide && !_store.introVue) ? etat.intro : null;
+    _aJouerApresIntro = const [];
 
     // L'historique se rejoue d'un bloc : le déjà-vu n'a pas de timers.
     final enAttente = _store.enAttente;
@@ -254,12 +252,19 @@ class ConversationController extends AsyncNotifier<ConversationState> {
 
     _reintercalerDecoratifs();
 
-    // Ce qui n'avait pas été joué avant la fermeture reprend avec ses délais.
-    if (enAttente.isNotEmpty) {
-      unawaited(_jouer(enAttente));
-    } else if (_intro == null && etat.newMessages.isNotEmpty) {
-      // Première visite sans intro : les messages du nœud d'entrée se JOUENT.
-      unawaited(_jouer(etat.newMessages));
+    // Ce qui n'avait pas été joué reprend avec ses délais — mais JAMAIS
+    // pendant l'intronisation.
+    //
+    // ⚠️ Le lancer derrière l'écran d'intro serait pire qu'inutile : à la fin
+    // de la séquence, `introTerminee` appellerait `jouer` à son tour, ce qui
+    // incrémente la génération du moteur et **annule le déroulé en cours**.
+    // Les messages restaient en base et disparaissaient du fil.
+    final aJouerMaintenant = enAttente.isNotEmpty ? enAttente : etat.newMessages;
+    if (aJouerMaintenant.isEmpty) return;
+    if (_intro != null) {
+      _aJouerApresIntro = aJouerMaintenant;
+    } else {
+      unawaited(_jouer(aJouerMaintenant));
     }
   }
 

@@ -47,6 +47,7 @@ Deno.serve(servir(async (req) => {
     sounds: {
       received: await signerObjet(db, histoire.sound_received_url),
       sent: await signerObjet(db, histoire.sound_sent_url),
+      typing: await signerObjet(db, histoire.sound_typing_url),
     },
     new_messages: messagesInitiaux,
     conversations: await conversations(db, progression.id, histoire.id, progression.variables),

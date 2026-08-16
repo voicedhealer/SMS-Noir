@@ -5,7 +5,7 @@ import 'package:just_audio/just_audio.dart';
 import '../models/client_message.dart';
 
 /// Quel son accompagne un message — ou aucun.
-enum EffetSonore { aucun, reception, envoi }
+enum EffetSonore { aucun, reception, envoi, frappe }
 
 /// Sons de message.
 ///
@@ -21,6 +21,7 @@ class SoundEffects {
 
   AudioPlayer? _reception;
   AudioPlayer? _envoi;
+  AudioPlayer? _frappe;
 
   /// Décide du son d'un message. **C'est ici que vivent les quatre interdits.**
   ///
@@ -42,9 +43,10 @@ class SoundEffects {
 
   /// Précharge les deux effets. Un son de messagerie qui arrive en retard n'est
   /// plus un son de messagerie.
-  Future<void> precharger({String? reception, String? envoi}) async {
+  Future<void> precharger({String? reception, String? envoi, String? frappe}) async {
     _reception = await _preparer(reception);
     _envoi = await _preparer(envoi);
+    _frappe = await _preparer(frappe);
   }
 
   Future<AudioPlayer?> _preparer(String? url) async {
@@ -66,6 +68,7 @@ class SoundEffects {
     final lecteur = switch (effet) {
       EffetSonore.reception => _reception,
       EffetSonore.envoi => _envoi,
+      EffetSonore.frappe => _frappe,
       EffetSonore.aucun => null,
     };
     if (lecteur == null) return;
@@ -75,5 +78,6 @@ class SoundEffects {
   void dispose() {
     _reception?.dispose();
     _envoi?.dispose();
+    _frappe?.dispose();
   }
 }

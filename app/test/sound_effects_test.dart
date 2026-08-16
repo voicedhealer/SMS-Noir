@@ -57,13 +57,4 @@ void main() {
       expect(SoundEffects.pour(decoratif), EffetSonore.aucun);
     });
   });
-
-  test('le typing fantôme ne délivre aucun message, donc rien à faire sonner', () {
-    // Garde-fou de conception : la décision ne porte que sur des messages
-    // livrés. Le faux typing du N19 n'en produit aucun — il ne peut donc pas
-    // sonner, quelle que soit l'évolution du moteur. Un bip laisserait croire
-    // qu'un message est arrivé, et l'extinction sans message perdrait tout son
-    // sens.
-    expect(EffetSonore.values, hasLength(3));
-  });
 }

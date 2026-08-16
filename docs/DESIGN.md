@@ -174,8 +174,17 @@ libellé suffit — pas de confettis, pas de badge « nouveau contact ».
 
 ### En-tête
 
-Nom du contact, et **en sous-titre le statut de présence** : « en ligne » · « en train d'écrire… » ·
-« hors ligne ». C'est exactement là qu'une vraie messagerie l'affiche.
+**Avatar · nom · pastille de statut · sous-titre de présence.**
+
+L'avatar est générique tant que le contact n'est pas révélé — une initiale en dirait déjà trop.
+Le sous-titre porte « en ligne » · « en train d'écrire… » · « hors ligne », exactement là où une
+vraie messagerie l'affiche.
+
+La **pastille de statut** est la seule entorse assumée à la couleur d'accent unique : un point vert
+« en ligne » est une convention que tout le monde lit sans y penser depuis quinze ans, la
+réinventer coûterait plus cher que l'entorse. Elle est désaturée (`#4E8C6A`), elle n'égaie rien.
+Pendant les 90 s du N19, c'est elle qui rend le vide lisible comme intentionnel plutôt que comme
+une panne.
 
 Le statut vient des messages `content_type: 'system'`, dont le **`body` est le libellé à afficher
 tel quel**. Le client n'invente jamais de statut, et un `system` ne crée **jamais** de bulle.
@@ -200,6 +209,33 @@ phrases sont horodatées ne ressemble à rien.
 **Médias `placeholder://`** : cartouche neutre aux couleurs `mediaAbsentFond` / `mediaAbsentBord`,
 avec une icône de type. Neutre et jamais alarmant — le joueur ne doit pas croire à une panne
 réseau. Les 4 médias réels restent à produire.
+
+### Le marqueur « Vu. »
+
+Sous la dernière bulle du joueur qui a été lue, aligné à droite, minuscule et sans icône. Dans une
+messagerie il se remarque à peine — **sauf quand on l'attend**, et c'est exactement ce que le N19
+provoque.
+
+**Il est piloté par la fiction, jamais automatique.** La règle, purement cliente :
+
+> Un message du joueur est vu dès qu'un **vrai message du contact** apparaît après lui dans le fil.
+> Ni un séparateur, ni un changement de présence ne comptent — ce ne sont pas des paroles.
+
+| Situation | Résultat |
+|---|---|
+| Le joueur répond, Léna enchaîne | Vu. |
+| Silence du N19, elle est hors ligne | **rien** — les messages s'empilent, non lus |
+| Elle revient au N20 | **tous vus d'un coup**, le marqueur descend d'un bloc |
+| Après la fin du chapitre | jamais vu — elle n'a pas lu |
+
+*Pourquoi pas une colonne* : le déclencheur est déjà dans le contenu — c'est lui qui décide quand
+elle reparle. Aucune valeur à seeder, aucune à oublier au chapitre 3. Si un chapitre a un jour
+besoin de « elle a lu mais n'a pas répondu », il faudra une marque explicite ; le cas ne se présente
+pas au chapitre 1.
+
+*Un seul marqueur dans tout le fil*, sous le dernier message vu — la convention des vraies
+messageries. Le poser sous chaque bulle ferait du bruit, et l'effet du N20 se lit tout aussi bien :
+le marqueur saute d'un coup jusqu'au dernier message écrit pendant le silence.
 
 ### Zone de choix
 
@@ -420,10 +456,11 @@ pièce capable de détruire un effet du chapitre, elle ne doit pas dépendre d'u
 |---|---|
 | Message de Léna (texte, photo, vocal) | réception |
 | Réponse du joueur | envoi |
+| **Démarrage du typing réel** | frappe — une seule fois par message, pas à chaque rafale |
 | **Séparateur horaire** | ❌ ce n'est pas un message |
 | **Changement de présence** (`system`) | ❌ |
 | **Message décoratif** | ❌ il ne part pas — le faire sonner mentirait au joueur |
-| **Typing fantôme** | ❌ **par construction** |
+| **Typing fantôme** | ❌ **par construction** — le moteur ne signale que le typing réel |
 | **Historique restitué** à la réouverture | ❌ **par construction** |
 
 Les deux derniers ne sont pas des conditions mais des propriétés du chemin de code : le son est

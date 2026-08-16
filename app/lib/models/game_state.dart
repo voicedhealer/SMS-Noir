@@ -175,13 +175,17 @@ class IntroSequence {
 
 /// Effets sonores de l'histoire. Chemins signés relatifs, ou null.
 class SoundPack {
-  const SoundPack({this.received, this.sent});
+  const SoundPack({this.received, this.sent, this.typing});
   final String? received;
   final String? sent;
+
+  /// Frappe. Jamais joué sur le typing fantôme.
+  final String? typing;
 
   factory SoundPack.fromJson(Map<String, dynamic>? json) => SoundPack(
         received: json?['received'] as String?,
         sent: json?['sent'] as String?,
+        typing: json?['typing'] as String?,
       );
 }
 

@@ -143,6 +143,7 @@ sonner() { # $1 = motif, $2 = colonne, $3 = libellé
 
 sonner reception sound_received_url "son de réception"
 sonner envoi     sound_sent_url     "son d'envoi"
+sonner frappe    sound_typing_url   "son de frappe"
 
 # --- Musique d'intronisation ------------------------------------------------
 # Repérée par élimination : un audio de media/ qui n'appartient à aucun nœud.
@@ -154,7 +155,7 @@ for f in "$DOSSIER"/*; do
   case "$nom" in *.mp3|*.m4a|*.aac|*.wav) ;; *) continue;; esac
   case "$nom" in *N17*|*audio-N*) continue;; esac
   # Les sons de message ne sont pas la musique d'intro.
-  case "$(echo "$nom" | tr 'A-Z' 'a-z')" in *reception*|*envoi*|*son-*) continue;; esac
+  case "$(echo "$nom" | tr 'A-Z' 'a-z')" in *reception*|*envoi*|*frappe*|*son-*) continue;; esac
   musique="$f"; break
 done
 
@@ -181,7 +182,7 @@ sql "select '  '||n.code||'#'||m.position||'  '||rpad(m.content_type,6)||'  '||m
      from messages m join nodes n on n.id = m.node_id
      where m.media_url is not null order by m.media_url;"
 sql "select '  intro   '||coalesce(intro_music_url,'(muette)') from stories where slug='numero-inconnu';"
-sql "select '  sons    reçu='||coalesce(sound_received_url,'(aucun)')||'  envoi='||coalesce(sound_sent_url,'(aucun)') from stories where slug='numero-inconnu';"
+sql "select '  sons    reçu='||coalesce(sound_received_url,'(aucun)')||'  envoi='||coalesce(sound_sent_url,'(aucun)')||'  frappe='||coalesce(sound_typing_url,'(aucun)') from stories where slug='numero-inconnu';"
 
 restants=$(sql "select count(*) from messages where media_url like 'placeholder://%';")
 echo

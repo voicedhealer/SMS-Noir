@@ -35,6 +35,7 @@ class PlaybackEngine {
     required this.onMessage,
     required this.onChangement,
     this.onVibration,
+    this.onTypingReel,
     this.duree = _attenteReelle,
   });
 
@@ -46,6 +47,13 @@ class PlaybackEngine {
 
   /// Vibration discrète, sans notification.
   final void Function()? onVibration;
+
+  /// Le typing **réel** démarre — une fois par message, pas à chaque rafale.
+  ///
+  /// ⚠️ N'est JAMAIS appelé pour le typing fantôme. Un son à cet instant
+  /// laisserait croire qu'un message arrive, et son extinction sans message
+  /// perdrait tout son sens.
+  final void Function()? onTypingReel;
 
   /// Indirection pour les tests : permet de piloter le temps.
   final Future<void> Function(Duration) duree;
@@ -139,6 +147,9 @@ class PlaybackEngine {
   /// Typing réel. Au-delà du seuil de contenu, il se joue en rafales : c'est la
   /// marque d'une hésitation visible (N2, N13), pas un simple long délai.
   void _lancerTypingReel(ClientMessage m, int generation) {
+    // Une seule fois par message : le typing intermittent (N2, N13) alterne
+    // visible/masqué, mais c'est une seule prise de parole.
+    onTypingReel?.call();
     if (!m.hasIntermittentTyping) {
       _poserTyping(TypingState.reel);
       return;

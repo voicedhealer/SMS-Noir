@@ -41,6 +41,13 @@ class AppColors {
   /// Pastille de non-lus dans la liste des conversations.
   static const pastille = Color(0xFF3E7A91);
 
+  /// Pastilles de présence. **Seule entorse assumée à la couleur d'accent
+  /// unique** : un point vert « en ligne » est une convention que tout le monde
+  /// lit sans y penser depuis quinze ans. La réinventer coûterait plus cher que
+  /// l'entorse — et elle est désaturée, elle n'égaie rien.
+  static const presenceEnLigne = Color(0xFF4E8C6A);
+  static const presenceHorsLigne = Color(0xFF4A5058);
+
   /// Media absent (`placeholder://`). Neutre, jamais alarmant : le joueur ne
   /// doit pas croire à une panne.
   static const mediaAbsentFond = Color(0xFF191D22);
