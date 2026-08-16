@@ -390,6 +390,15 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     state = AsyncData(_etat().copier(erreur: e.message));
   }
 
+  /// Efface la partie et la mémoire locale : le joueur repart du tout début,
+  /// intronisation comprise. Outil de développement.
+  Future<void> reinitialiser() async {
+    _moteur.interrompre();
+    await _api.resetProgress();
+    await _store.effacerTout();
+    ref.invalidateSelf();
+  }
+
   /// Outil de développement : délivre tout ce qui reste sans attendre.
   void sauterLeDeroule() {
     _moteur.sauter();

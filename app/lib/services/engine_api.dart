@@ -37,6 +37,15 @@ class EngineApi {
   /// continuation qui se chevauchent, ne doivent pas produire deux avancées.
   Future<AdvanceResult>? _enCours;
 
+  /// Efface la partie du joueur : il repart du nœud d'entrée, variables
+  /// remises à zéro, et l'intronisation se rejoue.
+  ///
+  /// Outil de développement pour l'instant ; c'est aussi la base du bouton
+  /// « réinitialiser l'histoire » exigé par le RGPD (bible §9).
+  Future<void> resetProgress() async {
+    await _appeler('reset-progress', const {}, rejouable: false);
+  }
+
   Future<GameState> getState() async {
     final json = await _appeler('get-state', const {}, rejouable: true);
     return GameState.fromJson(json);

@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config/env.dart';
 import '../models/client_message.dart';
 import '../providers/conversation_controller.dart';
 import '../services/fiction_clock.dart';
@@ -20,7 +22,19 @@ class ConversationListScreen extends ConsumerWidget {
     final async = ref.watch(conversationProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Messages')),
+      appBar: AppBar(
+        title: const Text('Messages'),
+        actions: [
+          // Outil de développement : rejoue l'histoire depuis l'intronisation.
+          // Absent en release — l'arbre est élagué à la compilation.
+          if (Env.outilsDebug && !kReleaseMode)
+            IconButton(
+              icon: const Icon(Icons.restart_alt, color: AppColors.texteTertiaire),
+              tooltip: 'Réinitialiser l\'histoire',
+              onPressed: () => ref.read(conversationProvider.notifier).reinitialiser(),
+            ),
+        ],
+      ),
       body: async.when(
         loading: () => const Center(
           child: SizedBox(
