@@ -190,8 +190,11 @@ message suivant.
 | Texte reçu | Bulle gauche, `bulleContact` |
 | Texte envoyé | Bulle droite, `bulleJoueur` |
 | `separator` | Pastille centrée, `body` **affiché tel quel** (« 23h31 ») — jamais reformaté, jamais recalculé |
-| `image` | Miniature dans le fil, tap → visionneuse plein écran zoomable |
-| `audio` | Lecteur inline réel (just_audio) : lecture/pause, progression, durée. **Réécoutable** |
+| `image` | Miniature dans le fil, tap → visionneuse plein écran zoomable. **Heure de fiction en surimpression**, coin bas-droit, sur un voile sombre — nos photos sont volontairement très sombres |
+| `audio` | Lecteur inline réel (just_audio) : lecture/pause, progression, durée, **puis l'heure de fiction sous la durée**. Réécoutable |
+
+Les médias portent leur heure au même titre que les bulles texte. Une messagerie où seules les
+phrases sont horodatées ne ressemble à rien.
 | `system` | Jamais une bulle — statut de présence, ou écran de fin (voir plus bas) |
 
 **Médias `placeholder://`** : cartouche neutre aux couleurs `mediaAbsentFond` / `mediaAbsentBord`,
@@ -395,8 +398,31 @@ droits sur le téléphone du joueur. Voir `services/audio_session_config.dart`.
 indice — le fond sonore urbain de la bible §7 n° 3. Un vocal muet rendrait cette incohérence
 inatteignable, donc supprimerait une des six interactions cachées.
 
+## Pause automatique — sans bouton
+
+**Il n'y a pas de bouton pause, et il ne doit pas y en avoir** : ce serait un objet de jeu, et rien
+dans une messagerie ne met une conversation en pause.
+
+Le vrai besoin est ailleurs : quand le joueur doit s'interrompre, le déroulé ne doit pas continuer
+sans lui. Il se gèle donc **quand l'app passe en arrière-plan**, et reprend à l'ouverture. Aucun
+élément ajouté à l'écran, et c'est le comportement attendu — les messages arrivent quand on regarde.
+
+- Le déroulé s'arrête **au message en cours**. Ce qui reste est persisté avec ses délais (la file
+  en attente de D4).
+- À la reprise, le message dont l'attente était entamée **repart de son début**. On ne mémorise pas
+  la fraction écoulée, et c'est volontaire : reprendre à 3 secondes d'un silence de 90 en
+  supprimerait tout l'effet.
+- **Si le joueur reste dans l'app sans pouvoir suivre, on ne fait rien.** Il remontera le fil,
+  comme avec de vrais SMS.
+
 ## Outils de développement
 
-Un **bouton skip** du déroulé temporel, indispensable pour tester ce flux des dizaines de fois.
-Piloté par `Env.outilsDebug`, absent en release. Il ne doit exister aucun chemin par lequel il
-apparaisse en production.
+Skip du déroulé, skip de l'intro, bouton de réinitialisation. Tous pilotés par `Env.outilsDebug`.
+
+⚠️ **`kReleaseMode` est dans la constante elle-même**, pas seulement sur les points d'appel. Un
+oubli de garde en aval livrerait l'outil en production — c'était le cas du skip de l'intro, qu'un
+simple tap escamotait. Une seule source de vérité, et tout est `const` donc l'arbre est élagué.
+
+Vérifié sur un vrai binaire release : `Réinitialiser l'histoire`, `restart_alt` et `fast_forward`
+sont **absents** des chaînes de `App.framework`, alors que `Message`, `Messages` et `en ligne` y
+figurent. Contrôle à refaire si un nouvel outil de debug est ajouté.

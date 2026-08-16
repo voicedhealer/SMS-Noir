@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -27,7 +26,7 @@ class ConversationListScreen extends ConsumerWidget {
         actions: [
           // Outil de développement : rejoue l'histoire depuis l'intronisation.
           // Absent en release — l'arbre est élagué à la compilation.
-          if (Env.outilsDebug && !kReleaseMode)
+          if (Env.outilsDebug)
             IconButton(
               icon: const Icon(Icons.restart_alt, color: AppColors.texteTertiaire),
               tooltip: 'Réinitialiser l\'histoire',

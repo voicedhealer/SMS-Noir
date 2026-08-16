@@ -371,6 +371,24 @@ void main() {
     expect(find.byIcon(Icons.check), findsOneWidget);
   });
 
+  testWidgets('les médias portent leur heure de fiction, comme les bulles texte',
+      (tester) async {
+    await monter(tester, getState: {
+      'story': {'slug': 's', 'title': 'T'},
+      'conversations': [conversation()],
+      'history': [
+        message(seq: 1, body: '23h31', type: 'separator'),
+        message(seq: 2, body: null, type: 'image', media: 'placeholder://photo'),
+      ],
+      'node': noeud(),
+      'chapter_end': null,
+      'ai_moment_pending': false,
+    });
+
+    // L'heure figure sur la vignette, pas seulement sur le séparateur.
+    expect(find.text('23h31'), findsNWidgets(2));
+  });
+
   testWidgets('un média placeholder s\'affiche proprement et reste tapable', (tester) async {
     await monter(tester, getState: {
       'story': {'slug': 's', 'title': 'T'},

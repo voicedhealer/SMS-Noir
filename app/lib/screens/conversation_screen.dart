@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/env.dart';
@@ -135,8 +134,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         ),
       ),
       // Outil de développement, absent en release.
-      floatingActionButton: (Env.outilsDebug && !kReleaseMode &&
-              (async.value?.enDeroule ?? false))
+      floatingActionButton: (Env.outilsDebug && (async.value?.enDeroule ?? false))
           ? FloatingActionButton.small(
               backgroundColor: AppColors.separateurFond,
               onPressed: ctrl.sauterLeDeroule,
@@ -205,6 +203,7 @@ class _Element extends ConsumerWidget {
       ContentType.system => const SizedBox.shrink(),
       ContentType.image => PhotoBubble(
           message: message,
+          heure: heure,
           onOuvrir: () {
             final ctrl = ref.read(conversationProvider.notifier);
             ctrl.signalerActivite();
@@ -223,6 +222,7 @@ class _Element extends ConsumerWidget {
         ),
       ContentType.audio => AudioBubble(
           message: message,
+          heure: heure,
           // La réécoute est l'interaction, pas un confort de lecture.
           onReecoute: (etat.interactionParGeste && message.seq == etat.dernierMedia?.seq)
               ? ref.read(conversationProvider.notifier).declencherInteraction

@@ -132,9 +132,17 @@ class MediaPlaceholder extends StatelessWidget {
 
 /// Photo du fil. Le tap ouvre la visionneuse zoomable.
 class PhotoBubble extends StatelessWidget {
-  const PhotoBubble({super.key, required this.message, required this.onOuvrir});
+  const PhotoBubble({
+    super.key,
+    required this.message,
+    required this.onOuvrir,
+    this.heure,
+  });
   final ClientMessage message;
   final VoidCallback onOuvrir;
+
+  /// Heure **de fiction**, en surimpression sur la vignette.
+  final String? heure;
 
   @override
   Widget build(BuildContext context) {
@@ -146,7 +154,9 @@ class PhotoBubble extends StatelessWidget {
             horizontal: AppSpacing.l, vertical: AppSpacing.interBulles / 2),
         child: GestureDetector(
           onTap: onOuvrir,
-          child: ClipRRect(
+          child: Stack(
+            children: [
+              ClipRRect(
             borderRadius: BorderRadius.circular(AppSpacing.rayonBulle),
             child: ConstrainedBox(
               // Une capture d'écran est en portrait : sans plafond, la vignette
@@ -171,6 +181,29 @@ class PhotoBubble extends StatelessWidget {
                       ),
               ),
             ),
+          ),
+              // Surimpression, comme dans une vraie messagerie : un léger voile
+              // sombre garantit la lisibilité quelle que soit la photo — et les
+              // nôtres sont volontairement très sombres.
+              if (heure != null)
+                Positioned(
+                  right: AppSpacing.s,
+                  bottom: AppSpacing.s,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.s, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      borderRadius: BorderRadius.circular(AppSpacing.s),
+                    ),
+                    child: Text(
+                      heure!,
+                      style: AppText.horodatage
+                          .copyWith(color: Colors.white.withValues(alpha: 0.85)),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
@@ -240,11 +273,14 @@ class PhotoViewer extends StatelessWidget {
 /// La **réécoute** — toute lecture à partir de la deuxième — est l'interaction
 /// cachée du N17. Ce n'est pas un confort de lecture.
 class AudioBubble extends StatefulWidget {
-  const AudioBubble({super.key, required this.message, this.onReecoute});
+  const AudioBubble({super.key, required this.message, this.onReecoute, this.heure});
   final ClientMessage message;
 
   /// Appelé à partir de la DEUXIÈME lecture.
   final VoidCallback? onReecoute;
+
+  /// Heure **de fiction**, à côté de la durée.
+  final String? heure;
 
   @override
   State<AudioBubble> createState() => _AudioBubbleState();
@@ -362,9 +398,20 @@ class _AudioBubbleState extends State<AudioBubble> {
               ),
             ),
             const SizedBox(width: AppSpacing.m),
-            Text(
-              _mmss(_enLecture || _position > Duration.zero ? _position : _duree),
-              style: AppText.horodatage.copyWith(color: AppColors.texteTertiaire),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _mmss(_enLecture || _position > Duration.zero ? _position : _duree),
+                  style: AppText.horodatage.copyWith(color: AppColors.texteSecondaire),
+                ),
+                if (widget.heure != null)
+                  Text(
+                    widget.heure!,
+                    style: AppText.horodatage.copyWith(color: AppColors.texteTertiaire),
+                  ),
+              ],
             ),
           ],
         ),

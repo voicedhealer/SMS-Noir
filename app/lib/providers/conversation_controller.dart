@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/client_message.dart';
@@ -186,7 +187,20 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       onChangement: _publier,
       onVibration: () => HapticFeedback.mediumImpact(),
     );
+    // Le déroulé s'arrête quand le joueur n'est plus là, et reprend quand il
+    // revient. Aucun bouton : ce serait un objet de jeu. C'est aussi le
+    // comportement attendu d'une messagerie — les messages arrivent quand on
+    // regarde.
+    //
+    // ⚠️ Si le joueur reste dans l'app sans pouvoir suivre, on ne fait RIEN.
+    // Il remontera le fil, comme avec de vrais SMS.
+    final cycleDeVie = AppLifecycleListener(
+      onPause: _mettreEnPause,
+      onResume: _reprendre,
+    );
+
     ref.onDispose(() {
+      cycleDeVie.dispose();
       // Riverpod interdit de toucher à `state` pendant un cycle de vie : on
       // coupe la publication AVANT d'interrompre le moteur.
       _termine = true;
@@ -324,6 +338,30 @@ class ConversationController extends AsyncNotifier<ConversationState> {
       Duration(seconds: aUnMedia ? 30 : 25),
       () { if (!_termine) state = AsyncData(_etat().copier()); },
     );
+  }
+
+  // --- Cycle de vie de l'application ----------------------------------------
+
+  /// L'app passe en arrière-plan : on gèle le déroulé au message en cours.
+  ///
+  /// Ce qui restait est persisté avec ses délais — c'est la file en attente de
+  /// D4. Le message dont l'attente était entamée repart de son début à la
+  /// reprise : on ne mémorise pas la fraction écoulée, et c'est volontaire.
+  /// Reprendre à 3 secondes d'un silence de 90 en supprimerait tout l'effet.
+  void _mettreEnPause() {
+    if (!_moteur.enCours) return;
+    final restants = _moteur.restants;
+    _moteur.interrompre();
+    _derouleImminent = restants.isNotEmpty;
+    unawaited(_store.poserEnAttente(restants));
+    _publier();
+  }
+
+  /// L'app revient au premier plan : on reprend là où on s'était arrêté.
+  void _reprendre() {
+    final restants = _store.enAttente;
+    if (restants.isEmpty || _moteur.enCours) return;
+    unawaited(_jouer(restants));
   }
 
   /// Toute action du joueur repousse l'affordance de continuation.

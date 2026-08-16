@@ -1,5 +1,7 @@
 import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart' show kReleaseMode;
+
 /// Configuration d'environnement.
 ///
 /// ⚠️ Aucune clé n'est écrite en dur. Tout vient de `--dart-define`, fourni par
@@ -38,9 +40,16 @@ class Env {
     return url;
   }
 
-  /// Outils de développement (bouton skip du déroulé). Retirés en release :
-  /// `kReleaseMode` de Flutter met la constante à false et l'arbre est élagué.
-  static const bool outilsDebug = bool.fromEnvironment('DEBUG_TOOLS', defaultValue: true);
+  /// Outils de développement : skip du déroulé, skip de l'intro, bouton de
+  /// réinitialisation.
+  ///
+  /// ⚠️ **`kReleaseMode` est dans la constante elle-même**, et pas seulement sur
+  /// les points d'appel. Un oubli de garde en aval livrerait l'outil en
+  /// production — c'était le cas du skip de l'intro, qu'un simple tap
+  /// escamotait. Une seule source de vérité, et l'arbre est élagué à la
+  /// compilation puisque tout est `const`.
+  static const bool outilsDebug =
+      !kReleaseMode && bool.fromEnvironment('DEBUG_TOOLS', defaultValue: true);
 
   static const Duration timeoutRequete = Duration(seconds: 20);
 }
