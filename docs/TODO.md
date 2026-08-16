@@ -1,5 +1,14 @@
 # TODO.md
 
+## ❓ À trancher — longueur des répliques de Léna
+
+Le prompt dit « une à deux phrases », et lui demande par ailleurs des phrases
+courtes souvent sans verbe. Les deux se contredisent : le modèle produit
+régulièrement trois fragments (« T'as raison. Je devrais. Mais je sais même pas
+où est Chloé. ») qui sonnent parfaitement juste. Soit on aligne le prompt sur
+« deux à trois fragments courts », soit on assume l'écart. En attendant la
+sonde tolère trois et coupe à quatre.
+
 ## 🔴 Bloquant avant mise en production
 
 - [ ] **Politique de confidentialité** (`PRIVACY_URL`). L'écran de consentement du moment IA n'affiche

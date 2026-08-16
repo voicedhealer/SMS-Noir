@@ -62,6 +62,51 @@ const SCHEMA = {
   },
 }
 
+/**
+ * Fournisseur simulé, pour les tests.
+ *
+ * ⚠️ **Uniquement quand `AI_PROVIDER=stub`.** Jamais actif en production : la
+ * variable n'existe que dans l'environnement de test.
+ *
+ * Il lit une directive glissée dans le dernier message du joueur —
+ * `##STUB## {json}` — et la renvoie telle quelle. Ce détour permet d'exercer la
+ * VRAIE fonction (quota, filtres, décompte, raccrochage) sans dépendre d'un
+ * modèle, et sans redémarrer le serveur entre chaque cas.
+ *
+ * `##ERREUR##` simule une panne du fournisseur, `##BRUT## …` une réponse
+ * malformée : ce sont les deux chemins de mode dégradé.
+ */
+export class FournisseurSimule implements FournisseurIA {
+  readonly nom = 'stub'
+  readonly disponible = true
+
+  repondre(messages: Echange[]): Promise<ResultatIA> {
+    const dernier = [...messages].reverse().find((m) => m.role === 'user')?.content ?? ''
+
+    if (dernier.includes('##ERREUR##')) {
+      return Promise.reject(new ErreurFournisseur('panne simulée'))
+    }
+    const brut = dernier.match(/##BRUT##\s*([\s\S]*)$/)
+    if (brut) {
+      return Promise.resolve({ contenu: analyser(brut[1]), tokensEntree: 1, tokensSortie: 1 })
+    }
+    const directive = dernier.match(/##STUB##\s*([\s\S]*)$/)
+    const charge = directive
+      ? directive[1]
+      : JSON.stringify({
+          reponse: 'Ok.',
+          tonalite: 'evasif',
+          detail: { categorie: 'aucun', valeur: null },
+        })
+    return Promise.resolve({ contenu: analyser(charge), tokensEntree: 10, tokensSortie: 5 })
+  }
+}
+
+/** Le fournisseur en service. Simulé uniquement si l'environnement le demande. */
+export function fournisseur(): FournisseurIA {
+  return Deno.env.get('AI_PROVIDER') === 'stub' ? new FournisseurSimule() : new Mistral()
+}
+
 export class Mistral implements FournisseurIA {
   readonly nom = 'mistral'
 

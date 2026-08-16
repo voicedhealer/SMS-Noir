@@ -82,9 +82,19 @@ select _chk(6, 'N9 porte un prompt système structuré', 'oui',
 -- L'étanchéité narrative est dans le prompt, pas seulement dans le code.
 select _chk(8, 'Le prompt verrouille l''étanchéité narrative', 'oui',
   (select case when ai_system_prompt like '%12 mars%'
-                and ai_system_prompt like '%Karim%'
                 and ai_system_prompt like '%intelligence artificielle%'
                 and ai_system_prompt like '%N''invente jamais%'
+                and ai_system_prompt like '%tu ne le reconnais pas%'
+               then 'oui' else 'non' end from _n where code = 'N9'));
+
+-- Et surtout : le prompt ne NOMME pas ce qu'elle doit taire.
+--
+-- Ce contrôle garde une leçon apprise à la sonde. Le prompt disait « Tu ne
+-- parleras pas de Karim ce soir », et Léna a répondu « Karim n'est plus là
+-- depuis longtemps » — un fait inventé sur un personnage du chapitre 3.
+-- Nommer l'interdit apprend au modèle que la chose existe. Voir LOGIQUE.md.
+select _chk(50, 'Le prompt ne nomme aucun personnage des chapitres suivants', 'oui',
+  (select case when ai_system_prompt not like '%Karim%'
                then 'oui' else 'non' end from _n where code = 'N9'));
 
 select _chk(9, 'La liste d''autorisation de detail_perso y figure', 'oui',

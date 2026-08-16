@@ -30,7 +30,12 @@ import {
   utilisateurCourant,
 } from '../_shared/moteur.ts'
 import { EFFETS_TONALITE, filtrerDetail, sortDuCadre } from '../_shared/ai_garde_fous.ts'
-import { type Echange, ErreurFournisseur, type FournisseurIA, Mistral } from '../_shared/ai_provider.ts'
+import {
+  type Echange,
+  ErreurFournisseur,
+  type FournisseurIA,
+  fournisseur as choisirFournisseur,
+} from '../_shared/ai_provider.ts'
 
 /** Quota par joueur et par jour, toutes histoires confondues. */
 const QUOTA_QUOTIDIEN = 50
@@ -95,7 +100,7 @@ Deno.serve(servir(async (req) => {
   }
 
   // --- Appel du modèle ----------------------------------------------------
-  const fournisseur: FournisseurIA = new Mistral()
+  const fournisseur: FournisseurIA = choisirFournisseur()
   const maxEchanges = noeud.ai_max_exchanges ?? 4
   const numero = progression.ai_exchanges + 1
 

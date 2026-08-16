@@ -320,6 +320,27 @@ et sortie sont cumulés par jour dans la même table, pour pouvoir chiffrer le c
 
 Sortie plafonnée à 160 tokens — Léna écrit deux phrases — timeout de 12 s, aucune reprise.
 
+### Ne jamais nommer dans le prompt ce qu'elle ne doit pas dire
+
+Le prompt disait « Tu ne parleras pas de Karim ce soir ». Résultat, la première
+sonde a produit : « Karim n'est plus là depuis longtemps. Tu devrais le
+savoir. » — un **fait inventé**, sur un personnage du chapitre 3.
+
+Nommer l'interdit apprend au modèle que la chose existe et qu'elle compte. La
+règle qui marche est générique : *tout nom, lieu, date ou fait que tu n'as pas
+vécu ce soir, tu ne le reconnais pas*. Après ce changement, huit tirages sur
+huit répondent « Karim qui. » ou « T'as dû te tromper de personne. »
+
+Ça vaudra pour les moments IA des chapitres 3 et 5, où la liste des choses à
+taire sera bien plus longue : **on décrit ce qu'elle sait, jamais ce qu'elle
+doit cacher.**
+
+### Le prompt système est du CONTENU
+
+Il vit dans `supabase/seed.sql`, pas dans une migration : une migration passe
+avant le seed, qui le réécraserait. Le modifier suppose un `supabase db reset`,
+puis un passage complet de `docs/RECETTE-MOMENT-IA.md`.
+
 ## Contraintes client *(prompt 2)*
 
 **Le client n'écrit jamais en base. L'état vient toujours de `get-state`.**

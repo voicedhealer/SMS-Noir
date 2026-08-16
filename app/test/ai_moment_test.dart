@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:numero_inconnu/providers/conversation_controller.dart';
 import 'package:numero_inconnu/providers/session_providers.dart';
 import 'package:numero_inconnu/screens/consent_screen.dart';
 import 'package:numero_inconnu/screens/conversation_screen.dart';
