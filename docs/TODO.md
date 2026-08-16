@@ -1,5 +1,60 @@
 # TODO.md
 
+## 🔴 Prompt 3 — décisions requises avant la Phase 1
+
+### A1 — Modèle Mistral
+
+**Recommandé : `mistral-small-latest`.** Le moment N9 tient à peu de choses — rester en
+personnage, ne rien inventer sur les chapitres 2-5, produire un JSON strict. C'est de la qualité de
+suivi d'instruction, pas de la puissance brute. Un modèle plus petit (`ministral-8b`) coûterait
+moins mais dériverait davantage sur exactement ce qui compte ici.
+
+Le coût reste marginal : 2 à 4 échanges par joueur, sorties plafonnées à deux phrases.
+⚠️ **Le nom exact du modèle est à vérifier au catalogue Mistral du jour** — je ne l'affirme pas de
+mémoire. L'appel est isolé derrière une interface : en changer est une ligne.
+
+### A2 — Détection de sortie de cadre : les deux, en couches
+
+| Couche | Où | Rôle |
+|---|---|---|
+| **Pré-filtre serveur** | avant l'appel | Injection de prompt (« ignore tes instructions », « system prompt », « tu es une IA »), insultes manifestes. Déterministe, gratuit, **impossible à négocier** |
+| **Classification par le modèle** | dans sa réponse JSON | Tonalité `sincere` / `evasif` / `hostile` — un jugement, pas une règle |
+| **Décision serveur** | après | C'est le serveur qui applique les effets et coupe. Le modèle n'écrit jamais une variable |
+
+Le pré-filtre passe **avant** l'appel : on ne paie pas pour une tentative d'injection, et on ne
+laisse pas le modèle décider s'il doit s'ignorer lui-même.
+
+### A3 — `detail_perso` : liste d'autorisation, pas d'exclusion
+
+Le prompt demande une liste d'exclusion. **Une liste d'exclusion sur du texte libre est un filtre
+faible** : elle ne rattrape que ce qu'on a prévu, et une donnée de santé formulée autrement passe.
+
+Proposition : le modèle renvoie **une catégorie** (`prenom` · `ville` · `metier` · `animal`) en plus
+de la valeur, et le serveur **n'accepte que ces quatre-là**. Tout le reste devient `null`. La liste
+d'exclusion reste, en second filet, sur la valeur elle-même.
+
+Un `detail_perso` à `null` est un cas normal — le payoff du ch. 4 doit s'en accommoder.
+
+### A4 — Consentement : en base, pas en local
+
+`player_progress.ai_consent_at timestamptz`. Le consentement RGPD doit être **auditable** et suivre
+la cascade de suppression du compte ; un indicateur local ne prouve rien et disparaîtrait sans
+trace. Refus → l'histoire continue par le fallback, sans pénalité, et on ne redemande pas.
+
+### 🔴 A5 — Manque : rien ne compte les échanges d'un moment IA
+
+`ai_usage` compte les échanges **par jour**, pour le quota. Rien ne mémorise « où en est-on dans CE
+moment IA ». Conséquence : un joueur qui ferme l'app au 3ᵉ échange et revient repartirait de zéro.
+
+→ Colonne `player_progress.ai_exchanges`, remise à zéro à l'entrée dans un `ai_moment`.
+**Le décompte doit être serveur**, jamais tenu par le modèle ni par le client.
+
+### A6 — Journal des coûts
+
+`console.log` des tokens suffit pour commencer, mais ne permet aucune estimation agrégée.
+Proposition : deux colonnes sur `ai_usage` (`tokens_in`, `tokens_out`), cumulées par jour. Coût
+nul, et on saura ce que coûte réellement un joueur.
+
 ## 🔴 Décisions UI — prompt 2, Phase 0
 
 ### ✅ Tranchées par l'addendum — le champ de saisie, pièce centrale

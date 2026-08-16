@@ -4,6 +4,47 @@
 
 ---
 
+## 2026-08-16 (2) — PROMPT 3, Phase 0 (audit du moment IA) : **TERMINÉE, en attente de validation**
+
+### L'existant est en place
+
+`nodes.ai_system_prompt` seedé (726 caractères, verbatim des consignes du chapitre) ·
+`kind='ai_moment'` · `ai_fallback_node_id` → N21 · `ai_max_exchanges = 4` · table `ai_usage`
+(`user_id`, `day`, `exchanges`) avec RLS · `player_messages.source` accepte déjà `ai` et
+`player_free` · le chemin `continue` traverse déjà le N9 par son fallback, exercé par la simulation.
+
+**Cascades RGPD vérifiées** : `player_progress → users` en CASCADE (donc `detail_perso`),
+`player_messages → player_progress` en CASCADE, `ai_usage → users` en CASCADE. Supprimer le compte
+purge tout.
+
+### Le manque qui compte : rien ne compte les échanges d'un moment
+
+`ai_usage` compte par **jour**, pour le quota. Rien ne mémorise où l'on en est **dans ce
+moment-là**. Un joueur qui ferme l'app au 3ᵉ échange et revient repartirait à zéro — et pourrait
+tourner indéfiniment. Il faut `player_progress.ai_exchanges`, remis à zéro à l'entrée du nœud.
+C'est la seule vraie lacune structurelle de l'audit (TODO A5).
+
+### Le point où je m'écarte du prompt
+
+Le prompt demande une **liste d'exclusion** pour `detail_perso`. Sur du texte libre, une liste
+d'exclusion ne rattrape que ce qu'on a prévu : « je suis en rémission » ou « je vais à la mosquée le
+vendredi » passeraient. Je propose l'inverse — le modèle renvoie une **catégorie**, et le serveur
+n'accepte que `prenom`/`ville`/`metier`/`animal`. Une liste d'autorisation ferme par défaut ; la
+liste d'exclusion reste en second filet. Voir TODO A3.
+
+### Décisions proposées
+
+Modèle `mistral-small-latest` (le N9 tient à la qualité de suivi d'instruction, pas à la
+puissance) · détection de sortie de cadre **en couches**, pré-filtre serveur avant l'appel ·
+consentement **en base** (`ai_consent_at`), auditable et purgé avec le compte · coûts journalisés
+en colonnes plutôt qu'en `console.log`.
+
+### Prochaine étape
+
+Validation de A1→A6 → **Phase 1** : prompt système définitif, Edge Function `ai-chat`, mode dégradé.
+
+---
+
 ## 2026-08-16 — PROMPT 2, Phase 3 : **TERMINÉE, en attente de validation**
 
 Séquence d'intronisation, interactions cachées, liste des conversations, écran de fin. 45 tests.
