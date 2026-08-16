@@ -177,6 +177,17 @@ class ConversationController extends AsyncNotifier<ConversationState> {
 
   @override
   Future<ConversationState> build() async {
+    // ⚠️ `build()` peut être rejoué sur la MÊME instance (réinitialisation via
+    // `invalidateSelf`). Riverpod exécute alors le `onDispose` du build
+    // précédent — qui pose `_termine` — puis rappelle `build`. Sans cette
+    // remise à zéro, le verrou reste fermé pour toujours : plus aucune
+    // publication d'état ne passe, et l'intronisation rejouée débouchait sur
+    // une conversation vide où Léna ne parlait jamais.
+    _termine = false;
+    _derouleImminent = false;
+    _verrouille = false;
+    _nonLus = 0;
+
     await ref.watch(authPreteProvider.future);
     _store = await ref.watch(localStoreProvider.future);
 

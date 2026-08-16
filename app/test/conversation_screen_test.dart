@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:numero_inconnu/providers/conversation_controller.dart';
 import 'package:numero_inconnu/providers/session_providers.dart';
 import 'package:numero_inconnu/screens/chapter_end_screen.dart';
 import 'package:numero_inconnu/screens/conversation_screen.dart';
@@ -156,6 +157,58 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('C\'est bon.'), findsOneWidget,
           reason: 'le message n\'a pas été avalé par l\'intro');
+    });
+
+    testWidgets('rejouée après réinitialisation, elle délivre bien les messages',
+        (tester) async {
+      // Régression : `invalidateSelf` déclenche le onDispose du build précédent,
+      // qui posait un verrou « terminé » jamais rouvert. L'intro rejouait, la
+      // musique démarrait, puis la conversation s'ouvrait VIDE — les choix
+      // affichés, mais Léna n'avait jamais parlé.
+      SharedPreferences.setMockInitialValues({});
+      final api = EngineApi(
+        jetonAcces: () => 'jeton',
+        baseUrl: 'http://test.local',
+        apiKey: 'k',
+        httpClient: MockClient(
+            (_) async => http.Response.bytes(utf8.encode(jsonEncode(etatAvecIntro())), 200)),
+      );
+      final conteneur = ProviderContainer(overrides: [
+        authPreteProvider.overrideWith((ref) async => 'joueur-test'),
+        engineApiProvider.overrideWithValue(api),
+      ]);
+      addTearDown(conteneur.dispose);
+
+      await tester.pumpWidget(UncontrolledProviderScope(
+        container: conteneur,
+        child: MaterialApp(theme: AppTheme.sombre, home: const RootScreen()),
+      ));
+      await tester.pumpAndSettle();
+      expect(find.byType(IntroScreen), findsOneWidget);
+
+      // Premier passage : on saute l'intro, les messages arrivent.
+      await tester.tap(find.byType(IntroScreen));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      expect(find.text('C\'est bon.'), findsOneWidget);
+
+      // Retour à la liste, puis vrai bouton de réinitialisation — c'est lui qui
+      // purge la mémoire locale ET rejoue `build` sur la même instance.
+      Navigator.of(tester.element(find.byType(ConversationScreen))).pop();
+      await tester.pumpAndSettle();
+      await conteneur.read(conversationProvider.notifier).reinitialiser();
+      await tester.pumpAndSettle();
+      expect(find.byType(IntroScreen), findsOneWidget, reason: 'l\'intro rejoue');
+
+      await tester.tap(find.byType(IntroScreen));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      expect(find.text('C\'est bon.'), findsOneWidget,
+          reason: 'Léna doit reparler après une réinitialisation');
     });
 
     testWidgets('elle ne rejoue pas si elle a déjà été vue', (tester) async {
