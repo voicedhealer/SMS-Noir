@@ -56,8 +56,14 @@ Map<String, dynamic> noeud({
       'can_continue': peutContinuer,
     };
 
-Map<String, dynamic> conversation({String nom = 'Numéro inconnu', bool revele = false}) =>
-    {'contact_id': 'c-1', 'display_name': nom, 'avatar_url': null, 'revealed': revele};
+Map<String, dynamic> conversation({String nom = 'Numéro inconnu', bool revele = false}) => {
+      'contact_id': 'c-1',
+      'code': 'lena',
+      'display_name': nom,
+      'phone_number': '06 39 98 41 07',
+      'avatar_url': null,
+      'revealed': revele,
+    };
 
 /// Monte l'écran avec un serveur simulé. Le vrai `EngineApi` est utilisé :
 /// seul le transport est remplacé, donc le chemin de code testé est le bon.
@@ -536,6 +542,55 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('C\'est qui, ce type ?'), findsOneWidget);
       expect(find.text('Pourquoi cet entrepôt ?'), findsOneWidget);
+    });
+  });
+
+  group('Carte d\'enregistrement de contact', () {
+    Map<String, dynamic> etatAvecCarte({bool revele = false}) => {
+          'story': {'slug': 's', 'title': 'T'},
+          'conversations': [conversation(nom: revele ? 'Léna' : 'Numéro inconnu', revele: revele)],
+          'history': [
+            message(seq: 1, body: 'Moi c\'est Léna, au passage.'),
+            message(seq: 2, body: null, type: 'contact_card'),
+          ],
+          'node': noeud(),
+          'chapter_end': null,
+          'ai_moment_pending': false,
+        };
+
+    testWidgets('elle vit dans le fil, avec le numéro et les deux gestes',
+        (tester) async {
+      await monter(tester, getState: etatAvecCarte());
+
+      expect(find.byType(ContactCard), findsOneWidget);
+      expect(find.text('06 39 98 41 07'), findsOneWidget);
+      expect(find.text('Enregistrer le contact'), findsOneWidget);
+      expect(find.text('Plus tard'), findsOneWidget);
+      // Ce n'est pas une modale : le fil est toujours là derrière.
+      expect(find.text('Moi c\'est Léna, au passage.'), findsOneWidget);
+    });
+
+    testWidgets('« Plus tard » ne fait rien : le contact reste anonyme',
+        (tester) async {
+      await monter(tester, getState: etatAvecCarte());
+      await tester.tap(find.text('Plus tard'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Numéro inconnu'), findsWidgets, reason: 'toujours pas nommée');
+      expect(find.byType(ContactCard), findsOneWidget, reason: 'la carte reste consultable');
+      expect(find.text('Enregistrer le contact'), findsOneWidget,
+          reason: 'et le geste reste possible plus tard');
+    });
+
+    testWidgets('une fois enregistrée, la carte reste mais ne propose plus rien',
+        (tester) async {
+      await monter(tester, getState: etatAvecCarte(revele: true));
+
+      expect(find.byType(ContactCard), findsOneWidget);
+      expect(find.text('Contact enregistré'), findsOneWidget);
+      expect(find.text('Enregistrer le contact'), findsNothing);
+      // L'en-tête porte le vrai nom.
+      expect(find.text('Léna'), findsWidgets);
     });
   });
 

@@ -168,9 +168,18 @@ def parcours_allie():
              all('next_node_id' not in c for c in p.noeud['choices']), True)
 
     p.choisir('Qui ça')                       # confiance 3 -> 4
-    p.choisir('Quelqu\'un qui a reçu')        # confiance 5, branche empathie, -> N5 -> N8
+    r = p.choisir('Quelqu\'un qui a reçu')    # confiance 5, branche empathie, -> N5 -> N8
     verifier('Chaîne auto N5 → N8 déroulée', p.noeud['code'], 'N8')
-    verifier('Léna révélée au N5', p.etat['conversations'][0]['display_name'], 'Léna')
+
+    # La révélation n'est plus automatique : le N5 pose une carte, le geste
+    # d'enregistrement la déclenche.
+    verifier('Carte d\'enregistrement posée au N5',
+             any(m['content_type'] == 'contact_card' for m in r['new_messages']), True)
+    verifier('Léna reste anonyme tant qu\'on n\'enregistre pas',
+             p.etat['conversations'][0]['display_name'], 'Numéro inconnu')
+
+    rev = sim_reveal(p, 'lena')
+    verifier('Enregistrer le contact la révèle', rev['conversations'][0]['display_name'], 'Léna')
 
     p.choisir("C'est qui, ce type ?")          # relance : indices PROFIL_SUSPECT
     verifier('Relance N8 consommée : la 2e question disparaît',
@@ -205,7 +214,7 @@ def parcours_allie():
     verifier('branche_ch1', v['branche_ch1'], 'allié')
     verifier('indices', sorted(v['indices']),
              sorted(['PROFIL_SUSPECT', 'PLAQUE', 'AUTOCOLLANT', 'TELEPHONE']))
-    verifier('Léna révélée', v['contacts_reveles'], ['lena'])
+    verifier('Léna révélée par le geste', v['contacts_reveles'], ['lena'])
     verifier('Compte à rebours posé', etat['chapter_unlocked_at'] is not None, True)
     verifier('Chapitre 2 annoncé', p.etat['chapter_end']['next_chapter_title'], 'Chloé')
     verifier('Chapitre 2 sans contenu', p.etat['chapter_end']['next_chapter_pending'], True)
@@ -262,6 +271,13 @@ def parcours_refus():
 # PARCOURS 3 — branche N6 (la seule qui n'a longtemps rien révélé)
 # ---------------------------------------------------------------------------
 
+def sim_reveal(partie, code):
+    """Le geste « Enregistrer le contact »."""
+    r = http(f'{API}/functions/v1/reveal-contact', {'contact_code': code}, partie.token)
+    partie.etat = {**partie.etat, 'conversations': r['conversations']}
+    return r
+
+
 def parcours_branche_n6():
     """Le joueur rembarre Léna, elle revient. Ton plus formel, et elle se nomme
     quand même : c'est le trou de contenu Q7, refermé en V2.1."""
@@ -273,12 +289,48 @@ def parcours_branche_n6():
     p.choisir('Je crois que vous vous trompez')   # -> N2
     verifier('Toujours anonyme au N2', p.etat['conversations'][0]['display_name'], 'Numéro inconnu')
 
-    p.choisir('Non. Bonne soirée')                # -> N6
+    r = p.choisir('Non. Bonne soirée')            # -> N6
     verifier('Nœud N6 atteint', p.noeud['code'], 'N6')
-    verifier('Révélée au N6 aussi', p.etat['conversations'][0]['display_name'], 'Léna')
+    verifier('Carte posée sur la branche N6 aussi',
+             any(m['content_type'] == 'contact_card' for m in r['new_messages']), True)
 
+    # « Plus tard » : on n'enregistre pas. L'histoire continue, Léna reste anonyme.
+    verifier('Sans enregistrement, elle reste anonyme',
+             p.etat['conversations'][0]['display_name'], 'Numéro inconnu')
     v = variables_en_base(p.email)['variables']
-    verifier('contacts_reveles alimenté par le N6', v['contacts_reveles'], ['lena'])
+    verifier('Aucune révélation en base', v['contacts_reveles'], [])
+    return p
+
+
+# ---------------------------------------------------------------------------
+# PARCOURS 4 — la carte de contact
+# ---------------------------------------------------------------------------
+
+def parcours_carte():
+    print('\n' + '=' * 78)
+    print('  CARTE D\'ENREGISTREMENT — geste, filet de sécurité, garde-fou')
+    print('=' * 78)
+    p = Partie('carte@test.local', 'carte')
+
+    # Garde-fou : on ne peut pas révéler un contact dont la carte n'est pas reçue.
+    try:
+        http(f'{API}/functions/v1/reveal-contact', {'contact_code': 'lena'}, p.token)
+        verifier('Révélation refusée avant la carte', 'acceptée', 'refusée')
+    except RuntimeError as e:
+        verifier('Révélation refusée avant la carte', 'HTTP 403' in str(e), True)
+
+    # On joue jusqu'à la fin SANS jamais enregistrer.
+    p.choisir('Qui ça'); p.choisir("Quelqu'un qui a reçu")
+    verifier('Anonyme après la carte, sans geste',
+             p.etat['conversations'][0]['display_name'], 'Numéro inconnu')
+
+    p.choisir('Ok. Je garde mon'); p.choisir('Prenez la plaque')
+    p.choisir("Zoomer sur l'auto"); p.choisir('Rentrez chez vous')
+    p.continuer(); p.choisir('Zoomer sur la photo')
+
+    verifier('Fin de chapitre atteinte', p.noeud['code'], 'N22')
+    verifier('Filet de sécurité : révélée à la fin malgré tout',
+             p.etat['conversations'][0]['display_name'], 'Léna')
     return p
 
 
@@ -358,6 +410,7 @@ if __name__ == '__main__':
     allie = parcours_allie()
     refus = parcours_refus()
     n6 = parcours_branche_n6()
+    parcours_carte()
     erreurs_et_idempotence()
 
     print('\n' + '=' * 78)

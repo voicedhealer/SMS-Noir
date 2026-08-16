@@ -54,8 +54,11 @@ update stories set intro_panels = $$[
 where slug = 'numero-inconnu';
 
 -- Léna n'est qu'un numéro inconnu jusqu'à ce qu'elle se nomme (N5 / N7).
-insert into contacts (story_id, code, display_name, display_name_initial)
-select id, 'lena', 'Léna', 'Numéro inconnu' from stories where slug = 'numero-inconnu';
+-- Numéro dans la plage ARCEP réservée à la fiction (06 39 98 xx xx) : jamais
+-- un numéro réel, qui appartiendrait à quelqu'un.
+insert into contacts (story_id, code, display_name, display_name_initial, phone_number)
+select id, 'lena', 'Léna', 'Numéro inconnu', '06 39 98 41 07'
+from stories where slug = 'numero-inconnu';
 
 insert into chapters (story_id, position, title, unlock_delay_minutes)
 select id, 1, 'Le mauvais numéro', 0 from stories where slug = 'numero-inconnu';
@@ -76,11 +79,12 @@ from (values
     ('N2' , 'scripted'   , '{}'),
     ('N3' , 'scripted'   , '{}'),
     ('N4' , 'scripted'   , '{}'),
-    -- N5, N6 et N7 : les trois branches vers le N8. Léna s'y nomme, chacune
-    -- avec son ton -> révélation du contact (voir migration contact_reveal).
-    ('N5' , 'scripted'   , '{"reveal_contact": "lena"}'),
-    ('N6' , 'scripted'   , '{"reveal_contact": "lena"}'),
-    ('N7' , 'scripted'   , '{"reveal_contact": "lena"}'),
+    -- N5, N6 et N7 : les trois branches vers le N8. Léna s'y nomme, et chacune
+    -- pose une carte d'enregistrement. La révélation n'est PLUS automatique —
+    -- c'est le geste du joueur qui la déclenche (voir migration contact_card).
+    ('N5' , 'scripted'   , '{}'),
+    ('N6' , 'scripted'   , '{}'),
+    ('N7' , 'scripted'   , '{}'),
     ('N8' , 'scripted'   , '{}'),
     ('N9' , 'ai_moment'  , '{}'),
     ('N10', 'scripted'   , '{}'),
@@ -96,7 +100,9 @@ from (values
     ('N19', 'scripted'   , '{}'),
     ('N20', 'scripted'   , '{}'),
     ('N21', 'scripted'   , '{}'),
-    ('N22', 'chapter_end', '{}')
+    -- Filet de sécurité : le joueur qui n'a jamais enregistré Léna la voit
+    -- quand même nommée à la fin. Un geste facultatif ne bloque pas l'histoire.
+    ('N22', 'chapter_end', '{"reveal_contact": "lena"}')
   ) as v(code, kind, effects)
 join stories  s on s.slug = 'numero-inconnu'
 join chapters c on c.story_id = s.id and c.position = 1;
@@ -181,6 +187,7 @@ from (values
 ('N5', 1, 'text', $$C'est ma sœur. Chloé. Elle a disparu il y a 7 mois.$$, null, 10, 3, false, null),
 ('N5', 2, 'text', $$La police a classé. "Départ volontaire". Mon cul.$$, null, 8, 3, false, null),
 ('N5', 3, 'text', $$Moi c'est Léna, au passage. Puisqu'on en est là.$$, null, 12, 3, false, null),
+('N5', 4, 'contact_card', null, null, 2, 0, false, null),
 
 -- N6 — Elle décroche... presque
 ('N6', 0, 'text', $$Ouais. Désolée du dérangement.$$, null, 20, 3, false, null),
@@ -189,12 +196,14 @@ from (values
 ('N6', 3, 'text', $$Ma sœur a disparu il y a 7 mois et ce soir je sais enfin où chercher. Je peux vous parler ? Juste ce soir.$$, null, 6, 3, false, null),
 -- V2.1 : elle a été rembarrée puis revient — elle se présente plus formellement ici.
 ('N6', 4, 'text', $$Léna. Je m'appelle Léna, tant qu'à vous déranger.$$, null, 10, 3, false, null),
+('N6', 5, 'contact_card', null, null, 2, 0, false, null),
 
 -- N7 — Elle teste
 ('N7', 0, 'text', $$Quelqu'un qui cherche sa sœur. Depuis 7 mois.$$, null, 35, 3, false, null),
 ('N7', 1, 'text', $$Et toi t'es le mec au bout d'un mauvais numéro qui pose beaucoup de questions.$$, null, 6, 3, false, null),
 ('N7', 2, 'text', $$...ce qui tombe bien. Tout le monde a arrêté d'en poser sur Chloé.$$, null, 5, 3, false, null),
 ('N7', 3, 'text', $$Moi c'est Léna, au passage. Puisqu'on en est là.$$, null, 12, 3, false, null),
+('N7', 4, 'contact_card', null, null, 2, 0, false, null),
 
 -- ===== LE DILEMME CENTRAL ===================================================
 

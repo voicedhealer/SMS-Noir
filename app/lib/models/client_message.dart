@@ -15,6 +15,11 @@ enum ContentType {
   /// affiché tel quel : jamais reformaté, jamais recalculé côté client.
   separator,
 
+  /// Carte d'enregistrement de contact, posée dans le fil. Ce n'est ni une
+  /// bulle ni une modale : elle reste consultable, et son état suit celui du
+  /// contact. Voir DESIGN.md § Carte d'enregistrement.
+  contactCard,
+
   /// Jamais une bulle. Deux usages selon le nœud :
   ///  • présence      -> `body` est le libellé du sous-titre d'en-tête
   ///  • chapter_end   -> texte de l'écran de fin, sorti du fil
@@ -110,6 +115,7 @@ class ClientMessage {
         'audio' => ContentType.audio,
         'separator' => ContentType.separator,
         'system' => ContentType.system,
+        'contact_card' => ContentType.contactCard,
         // Un type inconnu (chapitre futur) se dégrade en texte plutôt que de
         // faire tomber tout le fil.
         _ => ContentType.text,

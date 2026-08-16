@@ -267,7 +267,7 @@ narratif récurrent, pas un cas particulier du chapitre 1 :
 
 | Contact | Arrivée | Révélation |
 |---|---|---|
-| **Léna** | ch. 1, numéro inconnu | se nomme au **N5**, au **N6** et au **N7** — les trois branches vers le N8, chacune avec son ton |
+| **Léna** | ch. 1, numéro inconnu | se nomme au **N5**, **N6** et **N7** — les trois branches vers le N8. Chacune pose une **carte d'enregistrement** ; c'est le geste du joueur qui révèle |
 | **Karim** | ch. 3, numéro inconnu (Léna crée le groupe) | à définir |
 | **Le suspect** | ch. 4, numéro inconnu | **jamais** — il reste anonyme jusqu'au bout |
 
@@ -275,9 +275,18 @@ Le mécanisme tient en deux moitiés :
 
 1. **`contacts.display_name_initial`** — le nom affiché *avant* révélation (« Numéro inconnu »).
    `null` = contact connu dès le départ.
-2. **L'effect `reveal_contact`** sur le nœud où l'identité se dévoile :
-   `nodes.effects = {"reveal_contact": "lena"}`. Le moteur ajoute le code du contact à
-   `player_progress.variables.contacts_reveles` (liste, sans doublon).
+2. **Le geste du joueur** sur une carte d'enregistrement (`content_type: 'contact_card'`), qui
+   appelle `reveal-contact`. **Ce n'est pas un choix narratif** : aucun nœud ne bouge, aucune
+   variable de jeu n'est touchée.
+3. **L'effect `reveal_contact`** en filet de sécurité, posé sur le nœud de fin de chapitre :
+   `nodes.effects = {"reveal_contact": "lena"}`. Le joueur qui n'a jamais enregistré voit le
+   contact nommé à la fin — un geste facultatif ne bloque jamais l'histoire.
+
+Les deux alimentent la même liste, `player_progress.variables.contacts_reveles` (sans doublon).
+
+**Garde-fou de `reveal-contact`** : on n'accepte que les contacts dont une carte a **déjà été
+délivrée** au joueur. Sans lui, un client modifié pourrait nommer le suspect du chapitre 4 avant de
+l'avoir rencontré — un spoiler gratuit dans une architecture qui en interdit partout ailleurs.
 
 Le nom à afficher se calcule donc côté serveur, à chaque `get-state` :
 

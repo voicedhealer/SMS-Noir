@@ -79,6 +79,14 @@ export function appliquerEffects(vars: Variables, effects: Effects | null): Vari
     else out[cle] = liste
   }
 
+  if (effects.set_avatar) {
+    const avatars = { ...(out.avatars as Record<string, string> | undefined ?? {}) }
+    for (const [code, chemin] of Object.entries(effects.set_avatar)) {
+      avatars[code] = chemin
+    }
+    out.avatars = avatars
+  }
+
   if (effects.reveal_contact) {
     const revele = out.contacts_reveles ?? []
     if (!revele.includes(effects.reveal_contact)) {
@@ -140,6 +148,15 @@ export function normaliserVariables(brut: unknown): Variables {
     interactions_faites: Array.isArray(v.interactions_faites) ? v.interactions_faites : [],
     contacts_reveles: Array.isArray(v.contacts_reveles) ? v.contacts_reveles : [],
   }
+}
+
+/** Avatar courant d'un contact : celui posé par un effect, sinon celui du contenu. */
+export function avatarDe(
+  contact: { code: string; avatar_url: string | null },
+  vars: Variables,
+): string | null {
+  const avatars = vars.avatars as Record<string, string> | undefined
+  return avatars?.[contact.code] ?? contact.avatar_url
 }
 
 /** Nom à afficher pour un contact, selon qu'il a été révélé ou non. */

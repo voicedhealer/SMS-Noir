@@ -46,6 +46,19 @@ class EngineApi {
     await _appeler('reset-progress', const {}, rejouable: false);
   }
 
+  /// Le joueur enregistre un contact.
+  ///
+  /// **Ce n'est pas un choix narratif** : aucun nœud ne bouge, aucune variable
+  /// de jeu n'est touchée. C'est un geste, et le serveur le traite comme tel.
+  /// Rejouable sans risque — révéler deux fois revient à révéler une fois.
+  Future<List<Conversation>> revealContact(String contactCode) async {
+    final json = await _appeler(
+      'reveal-contact', {'contact_code': contactCode}, rejouable: true);
+    return (json['conversations'] as List<dynamic>? ?? const [])
+        .map((c) => Conversation.fromJson(c as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<GameState> getState() async {
     final json = await _appeler('get-state', const {}, rejouable: true);
     return GameState.fromJson(json);

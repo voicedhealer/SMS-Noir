@@ -415,6 +415,22 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   /// Toute action du joueur repousse l'affordance de continuation.
   void signalerActivite() => _armerFallbackContinuation();
 
+  /// Le joueur enregistre le contact du fil.
+  ///
+  /// Ce geste **remplace** l'ancien effect automatique : c'est lui qui révèle
+  /// l'identité. S'il ne le fait jamais, le nœud de fin de chapitre s'en charge
+  /// — un geste facultatif ne bloque pas l'histoire.
+  Future<void> enregistrerContact() async {
+    final code = _conversations.firstOrNull?.code;
+    if (code == null || (_conversations.first.revealed)) return;
+    try {
+      _conversations = await _api.revealContact(code);
+      _publier();
+    } on EngineException catch (e) {
+      await _traiter(e);
+    }
+  }
+
   /// Elle vient de prendre connaissance du fil.
   void _marquerLuParElle() {
     for (final m in _fil.reversed) {

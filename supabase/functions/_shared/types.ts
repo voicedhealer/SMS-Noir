@@ -30,6 +30,11 @@ export interface Effects {
   append?: Record<string, string>
   /** Code de contact à révéler. */
   reveal_contact?: string
+  /**
+   * Change l'avatar d'un contact en cours d'histoire : `{"code": "chemin"}`.
+   * Léna enverra une photo de profil plus tard — le mécanisme l'attend.
+   */
+  set_avatar?: Record<string, string>
 }
 
 /** `choices.conditions`. Clés d'un même objet en ET. `{}` = toujours vrai. */
@@ -85,8 +90,12 @@ export interface ClientChoice {
 
 export interface ClientConversation {
   contact_id: string
+  /** Code stable (`lena`, `karim`…) — sert au geste d'enregistrement. */
+  code: string
   /** Nom réel ou nom d'avant révélation, selon `contacts_reveles`. */
   display_name: string
+  /** Numéro affiché sur la carte d'enregistrement. */
+  phone_number: string | null
   avatar_url: string | null
   /** false tant que le contact n'a pas dévoilé son identité. */
   revealed: boolean

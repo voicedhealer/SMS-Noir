@@ -503,3 +503,119 @@ class _TypingIndicatorState extends State<TypingIndicator> with SingleTickerProv
         ),
       );
 }
+
+/// Carte d'enregistrement de contact.
+///
+/// Posée **dans le fil**, jamais en modale : c'est un objet de messagerie, pas
+/// une interruption. Elle reste consultable après coup, et son état suit celui
+/// du contact.
+///
+/// Le motif est générique et resservira tel quel : Karim au chapitre 3, et
+/// surtout le suspect au chapitre 4 — où la **même carte anodine** devient
+/// inquiétante, parce que personne ne lui a donné ce numéro. C'est sa banalité
+/// qui fera l'effet : ne rien lui ajouter de spécial.
+class ContactCard extends StatelessWidget {
+  const ContactCard({
+    super.key,
+    required this.nom,
+    required this.numero,
+    required this.enregistre,
+    required this.onEnregistrer,
+  });
+
+  /// Nom affiché : `display_name_initial` tant qu'on n'a pas enregistré.
+  final String nom;
+  final String? numero;
+  final bool enregistre;
+  final VoidCallback onEnregistrer;
+
+  @override
+  Widget build(BuildContext context) {
+    final largeurMax = MediaQuery.sizeOf(context).width * AppSpacing.largeurMaxBulle;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        width: largeurMax,
+        margin: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.l, vertical: AppSpacing.interGroupes / 2),
+        decoration: BoxDecoration(
+          color: AppColors.bulleContact,
+          borderRadius: BorderRadius.circular(AppSpacing.rayonBulle),
+          border: Border.all(color: AppColors.separateurLigne),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.l),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: AppColors.fond,
+                    child: Icon(
+                      enregistre ? Icons.person : Icons.help_outline,
+                      size: 20,
+                      color: AppColors.texteTertiaire,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.m),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(nom,
+                            style: AppText.titreConversation
+                                .copyWith(color: AppColors.textePrincipal)),
+                        if (numero != null) ...[
+                          const SizedBox(height: 2),
+                          Text(numero!,
+                              style: AppText.apercuConversation
+                                  .copyWith(color: AppColors.texteSecondaire)),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            _filet(),
+            if (enregistre)
+              // Une fois enregistrée, la carte reste — mais elle ne propose
+              // plus rien. Elle devient une trace, comme dans une messagerie.
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
+                child: Center(
+                  child: Text('Contact enregistré',
+                      style: AppText.horodatage.copyWith(color: AppColors.texteTertiaire)),
+                ),
+              )
+            else ...[
+              // Actions empilées, pleine largeur : « Enregistrer le contact »
+              // passe sur deux lignes dès qu'on le met sur une demi-largeur, et
+              // une carte de messagerie n'a pas de libellés qui débordent.
+              _action('Enregistrer le contact', AppColors.textePrincipal, onEnregistrer),
+              _filet(),
+              // « Plus tard » n'a aucun effet : la carte reste, l'histoire
+              // continue. C'est un geste, pas un choix — rien à envoyer.
+              _action('Plus tard', AppColors.texteSecondaire, () {}),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _filet() => Container(height: 0.5, color: AppColors.separateurLigne);
+
+  Widget _action(String libelle, Color couleur, VoidCallback onTap) => TextButton(
+        onPressed: onTap,
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.m + 2),
+          shape: const RoundedRectangleBorder(),
+          minimumSize: const Size.fromHeight(0),
+        ),
+        child: Text(libelle, style: AppText.libelleChoix.copyWith(color: couleur)),
+      );
+}

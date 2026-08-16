@@ -51,12 +51,21 @@ class ClientChoice {
 class Conversation {
   const Conversation({
     required this.contactId,
+    required this.code,
     required this.displayName,
+    required this.phoneNumber,
     required this.avatarUrl,
     required this.revealed,
   });
 
   final String contactId;
+
+  /// Code stable (`lena`, `karim`…) — c'est lui que porte le geste
+  /// d'enregistrement.
+  final String code;
+
+  /// Numéro affiché sur la carte d'enregistrement.
+  final String? phoneNumber;
 
   /// Nom à afficher, déjà arbitré par le serveur : `display_name_initial`
   /// tant que le contact n'est pas révélé, puis `display_name`.
@@ -69,7 +78,9 @@ class Conversation {
 
   factory Conversation.fromJson(Map<String, dynamic> json) => Conversation(
         contactId: json['contact_id'] as String,
+        code: json['code'] as String? ?? '',
         displayName: json['display_name'] as String,
+        phoneNumber: json['phone_number'] as String?,
         avatarUrl: json['avatar_url'] as String?,
         revealed: json['revealed'] as bool? ?? false,
       );

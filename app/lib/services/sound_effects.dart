@@ -31,7 +31,11 @@ class SoundEffects {
     // Un séparateur ou un changement de présence n'est pas un message. C'est
     // ce qui garantit le **silence du N19** : « Léna est hors ligne » ne bipe
     // pas, et les 90 s qui suivent ne contiennent aucune livraison.
-    if (m.contentType == ContentType.separator || m.contentType == ContentType.system) {
+    if (m.contentType == ContentType.separator ||
+        m.contentType == ContentType.system ||
+        // Une carte d'enregistrement accompagne le message où elle se nomme :
+        // elle sonnerait une deuxième fois pour la même prise de parole.
+        m.contentType == ContentType.contactCard) {
       return EffetSonore.aucun;
     }
     // Un message décoratif ne part jamais. Le faire sonner mentirait au joueur

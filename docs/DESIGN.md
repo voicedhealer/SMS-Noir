@@ -217,6 +217,55 @@ phrases sont horodatées ne ressemble à rien.
 avec une icône de type. Neutre et jamais alarmant — le joueur ne doit pas croire à une panne
 réseau. Les 4 médias réels restent à produire.
 
+### La carte d'enregistrement de contact
+
+Posée **dans le fil**, jamais en modale : c'est un objet de messagerie, pas une interruption. Elle
+arrive juste après le message où le contact se nomme, et **reste consultable** ensuite.
+
+```
+┌──────────────────────────────┐
+│  (?)  Numéro inconnu         │
+│       06 39 98 41 07         │
+├──────────────────────────────┤
+│    Enregistrer le contact    │
+├──────────────────────────────┤
+│          Plus tard           │
+└──────────────────────────────┘
+```
+
+| Geste | Effet |
+|---|---|
+| **Enregistrer** | L'en-tête bascule sur `display_name` et l'avatar. **C'est ce geste qui révèle** — il remplace l'effect automatique |
+| **Plus tard** | Rien. Le contact reste anonyme, la carte reste consultable, l'histoire continue |
+
+**Aucun impact narratif** : c'est un geste, pas un choix. Aucun nœud ne bouge, aucune variable de
+jeu n'est touchée. Le serveur le traite comme tel (`reveal-contact`, jamais `advance`).
+
+**Filet de sécurité** : si le joueur n'enregistre jamais, le nœud de fin de chapitre porte
+`reveal_contact` et la révélation se fait quand même. Un geste facultatif ne bloque jamais
+l'histoire. Deux contrôles du script de graphe le garantissent.
+
+Actions **empilées en pleine largeur** : « Enregistrer le contact » déborde sur deux lignes dès
+qu'on le met sur une demi-largeur, et une carte de messagerie n'a pas de libellés qui débordent.
+
+Une fois enregistrée, la carte reste mais ne propose plus rien — elle devient une trace.
+
+#### Le motif resservira, et c'est le point
+
+- **Karim** (ch. 3) — même carte, même anodine.
+- **Le suspect** (ch. 4) — **la même carte anodine devient inquiétante**, parce que personne ne lui
+  a donné ce numéro. C'est sa banalité qui fera l'effet : ne rien lui ajouter de spécial, pas de
+  couleur d'alerte, pas de libellé différent. La carte doit être exactement celle de Léna.
+
+Le numéro vient de `contacts.phone_number`, dans la **plage ARCEP réservée à la fiction**
+(06 39 98 xx xx) : jamais un numéro réel, qui appartiendrait à quelqu'un.
+
+#### Avatar
+
+Générique pour l'instant. Un effect `set_avatar` existe déjà côté moteur : il pose un chemin
+d'objet dans `variables.avatars[code]`, qui prend le pas sur `contacts.avatar_url` et est signé
+comme les autres médias. Léna enverra une photo de profil plus tard — le mécanisme l'attend.
+
 ### Le marqueur « Vu. »
 
 Sous la dernière bulle du joueur qui a été lue, aligné à droite, minuscule et sans icône. Dans une

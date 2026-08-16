@@ -275,6 +275,14 @@ class _Element extends ConsumerWidget {
               ? ref.read(conversationProvider.notifier).declencherInteraction
               : null,
         ),
+      // La carte porte l'identité du contact du fil, pas un contenu propre.
+      ContentType.contactCard => ContactCard(
+          nom: etat.contact?.displayName ?? '',
+          numero: etat.contact?.phoneNumber,
+          enregistre: etat.contact?.revealed ?? false,
+          onEnregistrer: () =>
+              ref.read(conversationProvider.notifier).enregistrerContact(),
+        ),
       ContentType.text => Column(
           mainAxisSize: MainAxisSize.min,
           children: [

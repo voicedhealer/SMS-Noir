@@ -5,6 +5,7 @@ import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 import {
   appliquerEffects,
   appliquerPlafonds,
+  avatarDe,
   evaluerConditions,
   nomAffiche,
   normaliserVariables,
@@ -422,13 +423,22 @@ export async function conversations(
   if (ids.length === 0) return []
 
   const { data: contacts } = await db
-    .from('contacts').select('id, code, display_name, display_name_initial, avatar_url')
+    .from('contacts')
+    .select('id, code, display_name, display_name_initial, avatar_url, phone_number')
     .eq('story_id', storyId).in('id', ids)
 
-  return (contacts ?? []).map((c) => {
+  const signes = await Promise.all((contacts ?? []).map(async (c) => {
     const { display_name, revealed } = nomAffiche(c, vars)
-    return { contact_id: c.id, display_name, avatar_url: c.avatar_url, revealed }
-  })
+    return {
+      contact_id: c.id,
+      code: c.code,
+      display_name,
+      phone_number: c.phone_number,
+      avatar_url: await signerObjet(db, avatarDe(c, vars)),
+      revealed,
+    }
+  }))
+  return signes
 }
 
 export async function etatFinDeChapitre(
