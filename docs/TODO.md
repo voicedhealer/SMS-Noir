@@ -121,8 +121,22 @@ elle a besoin de ton feu vert, et `chapitre-1-v2.md` devra être patché en mêm
       intermittent, battements de mise en scène, skip debug, reprise), horloge de fiction,
       mémoire locale, champ de saisie à 3 modes. **39 tests verts.**
       ⏸ En attente de validation.
-- [ ] **Phase 3 — Interactions cachées, liste, fin de chapitre** + recette manuelle des deux parties
-      sur émulateur.
+- [x] **Phase 3 — Interactions cachées, liste, fin de chapitre** : règle de déclenchement dérivée
+      du contrat (média → geste, sinon « + » discret), liste multi-conversations avec bascule
+      d'identité et heure de fiction, écran de fin plein écran avec compte à rebours réel,
+      séquence d'intronisation. **45 tests verts.**
+      ⏸ En attente de validation · recette manuelle partielle, voir ci-dessous.
+
+### Recette manuelle — ce qui a été vu, ce qui reste à voir
+
+Vérifié sur simulateur iOS : intro complète (4 panneaux, fondus), 4 s de vide, déroulé du N1 avec
+typing, photo réelle du N16 dans le fil, bascule « Numéro inconnu » → « Léna », écran de fin avec
+compte à rebours, liste avec aperçu et heure de fiction.
+
+⚠️ **Non vérifié à la main** : les six interactions déclenchées par un vrai geste, et la reprise en
+tuant l'app pendant les 90 s du N19. Automatiser un tap sur le simulateur demande l'autorisation
+d'accès d'aide de macOS, refusée sur cette machine. Le comportement est couvert par les tests
+widget, mais il n'a pas été joué au doigt. **À faire par Vivien** : `app/tool/run_local.sh`.
 
 ## Phases — prompt 1 (moteur) · terminé
 

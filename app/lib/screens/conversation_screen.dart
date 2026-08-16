@@ -11,7 +11,7 @@ import '../services/playback.dart';
 import '../theme/tokens.dart';
 import '../widgets/composer.dart';
 import '../widgets/message_widgets.dart';
-import 'intro_screen.dart';
+import 'chapter_end_screen.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
   const ConversationScreen({super.key});
@@ -22,6 +22,14 @@ class ConversationScreen extends ConsumerStatefulWidget {
 
 class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   final _scroll = ScrollController();
+  bool _finMontree = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback(
+        (_) => ref.read(conversationProvider.notifier).marquerLu());
+  }
 
   @override
   void dispose() {
@@ -47,10 +55,25 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
     ref.listen(conversationProvider, (_, _) => _versLeBas());
 
-    // La séquence d'ouverture prend tout l'écran, avant la conversation.
-    final intro = async.value?.intro;
-    if (intro != null) {
-      return IntroScreen(intro: intro, onTermine: ctrl.introTerminee);
+    // Fin de chapitre : plein écran, une fois le déroulé terminé.
+    final etatCourant = async.value;
+    if (etatCourant != null &&
+        !_finMontree &&
+        !etatCourant.enDeroule &&
+        etatCourant.chapterEnd != null &&
+        etatCourant.texteFinDeChapitre != null) {
+      _finMontree = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => ChapterEndScreen(
+            fin: etatCourant.chapterEnd!,
+            texte: etatCourant.texteFinDeChapitre!,
+            onFermer: () => Navigator.of(context).pop(),
+          ),
+          fullscreenDialog: true,
+        ));
+      });
     }
 
     return Scaffold(
@@ -88,6 +111,16 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 ),
               ),
             ),
+            if (!etat.enDeroule && etat.interactionsParlees.isNotEmpty)
+              // « + » discret : les interactions que le joueur *dit* (relance
+              // du N8, insistance du N13). Jamais leur libellé en clair —
+              // il peut être l'indice lui-même.
+              DiscreetPlus(
+                choix: [
+                  for (final c in etat.interactionsParlees) (id: c.id, label: c.label),
+                ],
+                onChoisir: ctrl.declencherInteraction,
+              ),
             if (!etat.enDeroule)
               ChoiceArea(
                 choix: [
@@ -137,6 +170,10 @@ class _EnTete extends StatelessWidget implements PreferredSizeWidget {
           // narratif : c'est la seule animation à laquelle on donne du temps.
           AnimatedSwitcher(
             duration: AppMotion.basculeIdentite,
+            layoutBuilder: (courant, precedents) => Stack(
+              alignment: Alignment.centerLeft,
+              children: [...precedents, ?courant],
+            ),
             child: Text(
               contact?.displayName ?? '',
               key: ValueKey(contact?.displayName),
@@ -169,14 +206,28 @@ class _Element extends ConsumerWidget {
       ContentType.image => PhotoBubble(
           message: message,
           onOuvrir: () {
-            ref.read(conversationProvider.notifier).signalerActivite();
+            final ctrl = ref.read(conversationProvider.notifier);
+            ctrl.signalerActivite();
             Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => PhotoViewer(message: message),
+              builder: (_) => PhotoViewer(
+                message: message,
+                // Le zoom lui-même est la mécanique. Seul le dernier média du
+                // fil compte : zoomer une vieille photo ne déclenche rien.
+                onZoom: (etat.interactionParGeste && message.seq == etat.dernierMedia?.seq)
+                    ? ctrl.declencherInteraction
+                    : null,
+              ),
               fullscreenDialog: true,
             ));
           },
         ),
-      ContentType.audio => AudioBubble(message: message),
+      ContentType.audio => AudioBubble(
+          message: message,
+          // La réécoute est l'interaction, pas un confort de lecture.
+          onReecoute: (etat.interactionParGeste && message.seq == etat.dernierMedia?.seq)
+              ? ref.read(conversationProvider.notifier).declencherInteraction
+              : null,
+        ),
       ContentType.text => MessageBubble(message: message, heure: heure),
     };
   }

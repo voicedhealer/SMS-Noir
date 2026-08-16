@@ -4,6 +4,38 @@
 
 ---
 
+## 2026-08-16 — PROMPT 2, Phase 3 : **TERMINÉE, en attente de validation**
+
+Séquence d'intronisation, interactions cachées, liste des conversations, écran de fin. 45 tests.
+
+### La trouvaille de la phase : une règle plutôt qu'une table
+
+Le client ne connaît pas le graphe — il ne peut donc pas dire « au N16, c'est un zoom ». La règle
+se déduit du contrat et couvre les six interactions sans exception :
+
+> Si le nœud courant a apporté un **média**, l'interaction se déclenche par le geste sur ce média.
+> Sinon, c'est une chose que le joueur **dit**, et elle passe par le « + » discret.
+
+N10/N16/N21 → zoom · N17 → réécoute · N8/N13 → « + ». Aucun code de nœud dans le code Dart.
+Seul le **dernier** média du fil est actif : zoomer une vieille photo ne déclenche rien.
+
+### Deux défauts d'affichage vus à l'écran, pas par les tests
+
+- `AnimatedSwitcher` **centre son enfant par défaut** : le nom du contact se retrouvait au milieu
+  de la ligne dans la liste. Corrigé par un `layoutBuilder` aligné à gauche, aux deux endroits.
+- L'aperçu du dernier message était **vide** en fin de chapitre : le dernier message du N22 est un
+  `system`, qui ne s'affiche pas. On remonte désormais jusqu'au dernier vrai contenu.
+
+Aucun test ne les aurait attrapés — ils ne cassaient rien, ils étaient juste faux à l'œil.
+
+### Reste
+
+La recette manuelle est partielle : les six interactions n'ont pas été jouées **au doigt** (pas
+d'autorisation d'accès d'aide sur cette machine pour automatiser un tap). Couvertes par les tests
+widget, à confirmer par Vivien.
+
+---
+
 ## 2026-08-15 (2) — Chaîne des médias : bucket, upload, URLs signées
 
 Préparée pendant que Vivien produit les fichiers. **Testée de bout en bout avec des fichiers

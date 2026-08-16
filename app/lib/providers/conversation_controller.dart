@@ -30,6 +30,7 @@ class ConversationState {
     required this.enDeroule,
     required this.mode,
     required this.heures,
+    this.nonLus = 0,
     this.intro,
     this.erreur,
   });
@@ -54,6 +55,55 @@ class ConversationState {
 
   Conversation? get contact => conversations.isEmpty ? null : conversations.first;
 
+  /// Messages reçus depuis la dernière ouverture de la conversation.
+  /// C'est de l'état de présentation : le serveur ne sait pas ce que le joueur
+  /// a regardé.
+  final int nonLus;
+
+  /// Dernier média du fil. C'est le seul dont le geste (zoom, réécoute) peut
+  /// déclencher une interaction : les médias plus anciens appartiennent à des
+  /// nœuds révolus.
+  ClientMessage? get dernierMedia {
+    for (final m in fil.reversed) {
+      if (m.contentType == ContentType.image || m.contentType == ContentType.audio) return m;
+    }
+    return null;
+  }
+
+  /// Comment se déclenche l'interaction cachée de ce nœud.
+  ///
+  /// La règle se déduit du **contrat**, jamais du code de nœud : si le nœud
+  /// courant a apporté un média, le geste est sur ce média (zoomer une photo,
+  /// réécouter un vocal). Sinon, l'interaction est une chose que le joueur
+  /// *dit*, et elle passe par le « + » discret.
+  ///
+  /// Au chapitre 1 : N10, N16, N21 -> geste sur la photo · N17 -> réécoute ·
+  /// N8 et N13 -> « + ». Les six y sont, sans que le client connaisse le graphe.
+  bool get interactionParGeste => (node?.interactions.isNotEmpty ?? false) && _noeudAApporteUnMedia;
+
+  List<ClientChoice> get interactionsParlees =>
+      _noeudAApporteUnMedia ? const [] : (node?.interactions ?? const []);
+
+  bool get _noeudAApporteUnMedia {
+    // Le média du nœud courant est forcément le dernier du fil : les messages
+    // arrivent dans l'ordre et un nœud écrit les siens d'un bloc.
+    final m = dernierMedia;
+    if (m == null) return false;
+    final apres = fil.skipWhile((x) => x.seq != m.seq).skip(1);
+    // Rien d'autre qu'un texte de commentaire n'a suivi : on est encore dessus.
+    return apres.every((x) => x.sender == MessageSender.contact);
+  }
+
+  /// Texte de l'écran de fin : le message `system` du nœud `chapter_end`.
+  /// Il ne va jamais dans le fil.
+  String? get texteFinDeChapitre {
+    if (node?.kind != NodeKind.chapterEnd) return null;
+    for (final m in fil.reversed) {
+      if (m.contentType == ContentType.system) return m.body;
+    }
+    return null;
+  }
+
   /// Le sous-titre de l'en-tête. Priorité au typing : c'est ce que fait une
   /// vraie messagerie.
   String get sousTitre {
@@ -73,6 +123,7 @@ class ConversationState {
     bool? enDeroule,
     ComposerMode? mode,
     Map<int, int>? heures,
+    int? nonLus,
     IntroSequence? intro,
     bool viderIntro = false,
     String? erreur,
@@ -88,6 +139,7 @@ class ConversationState {
         enDeroule: enDeroule ?? this.enDeroule,
         mode: mode ?? this.mode,
         heures: heures ?? this.heures,
+        nonLus: nonLus ?? this.nonLus,
         intro: viderIntro ? null : (intro ?? this.intro),
         erreur: viderErreur ? null : (erreur ?? this.erreur),
       );
@@ -108,6 +160,8 @@ class ConversationController extends AsyncNotifier<ConversationState> {
 
   /// Messages du nœud d'entrée, mis de côté le temps de l'intro.
   List<ClientMessage> _aJouerApresIntro = const [];
+
+  int _nonLus = 0;
   Timer? _fallbackContinuation;
 
   @override
@@ -118,6 +172,9 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     _moteur = PlaybackEngine(
       onMessage: (m) {
         _fil.add(m);
+        if (m.sender == MessageSender.contact && m.contentType != ContentType.system) {
+          _nonLus++;
+        }
         unawaited(_store.poserCurseur(m.seq));
       },
       onChangement: _publier,
@@ -209,6 +266,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         enDeroule: _moteur.enCours,
         mode: _mode(),
         heures: FictionClock.horaires(_fil),
+        nonLus: _nonLus,
         intro: _intro,
       );
 
@@ -243,6 +301,24 @@ class ConversationController extends AsyncNotifier<ConversationState> {
 
   /// Toute action du joueur repousse l'affordance de continuation.
   void signalerActivite() => _armerFallbackContinuation();
+
+  /// Le joueur ouvre la conversation : tout est lu.
+  void marquerLu() {
+    if (_nonLus == 0) return;
+    _nonLus = 0;
+    _publier();
+  }
+
+  /// Déclenche l'interaction cachée du nœud courant, s'il en reste une.
+  ///
+  /// Appelée par un **geste** — zoom sur une photo, réécoute d'un vocal — ou
+  /// par le « + ». Silencieuse s'il n'y a rien : le joueur qui zoome sur une
+  /// vieille photo ne doit rien remarquer.
+  Future<void> declencherInteraction([String? choiceId]) async {
+    final id = choiceId ?? _node?.interactions.firstOrNull?.id;
+    if (id == null) return;
+    await choisir(id);
+  }
 
   // --- Actions --------------------------------------------------------------
 

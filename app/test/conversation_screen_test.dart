@@ -6,8 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:numero_inconnu/providers/session_providers.dart';
+import 'package:numero_inconnu/screens/chapter_end_screen.dart';
 import 'package:numero_inconnu/screens/conversation_screen.dart';
 import 'package:numero_inconnu/screens/intro_screen.dart';
+import 'package:numero_inconnu/screens/root_screen.dart';
 import 'package:numero_inconnu/services/engine_api.dart';
 import 'package:numero_inconnu/theme/app_theme.dart';
 import 'package:numero_inconnu/widgets/composer.dart';
@@ -63,6 +65,7 @@ Future<void> monter(
   required Map<String, dynamic> getState,
   Map<String, dynamic>? advance,
   Map<String, Object> prefs = const {},
+  bool racine = false,
 }) async {
   SharedPreferences.setMockInitialValues(prefs);
 
@@ -81,7 +84,10 @@ Future<void> monter(
       authPreteProvider.overrideWith((ref) async => 'joueur-test'),
       engineApiProvider.overrideWithValue(api),
     ],
-    child: MaterialApp(theme: AppTheme.sombre, home: const ConversationScreen()),
+    child: MaterialApp(
+      theme: AppTheme.sombre,
+      home: racine ? const RootScreen() : const ConversationScreen(),
+    ),
   ));
   await tester.pumpAndSettle();
 }
@@ -111,7 +117,7 @@ void main() {
         };
 
     testWidgets('elle précède la conversation et date l\'histoire', (tester) async {
-      await monter(tester, getState: etatAvecIntro());
+      await monter(tester, getState: etatAvecIntro(), racine: true);
       expect(find.byType(IntroScreen), findsOneWidget);
       expect(find.text('Jeudi 13 août 2026.'), findsOneWidget);
       // Le fil n'existe pas encore.
@@ -120,14 +126,14 @@ void main() {
     });
 
     testWidgets('elle ne rejoue pas si elle a déjà été vue', (tester) async {
-      await monter(tester, getState: etatAvecIntro(),
+      await monter(tester, getState: etatAvecIntro(), racine: true,
           prefs: {'flutter.intro_vue:joueur-test': true});
       expect(find.byType(IntroScreen), findsNothing);
       await tester.pumpAndSettle(const Duration(seconds: 30));
     });
 
     testWidgets('4 s de silence total avant que quoi que ce soit n\'arrive', (tester) async {
-      await monter(tester, getState: etatAvecIntro());
+      await monter(tester, getState: etatAvecIntro(), racine: true);
 
       // On saute l'intro (skip debug) pour se placer à l'instant du basculement.
       await tester.tap(find.byType(IntroScreen));
@@ -335,6 +341,77 @@ void main() {
     await tester.tap(find.byType(PhotoBubble));
     await tester.pumpAndSettle();
     expect(find.byType(PhotoViewer), findsOneWidget, reason: 'le zoom est une mécanique de jeu');
+  });
+
+  group('Interactions cachées', () {
+    testWidgets('sur un nœud à média, aucun « + » : le geste est sur la photo',
+        (tester) async {
+      await monter(tester, getState: {
+        'story': {'slug': 's', 'title': 'T'},
+        'conversations': [conversation()],
+        'history': [
+          message(seq: 1, body: null, type: 'image', media: 'placeholder://photo-N16-plaque'),
+        ],
+        'node': noeud(code: 'N16', attenteInteraction: true, peutContinuer: true, choix: [
+          {'id': 'i', 'position': 0, 'label': 'Zoomer sur l\'autocollant', 'kind': 'interaction'},
+        ]),
+        'chapter_end': null,
+        'ai_moment_pending': false,
+      });
+      expect(find.byIcon(Icons.add), findsNothing);
+      expect(find.text('Zoomer sur l\'autocollant'), findsNothing);
+    });
+
+    testWidgets('sans média, les répliques passent par le « + » — jamais en clair',
+        (tester) async {
+      await monter(tester, getState: {
+        'story': {'slug': 's', 'title': 'T'},
+        'conversations': [conversation()],
+        'history': [message(seq: 1, body: 'T\'as rien demandé, je sais.')],
+        'node': noeud(code: 'N8', choix: [
+          {'id': 'a', 'position': 0, 'label': 'Ok. Je garde mon téléphone', 'kind': 'reply'},
+          {'id': 'i1', 'position': 3, 'label': 'C\'est qui, ce type ?', 'kind': 'interaction'},
+          {'id': 'i2', 'position': 4, 'label': 'Pourquoi cet entrepôt ?', 'kind': 'interaction'},
+        ]),
+        'chapter_end': null,
+        'ai_moment_pending': false,
+      });
+
+      expect(find.byIcon(Icons.add), findsOneWidget);
+      // Les deux pistes d'enquête ne sont pas affichées tant qu'on n'ouvre pas.
+      expect(find.text('C\'est qui, ce type ?'), findsNothing);
+      expect(find.text('Pourquoi cet entrepôt ?'), findsNothing);
+
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      expect(find.text('C\'est qui, ce type ?'), findsOneWidget);
+      expect(find.text('Pourquoi cet entrepôt ?'), findsOneWidget);
+    });
+  });
+
+  testWidgets('la fin de chapitre sort du fil et prend tout l\'écran', (tester) async {
+    await monter(tester, getState: {
+      'story': {'slug': 's', 'title': 'T'},
+      'conversations': [conversation(nom: 'Léna', revele: true)],
+      'history': [
+        message(seq: 1, body: 'Et le mien a disparu de mon appart il y a 3 semaines.'),
+        message(seq: 2, body: 'Quelqu\'un est entré chez Léna.', type: 'system'),
+      ],
+      'node': noeud(code: 'N22', kind: 'chapter_end'),
+      'chapter_end': {
+        'chapter_title': 'Le mauvais numéro',
+        'next_chapter_title': 'Chloé',
+        'unlocked_at': DateTime.now().add(const Duration(hours: 8)).toIso8601String(),
+        'next_chapter_pending': true,
+      },
+      'ai_moment_pending': false,
+    });
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ChapterEndScreen), findsOneWidget);
+    expect(find.text('Quelqu\'un est entré chez Léna.'), findsOneWidget);
+    expect(find.text('CHLOÉ'), findsOneWidget);
+    expect(find.text('à venir'), findsOneWidget);
   });
 
   testWidgets('la bascule d\'identité change le nom de l\'en-tête', (tester) async {

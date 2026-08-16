@@ -272,14 +272,31 @@ Ce n'est pas une question de mise en page. Au **N17**, le label de l'interaction
 donnerait au joueur l'incohérence audio qu'il est censé repérer seul, et détruirait la mécanique
 de `lucidite`. Une interaction ne devient **jamais** un bouton.
 
-### Comment elles se déclenchent
+### Comment elles se déclenchent — une règle, pas une liste
 
-| Interaction | Geste |
-|---|---|
-| Zoom récépissé (N10), autocollant (N16), porte-clés (N21) | Tap sur la photo → visionneuse. Le zoom lui-même est la mécanique |
-| Réécoute du vocal (N17) | Rejouer l'audio. La réplique n'apparaît **qu'après** la réécoute |
-| Relance (N8) | Un « + » discret près de la zone de choix, ouvrant les deux questions |
-| Insistance (N13) | Nœud en pause : le geste est proposé par le contenu lui-même |
+Le client ne connaît pas le graphe : il ne peut pas dire « au N16, c'est un zoom ». La règle se
+déduit du **contrat**, et couvre les six sans exception :
+
+> **Si le nœud courant a apporté un média, l'interaction se déclenche par le geste sur ce média**
+> (zoomer une photo, réécouter un vocal). **Sinon, c'est une chose que le joueur dit**, et elle
+> passe par le « + » discret.
+
+| Nœud | Média apporté | Déclencheur |
+|---|---|---|
+| N10, N16, N21 | photo | Tap → visionneuse, puis **le zoom lui-même** |
+| N17 | vocal | **Réécoute** — la réplique n'existe qu'après |
+| N8 | aucun | « + » → les deux questions, mutuellement exclusives |
+| N13 | aucun | « + » → l'insistance |
+
+Seul le **dernier média du fil** est actif : zoomer une vieille photo ne déclenche rien, et ne
+signale rien non plus.
+
+### Le « + » discret
+
+Une icône `+` à gauche, couleur tertiaire, à l'emplacement où une vraie messagerie met son bouton
+de pièce jointe — c'est exactement ce qu'on veut qu'il ait l'air d'être. **Il n'annonce jamais son
+contenu** : les répliques ne s'ouvrent qu'au tap, dans une feuille. Au N8 il porterait sinon les
+deux pistes d'enquête en clair ; au N17, l'indice lui-même.
 
 ### Règles communes
 
@@ -351,9 +368,11 @@ Prévoir la place d'un futur bouton premium (déblocage immédiat) — non fonct
 | Horloge de fiction | `services/fiction_clock.dart` | ✅ |
 | Mémoire locale (curseur, file en attente, décoratifs) | `services/local_store.dart` | ✅ |
 | Écran de conversation | `screens/conversation_screen.dart` | ✅ |
-| Interactions cachées (branchement des gestes) | — | Phase 3 |
-| Liste des conversations | — | Phase 3 |
-| Écran de fin de chapitre | — | Phase 3 |
+| Séquence d'intronisation | `screens/intro_screen.dart` | ✅ |
+| Aiguillage d'entrée | `screens/root_screen.dart` | ✅ |
+| Interactions cachées (geste et « + ») | `widgets/composer.dart`, `conversation_screen.dart` | ✅ |
+| Liste des conversations | `screens/conversation_list_screen.dart` | ✅ |
+| Écran de fin de chapitre | `screens/chapter_end_screen.dart` | ✅ |
 
 Le lecteur audio simule la lecture : les fichiers n'existent pas encore. Son signal de **réécoute**
 est en revanche réel — c'est lui qui portera l'interaction cachée du N17 en Phase 3.

@@ -123,6 +123,65 @@ class _ComposerState extends State<Composer> {
   }
 }
 
+/// Le « + » discret.
+///
+/// Il ne dit jamais ce qu'il contient : son libellé est un simple « + », et les
+/// répliques ne s'ouvrent qu'au tap. Au N8 elles porteraient sinon les deux
+/// pistes d'enquête ; au N17, l'indice lui-même.
+///
+/// Il ne se distingue pas d'un bouton d'ajout de pièce jointe, ce qu'une vraie
+/// messagerie a toujours — c'est exactement ce qu'on veut qu'il ait l'air d'être.
+class DiscreetPlus extends StatelessWidget {
+  const DiscreetPlus({super.key, required this.choix, required this.onChoisir});
+
+  final List<({String id, String label})> choix;
+  final void Function(String id) onChoisir;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        color: AppColors.surface,
+        padding: const EdgeInsets.only(left: AppSpacing.l, top: AppSpacing.s),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: GestureDetector(
+            onTap: () => _ouvrir(context),
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.s),
+              child: Icon(Icons.add, size: 20, color: AppColors.texteTertiaire),
+            ),
+          ),
+        ),
+      );
+
+  void _ouvrir(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.l)),
+      ),
+      builder: (contexte) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final c in choix)
+              ListTile(
+                title: Text(c.label,
+                    style: AppText.libelleChoix.copyWith(color: AppColors.textePrincipal)),
+                onTap: () {
+                  Navigator.of(contexte).pop();
+                  onChoisir(c.id);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Zone de choix. Masquée pendant un déroulé.
 class ChoiceArea extends StatelessWidget {
   const ChoiceArea({
