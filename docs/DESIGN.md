@@ -398,6 +398,43 @@ droits sur le téléphone du joueur. Voir `services/audio_session_config.dart`.
 indice — le fond sonore urbain de la bible §7 n° 3. Un vocal muet rendrait cette incohérence
 inatteignable, donc supprimerait une des six interactions cachées.
 
+## Sons de message
+
+Deux effets très courts (100-200 ms) : réception d'un message de Léna, envoi d'une réponse du
+joueur. Discrets, type messagerie, **jamais ludiques** — un son qui « récompense » casserait
+l'illusion aussi sûrement qu'un score à l'écran.
+
+Fournis par histoire (`stories.sound_received_url`, `sound_sent_url`), signés comme les autres
+médias, préchargés à l'ouverture. Absents, l'app est simplement silencieuse.
+
+**Catégorie `ambient`**, comme la musique d'intronisation : respecte le mode silencieux et
+n'interrompt pas ce que l'utilisateur écoute. Un bip de messagerie n'a aucune raison de passer
+outre — contrairement à la note vocale, que le joueur tape explicitement.
+
+### Ce qui sonne, et ce qui ne sonne jamais
+
+La décision tient dans une fonction pure, `SoundEffects.pour()`, testée sans audio : c'est la seule
+pièce capable de détruire un effet du chapitre, elle ne doit pas dépendre d'un lecteur.
+
+| Cas | Son |
+|---|---|
+| Message de Léna (texte, photo, vocal) | réception |
+| Réponse du joueur | envoi |
+| **Séparateur horaire** | ❌ ce n'est pas un message |
+| **Changement de présence** (`system`) | ❌ |
+| **Message décoratif** | ❌ il ne part pas — le faire sonner mentirait au joueur |
+| **Typing fantôme** | ❌ **par construction** |
+| **Historique restitué** à la réouverture | ❌ **par construction** |
+
+Les deux derniers ne sont pas des conditions mais des propriétés du chemin de code : le son est
+déclenché par la **livraison** d'un message. Le typing fantôme n'en délivre aucun — c'est tout
+l'enjeu, un bip laisserait croire qu'un message est arrivé et l'extinction sans message perdrait
+son sens. Et l'historique est versé directement dans le fil sans passer par le moteur, donc pas de
+rafale de bips au retour dans l'app.
+
+Le **silence du N19** en découle : « Léna est hors ligne » ne sonne pas, et les 90 secondes qui
+suivent ne délivrent rien.
+
 ## Pause automatique — sans bouton
 
 **Il n'y a pas de bouton pause, et il ne doit pas y en avoir** : ce serait un objet de jeu, et rien

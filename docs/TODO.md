@@ -220,6 +220,18 @@ divergence entre la base et sa source de vérité. **58 = 58 actuellement.**
       mais `push_text = null`. Sans texte, les notifications locales du prompt 4 devront se replier
       sur un libellé générique — ce qui gâche l'effet, surtout au N19 (« il sort »).
 
+## 🔊 Sons à produire (Vivien) — 2 fichiers
+
+Déposer dans `media/`, puis `scripts/upload-media.sh`. Le script les repère par **mot-clé dans le
+nom** : `reception` (ou `recu`) et `envoi`. Tant qu'ils manquent, l'app est silencieuse.
+
+- [ ] **Son de réception** — 100-200 ms, discret, type messagerie. Il se déclenchera aussi sur les
+      photos et le vocal.
+- [ ] **Son d'envoi** — idem, plus sec.
+
+⚠️ **Jamais ludiques.** Pas de carillon, pas de note montante « réussite ». On n'est pas dans un
+jeu, et un son qui récompense casserait l'illusion aussi sûrement qu'un score à l'écran.
+
 ## 🎬 Médias à produire (Vivien) — 4 fichiers
 
 **Toute la chaîne technique est prête et testée.** Il ne manque que les fichiers :

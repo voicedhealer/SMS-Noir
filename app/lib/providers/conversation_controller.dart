@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config/env.dart';
 import '../models/client_message.dart';
 import '../models/game_state.dart';
 import '../services/engine_api.dart';
@@ -11,6 +12,7 @@ import '../services/engine_exception.dart';
 import '../services/fiction_clock.dart';
 import '../services/local_store.dart';
 import '../services/playback.dart';
+import '../services/sound_effects.dart';
 import '../widgets/composer.dart';
 import 'session_providers.dart';
 
@@ -150,6 +152,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   late final EngineApi _api = ref.read(engineApiProvider);
   late LocalStore _store;
   late PlaybackEngine _moteur;
+  final _sons = SoundEffects();
 
   final List<ClientMessage> _fil = [];
   StoryNode? _node;
@@ -179,6 +182,11 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     _moteur = PlaybackEngine(
       onMessage: (m) {
         _fil.add(m);
+        // Seule la LIVRAISON sonne. L'historique restitué à la réouverture
+        // n'passe pas par ici — pas de rafale de bips au retour dans l'app.
+        // Et le typing fantôme ne délivre aucun message : il reste muet, ce qui
+        // est tout l'enjeu (un bip ferait croire à un message reçu).
+        _sons.jouer(SoundEffects.pour(m));
         if (m.sender == MessageSender.contact && m.contentType != ContentType.system) {
           _nonLus++;
         }
@@ -201,6 +209,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
 
     ref.onDispose(() {
       cycleDeVie.dispose();
+      _sons.dispose();
       // Riverpod interdit de toucher à `state` pendant un cycle de vie : on
       // coupe la publication AVANT d'interrompre le moteur.
       _termine = true;
@@ -211,9 +220,16 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     });
 
     final etat = await _api.getState();
+    unawaited(_sons.precharger(
+      reception: _absolue(etat.sounds.received),
+      envoi: _absolue(etat.sounds.sent),
+    ));
     _appliquerEtat(etat);
     return _etat();
   }
+
+  String? _absolue(String? chemin) =>
+      chemin == null ? null : '${Env.supabaseUrl}$chemin';
 
   void _appliquerEtat(GameState etat) {
     _node = etat.node;

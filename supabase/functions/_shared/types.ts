@@ -133,8 +133,16 @@ export interface IntroSequence {
   music_url: string | null
 }
 
+/** Effets sonores de l'histoire. Chemins signés, ou null si silencieux. */
+export interface SoundPack {
+  received: string | null
+  sent: string | null
+}
+
 export interface GetStateResponse {
   story: { slug: string; title: string }
+  /** Sons de message. Le client décide quand les jouer, jamais le serveur. */
+  sounds: SoundPack
   /** Panneaux d'intronisation. `panels` vide = pas d'intro pour cette histoire. */
   intro: IntroSequence
   /**

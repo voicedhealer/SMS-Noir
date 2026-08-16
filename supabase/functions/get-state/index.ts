@@ -17,7 +17,7 @@ import {
   etatFinDeChapitre,
   etatNoeud,
   historique,
-  signerMusiqueIntro,
+  signerObjet,
   utilisateurCourant,
 } from '../_shared/moteur.ts'
 import type { GetStateResponse } from '../_shared/types.ts'
@@ -42,7 +42,11 @@ Deno.serve(servir(async (req) => {
     story: { slug: histoire.slug, title: histoire.title },
     intro: {
       panels: (histoire.intro_panels ?? []) as { lines: string[] }[],
-      music_url: await signerMusiqueIntro(db, histoire.intro_music_url),
+      music_url: await signerObjet(db, histoire.intro_music_url),
+    },
+    sounds: {
+      received: await signerObjet(db, histoire.sound_received_url),
+      sent: await signerObjet(db, histoire.sound_sent_url),
     },
     new_messages: messagesInitiaux,
     conversations: await conversations(db, progression.id, histoire.id, progression.variables),

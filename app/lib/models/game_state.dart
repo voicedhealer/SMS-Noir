@@ -173,12 +173,25 @@ class IntroSequence {
   }
 }
 
+/// Effets sonores de l'histoire. Chemins signés relatifs, ou null.
+class SoundPack {
+  const SoundPack({this.received, this.sent});
+  final String? received;
+  final String? sent;
+
+  factory SoundPack.fromJson(Map<String, dynamic>? json) => SoundPack(
+        received: json?['received'] as String?,
+        sent: json?['sent'] as String?,
+      );
+}
+
 /// Réponse de `get-state`.
 class GameState {
   const GameState({
     required this.storySlug,
     required this.storyTitle,
     required this.intro,
+    required this.sounds,
     required this.newMessages,
     required this.conversations,
     required this.history,
@@ -190,6 +203,7 @@ class GameState {
   final String storySlug;
   final String storyTitle;
   final IntroSequence intro;
+  final SoundPack sounds;
 
   /// Messages écrits par CET appel — le nœud d'entrée, à la première visite.
   /// Ils portent leurs délais et doivent être **joués**, jamais versés dans
@@ -210,6 +224,7 @@ class GameState {
       storySlug: story['slug'] as String? ?? '',
       storyTitle: story['title'] as String? ?? '',
       intro: IntroSequence.fromJson(json['intro'] as Map<String, dynamic>?),
+      sounds: SoundPack.fromJson(json['sounds'] as Map<String, dynamic>?),
       newMessages: (json['new_messages'] as List<dynamic>? ?? const [])
           .map((m) => ClientMessage.fromJson(m as Map<String, dynamic>))
           .toList(),

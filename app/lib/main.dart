@@ -4,12 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config/env.dart';
+import 'services/audio_session_config.dart';
 import 'screens/root_screen.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations(AppTheme.orientations);
+
+  // Ambiance par défaut : sons de message et musique d'intro respectent le
+  // mode silencieux. Seule la note vocale, tapée explicitement, bascule en
+  // `playback` — voir AudioSessionConfig.
+  await AudioSessionConfig.ambiance();
 
   await Supabase.initialize(
     url: Env.supabaseUrl,
