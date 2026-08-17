@@ -24,6 +24,14 @@ enum ContentType {
   ///  • présence      -> `body` est le libellé du sous-titre d'en-tête
   ///  • chapter_end   -> texte de l'écran de fin, sorti du fil
   system,
+
+  /// Écran noir narratif. `body` porte les lignes et leurs décalages en JSON.
+  ///
+  /// Jamais une bulle : le client quitte le fil et bascule en plein écran tant
+  /// que le message suivant n'est pas arrivé. La DURÉE n'est pas ici — c'est le
+  /// délai du message suivant qui la donne, donc les deux ne peuvent pas se
+  /// désynchroniser. Voir docs/LOGIQUE.md § Écran noir narratif.
+  narration,
 }
 
 class ClientMessage {
@@ -116,6 +124,7 @@ class ClientMessage {
         'separator' => ContentType.separator,
         'system' => ContentType.system,
         'contact_card' => ContentType.contactCard,
+        'narration' => ContentType.narration,
         // Un type inconnu (chapitre futur) se dégrade en texte plutôt que de
         // faire tomber tout le fil.
         _ => ContentType.text,

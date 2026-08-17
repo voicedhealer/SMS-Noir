@@ -183,6 +183,27 @@ def parser():
                 {'label': label, 'cible': cible, 'effets': effets(eff)})
             continue
 
+    # L'écran noir du N19 : un message `narration`, posé après « merde ».
+    #
+    # Les lignes et leurs décalages viennent du document ; la DURÉE de l'écran,
+    # elle, est le délai du message suivant (le séparateur « 00h34 », 60 s).
+    # L'écran noir dure donc exactement l'attente, par construction.
+    bloc = re.search(r'### 🖤 ÉCRAN NOIR NARRATIF.*?(?=\n\*\(Coupure)',
+                     DOC.read_text(), re.S)
+    if bloc:
+        lignes_ecran, decalage = [], 0
+        for l in bloc.group(0).splitlines():
+            m = re.match(r'^>\s*\*\((\d+)s\)\*\s*$', l)
+            if m:
+                decalage += int(m.group(1))
+                continue
+            m = re.match(r'^>\s*\*(.+?)\*\s*$', l)
+            if m:
+                lignes_ecran.append({'texte': m.group(1).strip(), 'a': decalage})
+        if lignes_ecran:
+            noeuds['N19']['messages'].append(
+                ('narration', json.dumps(lignes_ecran, ensure_ascii=False)))
+
     # Le cliffhanger : porté par un message `system` pour rester du CONTENU.
     # Le client le sort du fil et l'affiche en plein écran.
     noeuds['N22']['messages'].append(
@@ -206,6 +227,8 @@ def sql_messages(noeuds):
                 d, ty, ct, body = SEPARATEUR.get(texte, 10), 0, 'separator', texte
             elif kind == 'carte':
                 d, ty, ct, body = 2, 0, 'contact_card', None
+            elif kind == 'narration':
+                d, ty, ct, body = 0, 0, 'narration', texte
             elif kind == 'system':
                 d, ty, ct, body = 8, 0, 'system', texte
             elif kind == 'media':

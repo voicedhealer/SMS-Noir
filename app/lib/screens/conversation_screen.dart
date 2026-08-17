@@ -12,6 +12,7 @@ import '../widgets/composer.dart';
 import '../widgets/message_widgets.dart';
 import 'chapter_end_screen.dart';
 import 'consent_screen.dart';
+import 'narration_screen.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
   const ConversationScreen({super.key});
@@ -99,6 +100,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           // légale, elle ne se glisse pas entre deux bulles.
           if (etat.consentementRequis) {
             return ConsentScreen(onReponse: ctrl.repondreConsentement);
+          }
+          // L'écran noir prend toute la place tant que Léna n'est pas revenue.
+          // Il sort le joueur de la messagerie — c'est le seul moment du
+          // chapitre où il n'a rien à faire, et c'est le sujet.
+          final narration = etat.narrationEnCours;
+          if (narration.isNotEmpty) {
+            return NarrationScreen(lignes: narration);
           }
           final vu = etat.vu;
           return Column(
@@ -279,6 +287,10 @@ class _Element extends ConsumerWidget {
 
     return switch (message.contentType) {
       ContentType.separator => SeparatorPill(libelle: message.body ?? ''),
+      // Jamais dans le fil : la narration est affichée en plein écran, plus
+      // haut. Elle ne laisse aucune trace une fois Léna revenue — c'est un
+      // moment, pas un message qu'on relit en remontant.
+      ContentType.narration => const SizedBox.shrink(),
       // Un `system` n'est jamais une bulle : il a déjà changé la présence.
       ContentType.system => const SizedBox.shrink(),
       ContentType.image => PhotoBubble(

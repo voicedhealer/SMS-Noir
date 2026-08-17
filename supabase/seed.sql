@@ -296,6 +296,7 @@ from (values
 ('N19', 1, 'text', $$Il est en train de mettre un sac dans son coffre, il a l'air lourd, j'espère que ce n'est pas...$$, null, 5, 3, true, null),
 ('N19', 2, 'text', $$Il regarde vers moi, j'ai croisé son regard, je suis en danger ?$$, null, 5, 3, false, null),
 ('N19', 3, 'text', $$merde$$, null, 5, 3, false, null),
+('N19', 4, 'narration', $$[{"texte": "Léna ne répond plus...", "a": 0}, {"texte": "Il fait nuit, elle est seule, et vous êtes à des kilomètres. L'a-t-il enlevée ? Est-elle rentrée ?", "a": 20}, {"texte": "Vous ne pouvez rien faire d'autre qu'attendre, ou prévenir la", "a": 40}]$$, null, 0, 0, false, null),
 
 -- N20
 ('N20', 0, 'separator', $$00h34$$, null, 60, 0, false, null),

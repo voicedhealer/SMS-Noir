@@ -295,6 +295,39 @@ dans la variable publique. Sans ça, la part de posture — recalculée à chaqu
 micro-choix — se cumulerait à elle-même et la variable dériverait à chaque tour.
 `deriverAxes()` est **idempotente** : elle ne lit jamais la valeur publique.
 
+## L'écran noir narratif (`content_type = 'narration'`)
+
+Pendant les 60 s où Léna ne répond plus (N19), l'app quitte la conversation et
+bascule en plein écran. C'est le seul moment du chapitre où le joueur cesse
+d'être dans une messagerie.
+
+**La narration est une chose qui ARRIVE DANS LE FIL, pas une propriété du nœud.**
+C'est pour ça qu'elle est un message et pas une colonne sur `nodes` : elle a une
+position, elle est délivrée par le déroulé comme le reste, et un chapitre pourra
+en poser plusieurs sans qu'on touche au schéma.
+
+Son `body` porte les lignes et leurs décalages :
+
+```json
+[{"texte": "Léna ne répond plus...", "a": 0}, {"texte": "…", "a": 20}]
+```
+
+**La durée n'est écrite nulle part.** L'écran tient tant que rien n'est arrivé
+derrière : c'est le message SUIVANT qui le referme, et son `delay_seconds` qui
+en donne la durée. Les deux ne peuvent donc pas se désynchroniser — il n'y a
+rien à tenir en accord.
+
+Trois règles de mise en scène :
+
+- **Aucune sortie, aucun bouton, aucun champ de saisie.** Le joueur ne peut rien
+  faire, et c'est le sujet. Un champ actif sur un écran noir sans fil visible ne
+  ressemblerait à rien de réel et laisserait croire qu'une action est possible.
+- **La dernière ligne est inachevée** — « ou prévenir la ». Elle est coupée par
+  le retour de Léna. Ne jamais la compléter, ne jamais la faire disparaître
+  proprement : la coupure est l'effet.
+- **La narration ne laisse aucune trace dans le fil.** En remontant la
+  conversation, on ne la relit pas : c'était un moment, pas un message.
+
 ## Les pauses en cours de nœud (`after_position`)
 
 Un choix peut s'afficher **au milieu** d'un nœud, après un message donné. Le

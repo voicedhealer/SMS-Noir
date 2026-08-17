@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../screens/narration_screen.dart';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -67,6 +68,18 @@ class ConversationState {
   final String? erreur;
 
   Conversation? get contact => conversations.isEmpty ? null : conversations.first;
+
+  /// Lignes de l'écran noir, si le dernier message délivré est une narration.
+  ///
+  /// La narration tient tant que rien n'est arrivé derrière : c'est le message
+  /// SUIVANT qui la referme, et son délai qui en donne la durée. Rien à
+  /// synchroniser, donc rien à désynchroniser.
+  List<({String texte, int a})> get narrationEnCours {
+    if (fil.isEmpty) return const [];
+    final dernier = fil.last;
+    if (dernier.contentType != ContentType.narration) return const [];
+    return NarrationScreen.decoder(dernier.body);
+  }
 
   /// Le fil réunit-il plusieurs interlocuteurs ?
   ///

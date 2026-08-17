@@ -115,4 +115,8 @@ class AppMotion {
   /// La bascule « Numéro inconnu » → « Léna » est un micro-événement narratif :
   /// elle est la seule animation à laquelle on accorde du temps.
   static const basculeIdentite = Duration(milliseconds: 900);
+
+  /// Apparition d'une ligne sur l'écran noir narratif. Lente : le texte doit
+  /// se poser, pas surgir — on est sorti de la messagerie.
+  static const fonduNarration = Duration(milliseconds: 1200);
 }
