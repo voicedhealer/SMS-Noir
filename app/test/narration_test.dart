@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:numero_inconnu/screens/narration_screen.dart';
 import 'package:numero_inconnu/theme/app_theme.dart';
@@ -30,13 +31,14 @@ void main() {
     // Animations coupées : la frappe est instantanée, donc ce test mesure les
     // DÉCALAGES entre lignes sans dépendre de la vitesse de frappe. Il exerce
     // au passage le chemin d'accessibilité.
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(ProviderScope(
+      child: MaterialApp(
       theme: AppTheme.sombre,
       home: MediaQuery(
         data: const MediaQueryData(disableAnimations: true),
         child: NarrationScreen(lignes: NarrationScreen.decoder(corps)),
       ),
-    ));
+    )));
 
     await tester.pump();
     await tester.pump();
@@ -55,13 +57,14 @@ void main() {
   });
 
   testWidgets('aucune sortie, aucun champ de saisie', (tester) async {
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(ProviderScope(
+      child: MaterialApp(
       theme: AppTheme.sombre,
       home: MediaQuery(
         data: const MediaQueryData(disableAnimations: true),
         child: NarrationScreen(lignes: NarrationScreen.decoder(corps)),
       ),
-    ));
+    )));
     await tester.pump();
 
     // L'impuissance est la scène : un champ actif sur un écran noir sans fil

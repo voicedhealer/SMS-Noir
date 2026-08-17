@@ -7,6 +7,7 @@ import '../providers/conversation_controller.dart';
 import '../services/fiction_clock.dart';
 import '../theme/tokens.dart';
 import 'conversation_screen.dart';
+import 'settings_screen.dart';
 
 /// Liste des conversations.
 ///
@@ -24,6 +25,15 @@ class ConversationListScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Messages'),
         actions: [
+          // Là où une vraie messagerie met ses paramètres. Jamais dans le fil
+          // avec Léna : là-bas, rien ne doit rappeler que c'est une app.
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, color: AppColors.texteTertiaire),
+            tooltip: 'Réglages',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => const SettingsScreen(),
+            )),
+          ),
           // Outil de développement : rejoue l'histoire depuis l'intronisation.
           // Absent en release — l'arbre est élagué à la compilation.
           if (Env.outilsDebug)

@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../providers/reglages.dart';
 
 /// Texte qui s'écrit caractère par caractère.
 ///
@@ -17,7 +20,7 @@ import 'package:flutter/material.dart';
 ///  • un **tap affiche la ligne en cours en entier**, sans accélérer la suite
 ///    ni sauter les lignes suivantes. Le joueur reprend la main sur SA lecture,
 ///    pas sur le rythme de la scène.
-class Typewriter extends StatefulWidget {
+class Typewriter extends ConsumerStatefulWidget {
   const Typewriter({
     super.key,
     required this.texte,
@@ -40,10 +43,10 @@ class Typewriter extends StatefulWidget {
   final VoidCallback? onFini;
 
   @override
-  State<Typewriter> createState() => _TypewriterState();
+  ConsumerState<Typewriter> createState() => _TypewriterState();
 }
 
-class _TypewriterState extends State<Typewriter> {
+class _TypewriterState extends ConsumerState<Typewriter> {
   Timer? _timer;
   var _ecrits = 0;
   var _fini = false;
@@ -54,7 +57,11 @@ class _TypewriterState extends State<Typewriter> {
     // Le réglage système n'est lisible qu'une fois le contexte monté.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
+      // Le réglage de l'app double celui du système : quelqu'un peut en avoir
+      // besoin ICI sans l'avoir activé partout.
+      final ralenti = (MediaQuery.maybeDisableAnimationsOf(context) ?? false) ||
+          ref.read(reglagesProvider).rythmeLent;
+      if (ralenti) {
         _tout();
       } else {
         _suivant();

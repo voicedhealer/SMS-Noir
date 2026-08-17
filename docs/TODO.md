@@ -25,9 +25,14 @@ Aucun détecteur mécanique n'attrapera ça. À chaque nouveau moment IA :
 
 ## 🔴 Bloquant avant mise en production
 
-- [ ] **Politique de confidentialité** (`PRIVACY_URL`). L'écran de consentement du moment IA n'affiche
-      aucun lien tant qu'elle est absente. Le RGPD impose de pouvoir consulter le traitement auquel
-      on consent — et Mistral doit y être mentionné comme sous-traitant (données en Europe).
+- [ ] **Deux champs de la politique de confidentialité** : identité du
+      responsable de traitement, et adresse de contact. Marqués « À COMPLÉTER »
+      dans `app/lib/screens/privacy_text.dart`. Je ne les invente pas — un
+      document qui désigne un responsable fictif ne protège personne et
+      tromperait le joueur sur qui détient ses données.
+
+- [x] ~~Politique de confidentialité (`PRIVACY_URL`)~~ — levé : le texte est
+      désormais **embarqué** dans l'app, section Confidentialité des Réglages.
 
 ## 📊 Coût IA — mesurer par PARTIE, pas par échange
 

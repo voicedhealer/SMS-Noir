@@ -1,5 +1,6 @@
 import 'dart:async';
 import '../screens/narration_screen.dart';
+import 'reglages.dart';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -268,7 +269,11 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         // séparateur, pas de système, pas de carte, pas de décoratif. Et rien
         // pendant le silence du N19, sans condition supplémentaire à tenir.
         final effet = SoundEffects.pour(m);
-        if (!_sons.jouer(effet) && effet == EffetSonore.reception) {
+        final reglages = ref.read(reglagesProvider);
+        // Sons coupés dans les Réglages : c'est exactement le même chemin que
+        // le mode silencieux du téléphone, donc la vibration prend le relais.
+        final aSonne = reglages.sons && _sons.jouer(effet);
+        if (!aSonne && reglages.vibrations && effet == EffetSonore.reception) {
           HapticFeedback.lightImpact();
         }
         if (m.sender == MessageSender.contact && m.contentType != ContentType.system) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:numero_inconnu/widgets/typewriter.dart';
 
@@ -6,10 +7,14 @@ const phrase = 'Quelqu\'un est entré chez Léna.';
 
 Future<void> monter(WidgetTester tester,
     {bool sansAnimation = false, VoidCallback? onFini}) async {
-  await tester.pumpWidget(MaterialApp(
-    home: MediaQuery(
-      data: MediaQueryData(disableAnimations: sansAnimation),
-      child: Scaffold(body: Typewriter(texte: phrase, onFini: onFini)),
+  // Le typewriter lit le réglage « ralentir le rythme » de l'app en plus de
+  // celui du système : il lui faut un ProviderScope.
+  await tester.pumpWidget(ProviderScope(
+    child: MaterialApp(
+      home: MediaQuery(
+        data: MediaQueryData(disableAnimations: sansAnimation),
+        child: Scaffold(body: Typewriter(texte: phrase, onFini: onFini)),
+      ),
     ),
   ));
   await tester.pump();
