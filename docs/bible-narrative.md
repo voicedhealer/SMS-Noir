@@ -7,6 +7,8 @@
 > - **§3** — ancrage des dates sur le Jour J (jeudi 13 août 2026).
 > - **§6** — grammaire des trois axes, variable `enquete`, règle « raisonner
 >   n'est jamais puni ». Ajouté avec le chapitre 1 V3.1.
+> - **§2** — règles d'écriture de Léna réécrites, et vouvoiement jusqu'au N20.
+>   Ajouté avec le chapitre 1 V3.2, après test sur appareil.
 
 ## 1. Pitch
 
@@ -16,10 +18,32 @@
 
 | Personnage | Rôle | Voix/ton | Ce qu'il sait / cache |
 |---|---|---|---|
-| **Léna** | Protagoniste, contact principal | Directe, phrases courtes, ponctuation minimale sous stress, humour noir, ne dit JAMAIS « s'il te plaît ». Vouvoie si `refus=true` (jusqu'au ch. 3 inclus) | Cache : un événement du **12 mars** (dispute violente avec Chloé la veille de sa disparition — sa culpabilité), et le fait qu'elle n'a signalé la disparition qu'au bout de 5 mois |
+| **Léna** | Protagoniste, contact principal | Voir les **règles d'écriture** ci-dessous. Vouvoie jusqu'au N20, puis demande à tutoyer — sauf si `refus=true`, où le vouvoiement tient tout le chapitre (et jusqu'au ch. 3 inclus) | Cache : un événement du **12 mars** (dispute violente avec Chloé la veille de sa disparition — sa culpabilité), et le fait qu'elle n'a signalé la disparition qu'au bout de 5 mois |
 | **Chloé** | La disparue, sœur cadette de Léna | N'apparaît qu'en fin cachée : trois mots, ch. 5 | Vivante. Sa « disparition » est une fuite volontaire — mais quelqu'un l'a retrouvée avant Léna |
 | **Karim** | Ami/ex de Léna, contact n°2 | Poli, posé, questions précises — trop précises | Ambigu : protecteur sincère OU informateur de quelqu'un. Sa vraie allégeance est fixée par la branche (voir §6) |
 | **Le suspect** | Homme de l'entrepôt, contact n°3 | Froid, courtois, jamais menaçant frontalement — c'est ça qui glace | Sait tout des échanges joueur/Léna (voir §5). Lié à la société **Sentinel Pro** |
+
+### Règles d'écriture de Léna *(révisé en V3.2 — voir « Modifications » en tête de fichier)*
+
+**Ces règles remplacent les anciennes consignes** — « phrases courtes », « ponctuation
+minimale », « ne dit jamais s'il te plaît ». Testées sur appareil, elles produisaient un
+personnage sec et désagréable : un joueur qui aide et se fait rembarrer décroche.
+
+1. **Elle écrit en phrases liées par des virgules.** Le point ne sert qu'en fin de phrase,
+   ou pour une phrase courte qui doit tomber sec. Jamais de fragments empilés.
+2. **La vulnérabilité passe avant le mordant.** Elle a peut-être perdu sa sœur, elle a peur,
+   elle est seule. L'humour et la sécheresse arrivent en réflexe de défense, jamais à la
+   place de l'émotion.
+3. **Elle remercie, elle s'excuse, elle reconnaît ce que le joueur lui apporte.**
+4. **Elle vouvoie jusqu'au N20**, puis demande à tutoyer après la peur partagée. Si
+   `refus = true`, le vouvoiement tient — elle n'a pas gagné ce droit.
+5. **Une seule exception aux fragments : le N19**, quand elle tape en tremblant. Et même
+   là, elle lie ses phrases.
+6. **Politesse et détresse cohabitent.** Elle garde ses réflexes de politesse, et les
+   enfreint quand le besoin de réconfort prend le dessus.
+
+Ces règles valent aussi pour le **prompt système du moment IA**, qui les contredisait
+mot pour mot.
 
 ## 3. Chronologie interne (ne jamais contredire)
 
