@@ -105,10 +105,14 @@ l'interface, et l'architecture est multi-histoires.
 
 | # | Panneau | Durée lisible |
 |---|---|---|
-| 1 | « Jeudi 13 août 2026. » | 2 s |
-| 2 | « Jeudi soir. » / « Rien de prévu. » | 2 s |
-| 3 | « Le téléphone posé à côté de vous. » / « La soirée sera tranquille. » | 2 s |
-| 4 | « 22h47. » | **2,5 s** — c'est le basculement |
+| 1 | « Jeudi 13 août 2026 » | 2 s |
+| 2 | « Jeudi soir » / « Rien de prévu » | 2 s |
+| 3 | « Le téléphone posé à côté de vous » / « La soirée sera tranquille » | 2 s |
+| 4 | « 22h47 » | **2,5 s** — c'est le basculement |
+
+**Aucun point final.** Ces lignes ne sont pas des phrases : ce sont des cartons.
+Le point les referme, le fondu suffit à les ponctuer — et sur « 22h47 », il
+transformait un basculement en constat.
 
 Fondu d'entrée et de sortie : **800 ms** chacun. Fond noir, typographie du thème, texte centré.
 

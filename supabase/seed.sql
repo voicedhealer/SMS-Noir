@@ -46,10 +46,10 @@ insert into stories (slug, title, tagline, genre, status, is_premium) values (
 -- ⚠️ Le 13 août 2026 est un JEUDI ; le 14 est un vendredi, ce qui aurait
 -- contredit le séparateur « jeudi — 22h47 » dès le premier écran.
 update stories set intro_panels = $$[
-  {"lines": ["Jeudi 13 août 2026."]},
-  {"lines": ["Jeudi soir.", "Rien de prévu."]},
-  {"lines": ["Le téléphone posé à côté de vous.", "La soirée sera tranquille."]},
-  {"lines": ["22h47."]}
+  {"lines": ["Jeudi 13 août 2026"]},
+  {"lines": ["Jeudi soir", "Rien de prévu"]},
+  {"lines": ["Le téléphone posé à côté de vous", "La soirée sera tranquille"]},
+  {"lines": ["22h47"]}
 ]$$::jsonb
 where slug = 'numero-inconnu';
 

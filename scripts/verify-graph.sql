@@ -306,7 +306,7 @@ select _chk(61, 'Tout battement tombe dans son attente', '',
 select _chk(70, 'Séquence d''intronisation : 4 panneaux', '4',
   (select jsonb_array_length(intro_panels)::text from stories where slug = 'numero-inconnu'));
 
-select _chk(71, 'Le premier panneau date l''histoire (bible §3)', 'Jeudi 13 août 2026.',
+select _chk(71, 'Le premier panneau date l''histoire (bible §3)', 'Jeudi 13 août 2026',
   coalesce((select intro_panels->0->'lines'->>0 from stories where slug = 'numero-inconnu'), '<absent>'));
 
 -- ---------------------------------------------------------------------------
