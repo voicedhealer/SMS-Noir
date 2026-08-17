@@ -5,6 +5,14 @@ Contrôle de fidélité : le texte en base est-il EXACTEMENT celui du chapitre ?
 Règle 6 du prompt 1 : le contenu narratif est recopié fidèlement, jamais
 reformulé, jamais « amélioré ». Ce script est le garde-fou de cette règle.
 
+⚠️ **Son sens a changé en V3.2.** Le seed n'est plus transcrit à la main, il est
+généré depuis le chapitre — une divergence de recopie est donc devenue
+impossible par construction. Ce que ce script attrape désormais, c'est tout le
+reste : un générateur qu'on a oublié de relancer, un seed non appliqué, une
+retouche faite directement en base, un parseur qui laisse tomber une réplique en
+silence. C'est-à-dire les écarts qu'on ne verrait plus du tout, faute de les
+relire à l'œil.
+
 Il compare dans les deux sens :
   • toute réplique de Léna du chapitre doit exister en base (message ou inline_response)
   • tout texte en base doit exister dans le chapitre — une divergence côté base
@@ -18,7 +26,7 @@ import re
 import subprocess
 import sys
 
-CHAPITRE = 'docs/chapitre-1-v2.md'
+CHAPITRE = 'docs/chapitre-1-v3.2.md'
 CONTENEUR = 'supabase_db_SMS-Noir'
 
 
@@ -49,10 +57,16 @@ def repliques_du_chapitre() -> set[str]:
         if m:
             texte = m.group(1).strip()
             # Médias et didascalies ne portent pas de texte de message
-            if texte.startswith('📷') or texte.startswith('*'):
+            if texte.startswith(('📷', '🎤', '*')):
                 continue
             trouvees.add(nettoyer(texte))
-    # Réponses inline citées après une flèche : → **[Léna]** « … »
+
+    # Réponses de Léna aux micro-choix et aux interactions : « → *« … »* ».
+    # C'est la forme dominante en V3.2 — 63 micro-choix, dont 60 avec réponse.
+    for m in re.finditer(r'→\s*\*«\s*(.+?)\s*»\*', source):
+        trouvees.add(m.group(1).strip())
+
+    # Ancienne forme, conservée pour les chapitres qui l'utiliseraient encore.
     for m in re.finditer(r'\*\*\[Léna\]\*\*\s*«\s*(.+?)\s*»', source):
         trouvees.add(m.group(1).strip())
     return trouvees
