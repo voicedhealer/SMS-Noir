@@ -71,7 +71,11 @@ signalerait « application » en une fraction de seconde.
 Échelle base 4 : `4 · 8 · 12 · 16 · 20 · 24`.
 
 - **Rayon de bulle** : 18, uniforme, sans queue. Les messageries modernes ont abandonné la pointe.
-- **Largeur max de bulle** : 78 % de l'écran. Au-delà, le fil cesse de ressembler à une conversation.
+- **Largeur max de bulle** : **72 %** de l'écran (`AppSpacing.largeurMaxBulle`).
+  Les bulles forment une colonne régulière de chaque côté, et laissent en face un
+  couloir vide qui ne se referme jamais — c'est ce couloir, plus que l'alignement,
+  qui dit que chaque interlocuteur a son côté. Plus large, les deux colonnes se
+  rejoignent au milieu et le fil cesse de ressembler à une conversation.
 - **Entre deux bulles du même locuteur** : 3.
 - **Entre deux prises de parole** : 10.
 - **Marges du fil** : 16 horizontal.

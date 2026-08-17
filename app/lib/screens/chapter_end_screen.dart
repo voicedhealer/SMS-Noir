@@ -99,23 +99,12 @@ class _ChapterEndScreenState extends State<ChapterEndScreen> {
                   ),
                 ],
                 const Spacer(),
-                // Emplacement du futur déblocage immédiat (prompt 4).
-                Opacity(
-                  opacity: 0.25,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.separateurLigne),
-                      borderRadius: BorderRadius.circular(AppSpacing.m),
-                    ),
-                    child: Center(
-                      child: Text('Continuer maintenant',
-                          style:
-                              AppText.libelleChoix.copyWith(color: AppColors.texteSecondaire)),
-                    ),
-                  ),
-                ),
+                // Le déblocage immédiat (prompt 4) viendra ici.
+                //
+                // Rien n'est affiché en attendant, volontairement : un bouton
+                // grisé se lit comme une panne, pas comme une promesse. Le
+                // joueur ne peut pas savoir qu'une fonctionnalité n'existe pas
+                // encore — il en déduit que l'app est cassée.
                 const SizedBox(height: AppSpacing.l),
                 Center(
                   child: TextButton(

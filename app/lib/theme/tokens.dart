@@ -86,9 +86,14 @@ class AppSpacing {
   static const double xl = 20;
   static const double xxl = 24;
 
-  /// Une bulle ne dépasse jamais cette fraction de la largeur : au-delà, le fil
-  /// cesse de ressembler à une conversation.
-  static const double largeurMaxBulle = 0.78;
+  /// Une bulle ne dépasse jamais cette fraction de la largeur.
+  ///
+  /// À 72 %, les bulles forment une colonne régulière de chaque côté et
+  /// laissent en face un couloir vide qui ne se referme jamais : c'est ce
+  /// couloir, plus que l'alignement, qui dit au lecteur que chaque
+  /// interlocuteur a son côté de l'écran. Plus large, les deux colonnes se
+  /// rejoignent au milieu et le fil cesse de ressembler à une conversation.
+  static const double largeurMaxBulle = 0.72;
   static const double rayonBulle = 18;
   static const double interBulles = 3;
 
