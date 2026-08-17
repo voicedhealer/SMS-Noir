@@ -9,6 +9,20 @@ où est Chloé. ») qui sonnent parfaitement juste. Soit on aligne le prompt sur
 « deux à trois fragments courts », soit on assume l'écart. En attendant la
 sonde tolère trois et coupe à quatre.
 
+## 🔍 Relire les tirages de la sonde, pas seulement les compteurs
+
+La voix chaleureuse de la V3.2 pousse Léna à **combler les blancs** : elle a
+inventé un chien dont le joueur n'avait pas parlé, et une crise de panique qu'il
+aurait empêchée. La seconde est passée — elle interprète une présence réelle,
+elle ne contredit rien.
+
+**Ça s'aggravera aux chapitres 3 et 5**, quand Léna aura du passé commun à
+évoquer : plus il y a de matière partagée, plus il y a de blancs plausibles à
+remplir, et moins l'invention se distingue du souvenir.
+
+Aucun détecteur mécanique n'attrapera ça. À chaque nouveau moment IA :
+**relire les tirages de `probe-lena.py`**, pas seulement regarder s'il sort vert.
+
 ## 🔴 Bloquant avant mise en production
 
 - [ ] **Politique de confidentialité** (`PRIVACY_URL`). L'écran de consentement du moment IA n'affiche

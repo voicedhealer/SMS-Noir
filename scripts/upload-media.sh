@@ -209,22 +209,41 @@ for f in "$DOSSIER"/*; do
   musique="$f"; break
 done
 
-if [ -n "$musique" ]; then
-  objet="intro-music.${musique##*.}"
+# Les TROIS segments musicaux, désignés par un mot-clé du nom de fichier.
+#
+# Le repérage « premier fichier audio venu » ne tenait plus : il y a désormais
+# trois morceaux issus du même enregistrement, et rien dans leur en-tête ne dit
+# lequel va où. On les nomme.
+for triplet in "intro:intro_music_url:intro-music" \
+               "60-sec:narration_music_url:narration-music" \
+               "clap-de-fin:chapter_end_music_url:fin-music"; do
+  motif="${triplet%%:*}"; reste="${triplet#*:}"
+  colonne="${reste%%:*}"; base="${reste#*:}"
+
+  fichier=""
+  for f in "$DOSSIER"/*; do
+    [ -f "$f" ] || continue
+    case "$(basename "$f")" in *"$motif"*) fichier="$f"; break;; esac
+  done
+
+  if [ -z "$fichier" ]; then
+    printf "  ⏳ %-28s absent — écran muet\n" "($motif)"
+    continue
+  fi
+
+  objet="$base.${fichier##*.}"
   code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
     "$API_URL/storage/v1/object/$BUCKET/$objet" \
     -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
-    -H "Content-Type: $(mime "$musique")" -H "x-upsert: true" \
-    --data-binary "@$musique")
+    -H "Content-Type: $(mime "$fichier")" -H "x-upsert: true" \
+    --data-binary "@$fichier")
   if [ "$code" = "200" ] || [ "$code" = "201" ]; then
-    poser_story intro_music_url "$objet"
-    printf "  ✅ %-28s → %s  (musique d'intronisation)\n" "$(basename "$musique")" "$objet"
+    poser_story "$colonne" "$objet"
+    printf "  ✅ %-28s → %s\n" "$(basename "$fichier")" "$objet"
   else
-    printf "  ❌ %-28s téléversement refusé (HTTP %s)\n" "$(basename "$musique")" "$code"
+    printf "  ❌ %-28s téléversement refusé (HTTP %s)\n" "$(basename "$fichier")" "$code"
   fi
-else
-  printf "  ⏳ %-28s aucune musique d'intronisation dans media/\n" "—"
-fi
+done
 
 echo
 echo "── état en base ──"
@@ -233,10 +252,12 @@ if [ -n "$DISTANT" ]; then
     | python3 -c 'import json,sys
 for m in json.load(sys.stdin):
     print("  %s#%s  %-6s  %s" % (m["nodes"]["code"], m["position"], m["content_type"], m["media_url"]))'
-  rest GET "stories?slug=eq.numero-inconnu&select=intro_music_url,sound_received_url,sound_sent_url,sound_typing_url" \
+  rest GET "stories?slug=eq.numero-inconnu&select=intro_music_url,narration_music_url,chapter_end_music_url,sound_received_url,sound_sent_url,sound_typing_url" \
     | python3 -c 'import json,sys
 s = json.load(sys.stdin)[0]
-print("  intro   %s" % (s["intro_music_url"] or "(muette)"))
+print("  musique intro=%s  N19=%s  fin=%s" % (
+      s["intro_music_url"] or "(aucune)", s["narration_music_url"] or "(aucune)",
+      s["chapter_end_music_url"] or "(aucune)"))
 print("  sons    recu=%s  envoi=%s  frappe=%s" % (s["sound_received_url"] or "(aucun)",
       s["sound_sent_url"] or "(aucun)", s["sound_typing_url"] or "(aucun)"))'
   restants=$(rest GET "messages?media_url=like.placeholder://*&select=media_url" \
@@ -245,7 +266,10 @@ else
   sql "select '  '||n.code||'#'||m.position||'  '||rpad(m.content_type,6)||'  '||m.media_url
        from messages m join nodes n on n.id = m.node_id
        where m.media_url is not null order by m.media_url;"
-  sql "select '  intro   '||coalesce(intro_music_url,'(muette)') from stories where slug='numero-inconnu';"
+  sql "select '  musique intro='||coalesce(intro_music_url,'(aucune)')
+       ||'  N19='||coalesce(narration_music_url,'(aucune)')
+       ||'  fin='||coalesce(chapter_end_music_url,'(aucune)')
+       from stories where slug='numero-inconnu';"
   sql "select '  sons    reçu='||coalesce(sound_received_url,'(aucun)')||'  envoi='||coalesce(sound_sent_url,'(aucun)')||'  frappe='||coalesce(sound_typing_url,'(aucun)') from stories where slug='numero-inconnu';"
   restants=$(sql "select count(*) from messages where media_url like 'placeholder://%';")
 fi
