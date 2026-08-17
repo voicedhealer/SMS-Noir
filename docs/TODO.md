@@ -9,6 +9,22 @@ où est Chloé. ») qui sonnent parfaitement juste. Soit on aligne le prompt sur
 « deux à trois fragments courts », soit on assume l'écart. En attendant la
 sonde tolère trois et coupe à quatre.
 
+## ♿ Accessibilité — les trois réglages qui manquent
+
+Demandés dans l'addendum V3.2 §5, non livrés avec l'écran de Réglages :
+
+- [ ] **Police adaptée à la dyslexie** (OpenDyslexic ou équivalent)
+- [ ] **Interlignage augmenté**
+- [ ] **Contraste renforcé**
+
+Ils supposent une refonte du thème : `AppText` et `AppColors` sont des
+constantes, il faudrait les dériver d'un état. Ce n'est pas difficile, c'est
+transversal — chaque écran les lit.
+
+Rien n'est affiché en attendant, volontairement : trois interrupteurs qui ne font
+rien se lisent comme une panne. Même règle que le bouton « Continuer
+maintenant ». Voir DESIGN.md § L'écran de Réglages.
+
 ## 🔍 Relire les tirages de la sonde, pas seulement les compteurs
 
 La voix chaleureuse de la V3.2 pousse Léna à **combler les blancs** : elle a

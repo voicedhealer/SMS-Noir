@@ -161,13 +161,20 @@ class ChapterEnd {
 
 /// Séquence d'ouverture, jouée une seule fois par le client.
 class IntroSequence {
-  const IntroSequence({required this.panels, required this.musicUrl});
+  const IntroSequence({required this.panels, required this.musicUrl,
+      this.musiqueNarration, this.musiqueFin});
 
   /// Chaque panneau est une liste de lignes. Vide = pas d'intro.
   final List<List<String>> panels;
 
   /// Chemin signé relatif, ou null si la séquence est muette.
   final String? musicUrl;
+
+  /// Les deux autres segments du morceau — écran noir du N19, écran de fin.
+  /// Portés par l'intro parce qu'ils viennent du même enregistrement et se
+  /// chargent au même moment ; ils ne servent pas au même écran.
+  final String? musiqueNarration;
+  final String? musiqueFin;
 
   bool get estVide => panels.isEmpty;
 
@@ -180,6 +187,8 @@ class IntroSequence {
               .toList())
           .toList(),
       musicUrl: json['music_url'] as String?,
+      musiqueNarration: json['narration_music_url'] as String?,
+      musiqueFin: json['chapter_end_music_url'] as String?,
     );
   }
 }

@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../services/musique_narrative.dart';
 import '../theme/tokens.dart';
 import '../widgets/typewriter.dart';
 
@@ -20,10 +21,14 @@ import '../widgets/typewriter.dart';
 /// retour de Léna. Ne jamais la compléter, ne jamais la faire disparaître
 /// proprement : la coupure est l'effet.
 class NarrationScreen extends StatefulWidget {
-  const NarrationScreen({super.key, required this.lignes});
+  const NarrationScreen({super.key, required this.lignes, this.musique});
 
   /// `[{"texte": …, "a": secondes}]`, tel que le contenu le pose en base.
   final List<({String texte, int a})> lignes;
+
+  /// Segment 2 du morceau. Coupé net au retour de Léna — c'est la coupure qui
+  /// fait l'effet, pas un fondu.
+  final String? musique;
 
   /// Décode le `body` d'un message `narration`.
   ///
@@ -55,6 +60,8 @@ class _NarrationScreenState extends State<NarrationScreen> {
   @override
   void initState() {
     super.initState();
+    final url = widget.musique;
+    if (url != null) unawaited(MusiqueNarrative.instance.demarrer(url));
     for (var i = 0; i < widget.lignes.length; i++) {
       final ligne = widget.lignes[i];
       if (ligne.a == 0) {
@@ -69,6 +76,10 @@ class _NarrationScreenState extends State<NarrationScreen> {
 
   @override
   void dispose() {
+    // Coupure nette, et explicite : compter sur la destruction du lecteur
+    // laisserait la musique traîner sur la conversation. Déjà constaté avec la
+    // musique d'intro.
+    unawaited(MusiqueNarrative.instance.arreter());
     for (final t in _timers) {
       t.cancel();
     }

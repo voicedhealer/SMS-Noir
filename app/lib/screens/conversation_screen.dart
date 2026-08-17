@@ -70,6 +70,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           builder: (_) => ChapterEndScreen(
             fin: etatCourant.chapterEnd!,
             texte: etatCourant.texteFinDeChapitre!,
+            musique: etatCourant.intro?.musiqueFin,
             onFermer: () => Navigator.of(context).pop(),
           ),
           fullscreenDialog: true,
@@ -106,7 +107,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           // chapitre où il n'a rien à faire, et c'est le sujet.
           final narration = etat.narrationEnCours;
           if (narration.isNotEmpty) {
-            return NarrationScreen(lignes: narration);
+            return NarrationScreen(
+                lignes: narration, musique: etat.intro?.musiqueNarration);
           }
           final vu = etat.vu;
           return Column(

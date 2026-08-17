@@ -43,6 +43,10 @@ Deno.serve(servir(async (req) => {
     intro: {
       panels: (histoire.intro_panels ?? []) as { lines: string[] }[],
       music_url: await signerObjet(db, histoire.intro_music_url),
+      // Les deux autres segments du MÊME morceau, signés au même moment parce
+      // qu'ils se chargent ensemble — même s'ils servent à d'autres écrans.
+      narration_music_url: await signerObjet(db, histoire.narration_music_url),
+      chapter_end_music_url: await signerObjet(db, histoire.chapter_end_music_url),
     },
     sounds: {
       received: await signerObjet(db, histoire.sound_received_url),

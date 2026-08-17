@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../config/env.dart';
 import '../models/game_state.dart';
-import '../services/intro_music.dart';
+import '../services/musique_narrative.dart';
 import '../theme/tokens.dart';
 
 /// Séquence d'intronisation.
@@ -43,7 +43,7 @@ class _IntroScreenState extends State<IntroScreen> {
     super.initState();
     final musique = widget.intro.musicUrl;
     if (musique != null) {
-      unawaited(IntroMusic.instance.demarrer('${Env.supabaseUrl}$musique'));
+      unawaited(MusiqueNarrative.instance.demarrer('${Env.supabaseUrl}$musique'));
     }
     unawaited(_derouler());
   }
@@ -53,7 +53,7 @@ class _IntroScreenState extends State<IntroScreen> {
     // Filet de sécurité seulement : l'arrêt réel se fait dans _terminer(), au
     // moment précis de la bascule. Compter sur dispose() reviendrait à confier
     // la coupure à l'ordre de destruction de l'arbre.
-    unawaited(IntroMusic.instance.arreter());
+    unawaited(MusiqueNarrative.instance.arreter());
     super.dispose();
   }
 
@@ -61,7 +61,7 @@ class _IntroScreenState extends State<IntroScreen> {
   void _terminer() {
     if (_fini) return;
     _fini = true;
-    unawaited(IntroMusic.instance.arreter());
+    unawaited(MusiqueNarrative.instance.arreter());
     widget.onTermine();
   }
 

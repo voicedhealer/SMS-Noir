@@ -19,9 +19,9 @@ import 'audio_session_config.dart';
 /// Ici, [demarrer] coupe systématiquement ce qui jouait avant. Il ne peut donc
 /// jamais y avoir deux musiques en même temps, quel que soit le cycle de vie
 /// des écrans.
-class IntroMusic {
-  IntroMusic._();
-  static final IntroMusic instance = IntroMusic._();
+class MusiqueNarrative {
+  MusiqueNarrative._();
+  static final MusiqueNarrative instance = MusiqueNarrative._();
 
   AudioPlayer? _lecteur;
   int _generation = 0;

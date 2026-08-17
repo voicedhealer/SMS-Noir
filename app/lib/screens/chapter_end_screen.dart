@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../models/game_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/typewriter.dart';
+import '../services/musique_narrative.dart';
 
 /// Écran de fin de chapitre.
 ///
@@ -16,7 +17,12 @@ class ChapterEndScreen extends StatefulWidget {
     required this.fin,
     required this.texte,
     required this.onFermer,
+    this.musique,
   });
+
+  /// Segment 3 du morceau : le seul qui joue jusqu'au bout et qui culmine.
+  /// Les deux autres sont coupés net par un retour à la conversation.
+  final String? musique;
 
   final ChapterEnd fin;
 
@@ -63,6 +69,8 @@ class _ChapterEndScreenState extends State<ChapterEndScreen> {
     // Le compte à rebours est du TEMPS RÉEL — la seule exception à la règle du
     // temps de fiction. C'est une attente réelle, pas une heure d'histoire.
     _tic = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
+    final url = widget.musique;
+    if (url != null) unawaited(MusiqueNarrative.instance.demarrer(url));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) setState(() => _visible = true);
     });
