@@ -71,6 +71,17 @@ signalerait « application » en une fraction de seconde.
 Échelle base 4 : `4 · 8 · 12 · 16 · 20 · 24`.
 
 - **Rayon de bulle** : 18, uniforme, sans queue. Les messageries modernes ont abandonné la pointe.
+- **Sons — trois étages**, dans cet ordre : le fichier fourni par le contenu, le son
+  court du système (**iOS seulement** — Android n'expose pas d'API pour un son bref et
+  neutre, on n'y obtient que la sonnerie choisie par l'utilisateur), puis **rien**.
+  Quand rien n'a sonné, un message **reçu** déclenche une vibration légère. C'est ce
+  qui donne un signal sur Android sans aucun fichier, et ça couvre le mode silencieux
+  sans avoir à interroger l'appareil.
+
+  La vibration passe par le **même point** que le son : elle hérite donc des quatre
+  interdits par construction — pas de séparateur, pas de message système, pas de carte
+  de contact, pas de message décoratif. Et rien pendant le silence du N19.
+
 - **Horodatage** : **sous** la bulle, jamais dedans, dans le gris discret, aligné du
   même côté que ses bulles. À l'intérieur, il forçait la bulle à s'élargir au-delà de
   son texte — « Disparu comment ? » occupait deux fois la place nécessaire, avec un

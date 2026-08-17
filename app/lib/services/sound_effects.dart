@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:just_audio/just_audio.dart';
 
 import '../models/client_message.dart';
+import 'system_sounds.dart';
 
 /// Quel son accompagne un message — ou aucun.
 enum EffetSonore { aucun, reception, envoi, frappe }
@@ -66,17 +67,42 @@ class SoundEffects {
     }
   }
 
-  /// Joue l'effet correspondant, s'il y en a un. Ne bloque jamais l'appelant :
-  /// le fil ne doit pas attendre après un bip.
-  void jouer(EffetSonore effet) {
+  /// Joue l'effet correspondant. Ne bloque jamais l'appelant : le fil ne doit
+  /// pas attendre après un bip.
+  ///
+  /// Trois étages, dans cet ordre : le fichier fourni par le contenu, puis le
+  /// son court du système, puis rien. **Renvoie `false` quand rien n'a sonné**
+  /// — c'est ce que l'appelant utilise pour vibrer à la place, sans avoir à
+  /// interroger le mode silencieux de l'appareil.
+  bool jouer(EffetSonore effet) {
+    if (effet == EffetSonore.aucun) return false;
+
     final lecteur = switch (effet) {
       EffetSonore.reception => _reception,
       EffetSonore.envoi => _envoi,
       EffetSonore.frappe => _frappe,
       EffetSonore.aucun => null,
     };
-    if (lecteur == null) return;
-    unawaited(lecteur.seek(Duration.zero).then((_) => lecteur.play()).catchError((_) {}));
+    if (lecteur != null) {
+      unawaited(lecteur.seek(Duration.zero).then((_) => lecteur.play()).catchError((_) {}));
+      return true;
+    }
+
+    // Repli système. Écrit depuis le début, jamais branché jusqu'ici : la
+    // classe existait, le pont natif était enregistré, et personne ne l'appelait.
+    if (SystemSounds.disponible) {
+      final id = switch (effet) {
+        EffetSonore.reception => SystemSounds.reception,
+        EffetSonore.envoi => SystemSounds.envoi,
+        EffetSonore.frappe => SystemSounds.frappe,
+        EffetSonore.aucun => null,
+      };
+      if (id != null) {
+        unawaited(SystemSounds.jouer(id));
+        return true;
+      }
+    }
+    return false;
   }
 
   void dispose() {

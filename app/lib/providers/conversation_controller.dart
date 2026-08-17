@@ -246,7 +246,18 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         // n'passe pas par ici — pas de rafale de bips au retour dans l'app.
         // Et le typing fantôme ne délivre aucun message : il reste muet, ce qui
         // est tout l'enjeu (un bip ferait croire à un message reçu).
-        _sons.jouer(SoundEffects.pour(m));
+        // Trois étages : fichier, son système, puis vibration. Si rien n'a
+        // sonné — Android sans fichier, ou mode silencieux — un message reçu
+        // vibre légèrement, comme dans une vraie messagerie.
+        //
+        // La vibration passe par le MÊME point que le son, donc elle hérite des
+        // quatre interdits de SoundEffects.pour() par construction : pas de
+        // séparateur, pas de système, pas de carte, pas de décoratif. Et rien
+        // pendant le silence du N19, sans condition supplémentaire à tenir.
+        final effet = SoundEffects.pour(m);
+        if (!_sons.jouer(effet) && effet == EffetSonore.reception) {
+          HapticFeedback.lightImpact();
+        }
         if (m.sender == MessageSender.contact && m.contentType != ContentType.system) {
           _nonLus++;
         }
