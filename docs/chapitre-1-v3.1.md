@@ -1,3 +1,7 @@
+> **ARCHIVE — remplacé par `chapitre-1-v3.2.md`.** La V3.2 réécrit tous les
+> dialogues après test sur appareil ; le graphe et la grammaire des trois axes
+> sont inchangés. Ce fichier n'est plus comparé à la base.
+
 # NUMÉRO INCONNU — Chapitre 1 V3.1 : Le mauvais numéro
 
 > **Source de vérité du chapitre 1.** Remplace `chapitre-1-v2.md` (V2.1), conservé
