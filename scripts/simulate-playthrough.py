@@ -145,30 +145,42 @@ class Partie:
             self._uid_cache = next(u['id'] for u in users['users'] if u['email'] == self.email)
         return self._uid_cache
 
-    def franchir_pauses(self, cible: str | None = None, arret_sur: str | None = None) -> None:
+    def franchir_pauses(self, cible: str | None = None,
+                        arret_sur: str | None = None) -> dict | None:
         """Répond aux micro-choix jusqu'à la prochaine décision structurante.
 
         `arret_sur` : code de nœud où s'arrêter sans franchir sa pause — utile
         pour observer une pause précise plutôt que de la traverser.
         """
+        # On accumule les messages de TOUS les franchissements : traverser le
+        # N5 puis enchaîner sur le N8 fait deux appels, et ne garder que le
+        # dernier perdrait la carte de contact posée au N5.
+        dernier, cumul = None, []
         for _ in range(12):
             n = self.noeud
-            if not n or not n['choices'] or not self.pause_ouverte():
-                return
-            if arret_sur and n['code'] == arret_sur:
-                return
-            if cible and any(c['label'].startswith(cible) for c in n['choices']):
-                return
-            reponses = [c for c in n['choices'] if c['kind'] == 'reply']
-            if not reponses:
-                return
+            fini = (not n or not n['choices'] or not self.pause_ouverte()
+                    or (arret_sur and n['code'] == arret_sur)
+                    or (cible and any(c['label'].startswith(cible) for c in n['choices'])))
+            reponses = [] if not n else [c for c in n['choices'] if c['kind'] == 'reply']
+            if fini or not reponses:
+                return {**dernier, 'new_messages': cumul} if dernier else None
             c = reponses[min(self.RANG[self.posture], len(reponses) - 1)]
-            self._avancer({'choice_id': c['id']})
+            dernier = self._avancer({'choice_id': c['id']})
+            cumul += dernier['new_messages']
             self.micro_vus += 1
             self.journal.append(f"  {n['code']:>4} · ({self.posture}) « {c['label'][:44]} »")
+        return {**dernier, 'new_messages': cumul} if dernier else None
 
-    def choisir(self, debut_du_label: str) -> dict:
-        """Joue le choix dont le libellé commence par le texte donné."""
+    def choisir(self, debut_du_label: str, puis_franchir: bool = True) -> dict:
+        """Joue le choix dont le libellé commence par le texte donné.
+
+        Franchit les pauses avant ET après, pour laisser la partie sur la
+        prochaine vraie décision. En V3.2 presque chaque nœud porte un bloc de
+        micro-choix : sans ça, un parcours devrait intercaler un franchissement
+        après chaque ligne, et on ne lirait plus le chemin narratif.
+
+        `puis_franchir=False` pour observer une pause plutôt que la traverser.
+        """
         self.franchir_pauses(debut_du_label)
         n = self.noeud
         assert n, 'aucun nœud courant'
@@ -176,6 +188,13 @@ class Partie:
             if c['label'].startswith(debut_du_label):
                 r = self._avancer({'choice_id': c['id']})
                 self.journal.append(f"  {n['code']:>4} · « {c['label'][:58]} »")
+                if puis_franchir:
+                    suite = self.franchir_pauses()
+                    if suite:
+                        # Les messages du franchissement appartiennent au même
+                        # geste du point de vue du parcours : on les recolle.
+                        r = {**suite,
+                             'new_messages': r['new_messages'] + suite['new_messages']}
                 return r
         dispo = ' | '.join(c['label'][:40] for c in n['choices'])
         raise AssertionError(f"[{self.nom}] {n['code']} : choix « {debut_du_label} » absent. Dispo : {dispo}")
@@ -218,8 +237,8 @@ def parcours_allie():
     verifier('Aucun next_node_id exposé',
              all('next_node_id' not in c for c in p.noeud['choices']), True)
 
-    p.choisir('Qui ça')                       # confiance 3 -> 4
-    r = p.choisir('Quelqu\'un qui a reçu')    # confiance 5, branche empathie, -> N5 -> N8
+    p.choisir('Bonsoir, qui')                       # confiance 3 -> 4
+    r = p.choisir('Quelqu\'un qui a reçu')    # confiance 5, empathie -> N5 -> N8
     verifier('Chaîne auto N5 → N8 déroulée', p.noeud['code'], 'N8')
 
     # La révélation n'est plus automatique : le N5 pose une carte, le geste
@@ -232,11 +251,11 @@ def parcours_allie():
     rev = sim_reveal(p, 'lena')
     verifier('Enregistrer le contact la révèle', rev['conversations'][0]['display_name'], 'Léna')
 
-    p.choisir("C'est qui, ce type ?")          # relance : indices PROFIL_SUSPECT
+    p.choisir("Vous l'avez déjà vu de près")          # relance : indices PROFIL_SUSPECT
     verifier('Relance N8 consommée : la 2e question disparaît',
              any(c['label'].startswith('Pourquoi cet entrepôt') for c in p.noeud['choices']), False)
 
-    p.choisir('Ok. Je garde mon téléphone')   # confiance 7, branche allié -> N12 -> N14
+    p.choisir("D'accord, je garde mon téléphone")   # confiance 7, branche allié -> N12 -> N14
     verifier('Chaîne auto N12 → N14', p.noeud['code'], 'N14')
 
     p.choisir('Prenez la plaque')             # indices PLAQUE -> N16
@@ -259,7 +278,11 @@ def parcours_allie():
     etat = variables_en_base(p.email)
     v = etat['variables']
     print()
-    verifier('confiance', v['confiance'], 7)
+    # 7 en V3.1, 9 en V3.2 : le parcours traverse maintenant des micro-choix, et
+    # la posture par défaut du marcheur est « protéger » — donc la confiance
+    # reçoit en plus l'apport de posture. Ce n'est pas une dérive du contenu,
+    # c'est la grammaire des trois axes qui s'applique.
+    verifier('confiance', v['confiance'], 9)
     verifier('lucidite', v['lucidite'], 1)
     verifier('refus', v['refus'], False)
     verifier('branche_ch1', v['branche_ch1'], 'allié')
@@ -282,26 +305,29 @@ def parcours_refus():
     print('=' * 78)
     p = Partie('refus@test.local', 'refus')
 
-    p.choisir('Qui ça')                        # confiance 4
+    p.choisir('Bonsoir, qui')                        # confiance 4
     p.choisir("Quelqu'un qui a reçu")          # confiance 5, empathie -> N5 -> N8
-    p.choisir("N'y allez pas seule")           # lucidite 1 -> N10
+    # V3.2 : la capture est au N8, donc on zoome AVANT de choisir la suite.
+    # C'est tout l'intérêt du déplacement — l'incohérence n°1 n'est plus
+    # réservée à la branche « appelez la police ».
+    p.choisir('Zoomer sur la capture')         # lucidite 1 (récépissé daté de juin)
+    p.choisir("N'y allez pas seule")           # lucidite 2 -> N10
     verifier('Nœud du refus raisonnable', p.noeud['code'], 'N10')
 
-    p.choisir('Zoomer sur la capture')         # lucidite 2 (incohérence volontaire du récépissé)
     verifier('Zoom N10 non répétable',
              any(c['label'].startswith('Zoomer') for c in p.noeud['choices']), False)
     verifier('Le nœud ne bouge pas après une interaction', p.noeud['code'], 'N10')
 
-    p.choisir('Je suis désolé')                # -> N11 : le NŒUD pose refus = true
+    p.choisir('Je suis désolé, je ne peux pas')                # -> N11 : le NŒUD pose refus = true
     verifier('Branche du refus', p.noeud['code'], 'N11')
 
-    p.choisir('Je lis. Soyez prudente')        # confiance 5 -> 6 -> N14
+    p.choisir('Je lis, soyez prudente')        # confiance 5 -> 6 -> N14
     p.choisir('Restez cachée')                 # -> N17
     p.choisir('C\'est quoi ce bruit')          # lucidite 3 (incohérence audio)
     verifier('Le nœud ne bouge pas après la réécoute', p.noeud['code'], 'N17')
 
     # Ce gain porterait la confiance à 7. refus = true -> il doit être écrêté à 6.
-    p.choisir('Ok mais restez à distance')     # -> N19 -> N20
+    p.choisir("D'accord mais restez loin")     # -> N19 -> N20
     p.choisir('Il faut porter ça à la police')  # lucidite 4 -> N9
     p.continuer()                              # fallback -> N21
     p.choisir('Zoomer sur la photo')           # TELEPHONE -> N22
@@ -337,10 +363,10 @@ def parcours_branche_n6():
     print('=' * 78)
     p = Partie('branche6@test.local', 'N6')
 
-    p.choisir('Je crois que vous vous trompez')   # -> N2
+    p.choisir('Je ne suis pas Karim')   # -> N2
     verifier('Toujours anonyme au N2', p.etat['conversations'][0]['display_name'], 'Numéro inconnu')
 
-    r = p.choisir('Non. Bonne soirée')            # -> N6
+    r = p.choisir('Bonne soirée')            # -> N6
     verifier('Nœud N6 atteint', p.noeud['code'], 'N6')
     verifier('Carte posée sur la branche N6 aussi',
              any(m['content_type'] == 'contact_card' for m in r['new_messages']), True)
@@ -371,12 +397,12 @@ def parcours_carte():
         verifier('Révélation refusée avant la carte', 'HTTP 403' in str(e), True)
 
     # On joue jusqu'à la fin SANS jamais enregistrer.
-    p.choisir('Qui ça'); p.choisir("Quelqu'un qui a reçu")
+    p.choisir('Bonsoir, qui'); p.choisir("Quelqu'un qui a reçu")
     verifier('Anonyme après la carte, sans geste',
              p.etat['conversations'][0]['display_name'], 'Numéro inconnu')
 
-    p.choisir('Ok. Je garde mon'); p.choisir('Prenez la plaque')
-    p.choisir("Zoomer sur l'auto"); p.choisir('Rentrez chez vous')
+    p.choisir("D'accord, je garde mon"); p.choisir('Prenez la plaque')
+    p.choisir("Zoomer sur l'auto"); p.choisir('Rentre chez toi')
     p.continuer(); p.choisir('Zoomer sur la photo')
 
     verifier('Fin de chapitre atteinte', p.noeud['code'], 'N22')
@@ -436,7 +462,7 @@ def erreurs_et_idempotence():
         verifier('Continuation refusée quand un choix est attendu', 'HTTP 409' in str(e), True)
 
     # Idempotence : rejouer le MÊME choix ne réapplique rien
-    cible = next(c for c in p.noeud['choices'] if c['label'].startswith('Qui ça'))
+    cible = next(c for c in p.noeud['choices'] if c['label'].startswith('Bonsoir, qui'))
     r1 = http(f'{API}/functions/v1/advance', {'choice_id': cible['id']}, p.token)
     avant = variables_en_base(p.email)['variables']
     r2 = http(f'{API}/functions/v1/advance', {'choice_id': cible['id']}, p.token)

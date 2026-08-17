@@ -50,18 +50,23 @@ def titre(t: str):
 # La pose d'essai
 # ---------------------------------------------------------------------------
 
+#: Le premier bloc du N8, en V3.2 — après la capture du mail de la police.
 MICRO = [
-    ('Seule ??', 'proteger', "T'as une meilleure idée ?"),
-    ('Pourquoi cet endroit précisément ?', 'enquete', "J'y viens."),
-    ('Comment vous avez repéré cet endroit ?', 'raison', 'En cherchant. Pendant des mois.'),
+    ("C'est révoltant.", 'proteger',
+     'Merci de le dire, vous savez, à force on finit par douter de soi.'),
+    ('Ils vous ont dit quoi exactement ?', 'enquete',
+     "Qu'une majeure a le droit de partir sans prévenir, et que je devrais "
+     "accepter qu'elle ait voulu couper les ponts."),
+    ('Vous avez signalé quand exactement ?', 'raison',
+     '...En juin. Je sais ce que vous allez dire.'),
 ]
 
 
 
 def aller_au_n8(email: str) -> Partie:
     p = Partie(email, 'micro')
-    p.choisir('Qui ça')
-    p.choisir("Quelqu'un qui a reçu")
+    p.choisir('Bonsoir, qui', puis_franchir=False)
+    p.choisir("Quelqu'un qui a reçu", puis_franchir=False)
     p.franchir_pauses(arret_sur='N8')   # le N5 porte lui aussi un bloc
     assert p.noeud['code'] == 'N8', p.noeud['code']
     return p
@@ -83,8 +88,9 @@ def la_pause_coupe_le_noeud():
     p = aller_au_n8('micro-pause@test.local')
 
     etat = progression(p.email)
-    verifier('Le déroulé s\'arrête sur la pause', etat['node_gate'], 0)
-    verifier('Le curseur est derrière le message de la pause', etat['node_cursor'], 1)
+    # Le bloc du N8 est posé après le message 1 (la capture du mail).
+    verifier('Le déroulé s\'arrête sur la pause', etat['node_gate'], 1)
+    verifier('Le curseur est derrière le message de la pause', etat['node_cursor'], 2)
 
     # Un seul message du N8 est sorti : celui de la position 0.
     total = int(sql("select count(*) from messages m join nodes n on n.id = m.node_id"
@@ -96,7 +102,7 @@ def la_pause_coupe_le_noeud():
                      f" and pm.source = 'scripted' and pm.body in"
                      f" (select body from messages m join nodes n on n.id = m.node_id"
                      f"  where n.code = 'N8');"))
-    verifier(f'Un seul des {total} messages du N8 est sorti', sortis, 1)
+    verifier(f'Deux des {total} messages du N8 sont sortis', sortis, 2)
 
     verifier('Trois options offertes', len(p.noeud['choices']), 3)
     verifier('Aucune n\'est signalée comme micro-choix',
@@ -105,13 +111,13 @@ def la_pause_coupe_le_noeud():
 
     r = p.choisir('Pourquoi cet endroit')
     corps = [m['body'] for m in r['new_messages']]
-    verifier('La réplique du joueur s\'affiche', corps[0], 'Pourquoi cet endroit précisément ?')
-    verifier('La variante de Léna suit', corps[1], "J'y viens.")
+    verifier('La réplique du joueur s\'affiche', corps[0], 'Ils vous ont dit quoi exactement ?')
+    verifier('La variante de Léna suit', corps[1], MICRO[1][2])
     verifier('Puis le reste du nœud sort', len(corps) > 2, True)
 
     etat = progression(p.email)
     # Le N8 porte DEUX blocs : la pause ne se referme pas, elle avance.
-    verifier('La pause a avancé au bloc suivant', etat['node_gate'], 1)
+    verifier('La pause a avancé au bloc suivant', etat['node_gate'], 2)
     verifier('On est toujours dans le N8', p.noeud['code'], 'N8')
     verifier('Trois options à nouveau', len(p.noeud['choices']), 3)
 
@@ -124,8 +130,8 @@ def on_ne_repond_pas_deux_fois():
     # déjà et c'est même souhaitable sur une retransmission réseau. C'est d'en
     # jouer un AUTRE sur la pause qu'on vient de refermer : sans garde, la
     # posture serait comptée deux fois pour un seul moment de fiction.
-    autre = next(c['id'] for c in p.noeud['choices'] if c['label'].startswith('Comment'))
-    p.choisir('Seule')
+    autre = next(c['id'] for c in p.noeud['choices'] if c['label'].startswith('Vous avez signalé'))
+    p.choisir("C'est révoltant", puis_franchir=False)
     avant = progression(p.email)['variables']['micro']['n']
 
     try:
@@ -146,7 +152,7 @@ def la_posture_ne_ramifie_pas():
         # pas l'absolu.
         p = aller_au_n8(f'micro-{axe}@test.local')
         avant = progression(p.email)['variables']['micro']
-        p.choisir(label.split()[0])
+        p.choisir(label[:18], puis_franchir=False)
         arrivees[axe] = p.noeud['code']
         apres = progression(p.email)['variables']['micro']
         verifier(f'{axe:<9} → un choix de plus sur son axe',
@@ -177,7 +183,7 @@ def la_proportion_est_stable():
                                              where email = 'micro-formule@test.local'));""")
         # Un tour de moteur suffit à redériver.
         etat_avant = progression(p.email)
-        p.choisir('Comment vous avez')  if etat_avant['node_gate'] == 0 else None
+        p.choisir('Vous avez signalé', puis_franchir=False) if etat_avant['node_gate'] is not None else None
         etat = progression(p.email)
         resultats[n] = (etat['variables']['lucidite'], etat['variables']['confiance'])
         print(f"   {n:>2} micro-choix à 80 % « raisonner » → lucidite "
