@@ -27,28 +27,28 @@ void main() {
 
   testWidgets('les lignes se posent à leur heure, la dernière reste inachevée',
       (tester) async {
+    // Animations coupées : la frappe est instantanée, donc ce test mesure les
+    // DÉCALAGES entre lignes sans dépendre de la vitesse de frappe. Il exerce
+    // au passage le chemin d'accessibilité.
     await tester.pumpWidget(MaterialApp(
       theme: AppTheme.sombre,
-      home: NarrationScreen(lignes: NarrationScreen.decoder(corps)),
+      home: MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: NarrationScreen(lignes: NarrationScreen.decoder(corps)),
+      ),
     ));
 
-    // On lit l'opacité VISÉE par l'animation : déterministe, là où le rendu
-    // dépend de l'avancement de la courbe au moment du pump.
-    double opacite(String texte) => tester
-        .widget<AnimatedOpacity>(find.ancestor(
-            of: find.text(texte), matching: find.byType(AnimatedOpacity)))
-        .opacity;
-
     await tester.pump();
-    expect(opacite('Léna ne répond plus...'), 1);
-    expect(opacite('Il fait nuit, elle est seule.'), 0);
+    await tester.pump();
+    expect(find.text('Léna ne répond plus...'), findsOneWidget);
+    expect(find.text('Il fait nuit, elle est seule.'), findsNothing);
 
     await tester.pump(const Duration(seconds: 21));
-    await tester.pumpAndSettle();
-    expect(opacite('Il fait nuit, elle est seule.'), 1);
+    await tester.pump();
+    expect(find.text('Il fait nuit, elle est seule.'), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 20));
-    await tester.pumpAndSettle();
+    await tester.pump();
     // Coupée en pleine phrase. Ne jamais la compléter : la coupure est l'effet.
     expect(find.textContaining('ou prévenir la'), findsOneWidget);
     expect(find.textContaining('police'), findsNothing);
@@ -57,7 +57,10 @@ void main() {
   testWidgets('aucune sortie, aucun champ de saisie', (tester) async {
     await tester.pumpWidget(MaterialApp(
       theme: AppTheme.sombre,
-      home: NarrationScreen(lignes: NarrationScreen.decoder(corps)),
+      home: MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: NarrationScreen(lignes: NarrationScreen.decoder(corps)),
+      ),
     ));
     await tester.pump();
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/game_state.dart';
 import '../theme/tokens.dart';
+import '../widgets/typewriter.dart';
 
 /// Écran de fin de chapitre.
 ///
@@ -21,6 +22,18 @@ class ChapterEndScreen extends StatefulWidget {
 
   /// Le message `system` du N22.
   final String texte;
+
+  /// Les trois temps du cliffhanger. Le contenu arrive en une chaîne — on la
+  /// découpe sur la ponctuation forte plutôt que d'imposer un format au seed :
+  /// c'est de la mise en scène, pas du contenu.
+  List<String> get phrases {
+    final decoupe = RegExp(r'[^.!?]+[.!?]+')
+        .allMatches(texte)
+        .map((m) => m.group(0)!.trim())
+        .where((p) => p.isNotEmpty)
+        .toList();
+    return decoupe.isEmpty ? [texte] : decoupe;
+  }
   final VoidCallback onFermer;
 
   @override
@@ -30,6 +43,19 @@ class ChapterEndScreen extends StatefulWidget {
 class _ChapterEndScreenState extends State<ChapterEndScreen> {
   Timer? _tic;
   bool _visible = false;
+
+  /// Index de la dernière phrase autorisée à s'écrire. Les suivantes attendent.
+  var _phraseEcrite = 0;
+  late final _phrases = widget.phrases;
+
+  /// Un temps de silence entre deux phrases : c'est lui qui fait tomber la
+  /// troisième. Sans pause, les trois se lisent comme un paragraphe.
+  void _phraseSuivante(int i) {
+    if (i != _phraseEcrite) return;
+    Future<void>.delayed(const Duration(milliseconds: 1400), () {
+      if (mounted) setState(() => _phraseEcrite = i + 1);
+    });
+  }
 
   @override
   void initState() {
@@ -76,9 +102,36 @@ class _ChapterEndScreenState extends State<ChapterEndScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.texte,
-                    style: AppText.titreFinChapitre.copyWith(color: AppColors.textePrincipal)),
-                const SizedBox(height: AppSpacing.xxl * 2),
+                // Le cliffhanger tombe en TROIS temps, écrits l'un après
+                // l'autre. Les trois phrases d'un coup se lisent comme un
+                // paragraphe ; séparées, chacune a le temps d'atterrir — et la
+                // troisième (« …a désormais votre numéro ») n'existe que par
+                // le silence qui la précède.
+                for (var i = 0; i < _phrases.length; i++)
+                  if (i <= _phraseEcrite)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.l),
+                      child: Typewriter(
+                        key: ValueKey(i),
+                        texte: _phrases[i],
+                        style: AppText.titreFinChapitre
+                            .copyWith(color: AppColors.textePrincipal),
+                        onFini: () => _phraseSuivante(i),
+                      ),
+                    ),
+                const SizedBox(height: AppSpacing.xxl),
+                // Ne s'affiche qu'une fois le cliffhanger posé : le compte à
+                // rebours ne doit pas voler la fin.
+                if (_phraseEcrite >= _phrases.length) ...[
+                  Text('La suite de Numéro Inconnu, prochainement.',
+                      style: AppText.libelleChoix
+                          .copyWith(color: AppColors.texteSecondaire)),
+                  const SizedBox(height: AppSpacing.s),
+                  Text('Un retour, une note, une idée ? Écrivez-nous.',
+                      style: AppText.horodatage
+                          .copyWith(color: AppColors.texteTertiaire)),
+                  const SizedBox(height: AppSpacing.xxl),
+                ],
                 if (suivant != null) ...[
                   Text(
                     suivant.toUpperCase(),

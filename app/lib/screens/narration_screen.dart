@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../theme/tokens.dart';
+import '../widgets/typewriter.dart';
 
 /// Écran noir narratif — le silence du N19.
 ///
@@ -86,20 +87,21 @@ class _NarrationScreenState extends State<NarrationScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (var i = 0; i < widget.lignes.length; i++)
-                AnimatedOpacity(
-                  opacity: i < _visibles ? 1 : 0,
-                  duration: AppMotion.fonduNarration,
-                  child: Padding(
+                if (i < _visibles)
+                  Padding(
                     padding: const EdgeInsets.only(bottom: AppSpacing.xl),
-                    child: Text(
-                      widget.lignes[i].texte,
+                    child: Typewriter(
+                      // Une clé par ligne : sans elle, Flutter réutiliserait
+                      // l'état de la précédente et la ligne suivante
+                      // apparaîtrait déjà écrite.
+                      key: ValueKey(i),
+                      texte: widget.lignes[i].texte,
                       style: AppText.corpsMessage.copyWith(
                         color: AppColors.texteSecondaire,
                         height: 1.6,
                       ),
                     ),
                   ),
-                ),
             ],
           ),
         ),

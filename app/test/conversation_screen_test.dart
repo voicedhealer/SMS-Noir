@@ -614,6 +614,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ChapterEndScreen), findsOneWidget);
+
+    // Le cliffhanger s'écrit maintenant caractère par caractère : on laisse la
+    // frappe se terminer avant de chercher la phrase entière.
+    await tester.pump(const Duration(seconds: 6));
     expect(find.text('Quelqu\'un est entré chez Léna.'), findsOneWidget);
     expect(find.text('CHLOÉ'), findsOneWidget);
     expect(find.text('à venir'), findsOneWidget);
