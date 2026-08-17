@@ -35,6 +35,14 @@ export interface Effects {
    * Léna enverra une photo de profil plus tard — le mécanisme l'attend.
    */
   set_avatar?: Record<string, string>
+  /**
+   * Axe d'un micro-choix : `proteger`, `enquete` ou `raison`.
+   *
+   * **Le contenu ne porte aucun nombre.** Il déclare une posture, le moteur en
+   * tire une valeur. C'est ce qui permettra de retoucher la formule au chapitre
+   * 5 sans rouvrir une ligne de seed.
+   */
+  motif?: 'proteger' | 'enquete' | 'raison'
 }
 
 /** `choices.conditions`. Clés d'un même objet en ET. `{}` = toujours vrai. */

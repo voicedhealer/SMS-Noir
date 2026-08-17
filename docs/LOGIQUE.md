@@ -229,6 +229,109 @@ inatteignable, comme le reste du graphe.
 Un média illisible ne fait jamais tomber la conversation : le client retombe sur son cartouche de
 repli, celui des `placeholder://`.
 
+## La grammaire des trois axes
+
+Chaque micro-choix offre trois options — **protéger · enquêter · raisonner** —
+toujours dans cet ordre, jamais étiquetées. Aucune ne ramifie : même suite pour
+les trois, seule la réplique de Léna change.
+
+### Le contenu ne porte aucun nombre
+
+Un micro-choix déclare une posture, pas une valeur :
+
+```json
+"effects": { "motif": "raison" }
+```
+
+C'est la décision structurante de V3.1. Au chapitre 5, retoucher l'équilibrage
+voudra dire changer une constante du moteur, pas rouvrir trois cents lignes de
+seed. Les nombres vivent dans `engine.ts`, la posture vit dans le contenu.
+
+### La formule
+
+Le serveur tient un décompte (`variables.micro`) et dérive la valeur :
+
+```
+part   = (micro_axe + 1) / (micro_n + 3)     ← lissée, neutre = 1/3
+motif  = max(0, (part − 1/3) ÷ (2/3))         ← 0 si équilibré, 1 si mono-axe
+apport = round(AMPLITUDE_axe × motif)
+valeur = clamp(structurel + apport, bornes)
+```
+
+| axe | variable | amplitude |
+|---|---|---|
+| protéger | `confiance` | 3 |
+| enquêter | `enquete` | 10 |
+| raisonner | `lucidite` | 3 |
+
+`enquete` prend toute sa plage : elle n'a aucun effet structurel, elle **est** la
+posture. `confiance` et `lucidite` gardent leurs effets structurels déjà
+équilibrés sur six chapitres — la posture n'y est qu'un modificateur.
+
+**Pourquoi une proportion et pas un `+0.5` par choix.** Avec un incrément fixe,
+un raisonneur saturait `lucidite` (max 5) à mi-chapitre : tous ses choix
+suivants devenaient inertes, et « le motif compte » cessait d'être vrai au
+moment précis où le joueur s'affirmait. Avec une proportion, **aucun choix n'est
+jamais inerte** — un « protéger » tardif fait baisser la part « raisonner ».
+
+**Pourquoi le lissage `+1 / +3`.** Sans lui, le tout premier micro-choix
+donnerait 100 % à son axe et ferait bondir la variable d'un coup. On part du
+neutre, un tiers par axe, et on converge vers la vraie proportion.
+
+**Mesuré** — un joueur à 80 % « raisonner » obtient lucidité **+2**, qu'il ait
+rencontré 20 ou 60 micro-choix. Un mono-axe pur : +3. Un joueur équilibré : +0.
+
+### Raisonner n'est jamais puni
+
+`motif` ne peut pas être négatif — c'est le `max(0, …)` de la formule, et c'est
+une règle, pas un détail d'implémentation. Un joueur qui ne protège jamais ne
+**perd** pas de confiance, il n'en gagne simplement pas par la posture. Le punir
+lui apprendrait à ne plus douter, et il raterait la fin cachée.
+
+### `structurel` : pourquoi une part séparée
+
+Les gains des choix structurants s'accumulent dans `variables.structurel`, pas
+dans la variable publique. Sans ça, la part de posture — recalculée à chaque
+micro-choix — se cumulerait à elle-même et la variable dériverait à chaque tour.
+`deriverAxes()` est **idempotente** : elle ne lit jamais la valeur publique.
+
+## Les pauses en cours de nœud (`after_position`)
+
+Un choix peut s'afficher **au milieu** d'un nœud, après un message donné. Le
+déroulé s'arrête là, le joueur répond, et la suite sort.
+
+- `choices.after_position` — la position du message après lequel le choix
+  s'affiche. `NULL` = choix de fin de nœud, comportement historique.
+- `player_progress.node_cursor` — le prochain message à délivrer.
+- `player_progress.node_gate` — la pause **actuellement ouverte**, ou `NULL`.
+
+**Pourquoi `node_gate` en plus du curseur.** On pourrait croire la pause
+déductible du curseur (`curseur − 1`). C'est faux pour une pause posée sur le
+**dernier** message d'un nœud : le curseur vaut la même chose avant et après la
+réponse, et la pause se rouvrirait indéfiniment. Le marqueur est explicite.
+
+**Pourquoi pas un nœud par pause.** C'était l'autre voie : découper N8 en
+N8a/N8b/N8c. Le chapitre 1 serait passé de 21 à ~45 nœuds, et il en reste quatre
+à écrire. Une table de nœuds qu'on ne peut plus relire est une dette narrative
+avant d'être technique.
+
+### Ce que le client ne doit jamais savoir
+
+Un micro-choix est renvoyé au client avec `kind: "reply"`, **jamais `"micro"`**.
+S'il pouvait distinguer un choix qui ramifie d'un choix qui n'enregistre qu'une
+posture, le joueur saurait quels moments comptent — et la grammaire des trois
+axes ne mesurerait plus rien de sincère. C'est la même règle que l'apparence
+identique du champ de saisie au moment IA.
+
+Deux garde-fous côté serveur :
+
+- on ne répond qu'à la pause **ouverte** (`choix_hors_pause` sinon) — sans quoi
+  deux options du même bloc pourraient être jouées, et la posture comptée deux
+  fois pour un seul moment de fiction ;
+- `micro_ne_ramifie_pas`, une contrainte de base : un micro-choix ne peut pas
+  porter de `next_node_id`. Une ligne de seed distraite suffirait à créer une
+  branche fantôme.
+
 ## Le moment IA (N9)
 
 Saisie libre : le joueur écrit ce qu'il veut, Léna répond via un modèle de langage. 2 à 4 échanges,
@@ -471,6 +574,10 @@ questions sont proposées. Les deux entrées (`PROFIL_SUSPECT`, `BORNAGE`) écri
 avoir les deux indices.
 
 ## Format JSONB `effects`
+
+`motif` : `"proteger" | "enquete" | "raison"` — l'axe d'un micro-choix. Voir
+§ La grammaire des trois axes. C'est le seul effect qui ne porte aucun nombre.
+
 
 Liste d'opérations déclaratives sur `player_progress.variables`. Trois opérateurs suffisent
 à tout le chapitre 1 :

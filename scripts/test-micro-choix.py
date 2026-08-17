@@ -1,0 +1,228 @@
+#!/usr/bin/env python3
+"""
+Le mécanisme des micro-choix, éprouvé avant qu'une ligne de contenu l'utilise.
+
+Usage :
+  supabase start && supabase functions serve &
+  python3 scripts/test-micro-choix.py
+
+La phase 2 seedera 21 blocs de micro-choix. Les livrer sans avoir éprouvé le
+moteur reviendrait à découvrir un bug de pause au milieu de 63 options de
+contenu, sans savoir si le fautif est le moteur ou le seed. On pose donc une
+POSE D'ESSAI sur le N8 — une pause et trois micro-choix insérés en base — on
+la joue, et on la retire.
+
+Vérifie trois choses que le contenu ne pourra plus révéler seul :
+  · la pause coupe le nœud au bon endroit, et la suite sort après la réponse
+  · le client ne peut pas distinguer un micro-choix d'une réponse structurante
+  · la formule de proportion donne le même résultat sur 20 et sur 60 choix
+
+Sort en code 1 au premier écart.
+"""
+
+import importlib.util
+import json
+import pathlib
+import sys
+
+_spec = importlib.util.spec_from_file_location(
+    'sim', pathlib.Path(__file__).with_name('simulate-playthrough.py'))
+sim = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(sim)
+
+API, SERVICE, http, Partie, verifier = sim.API, sim.SERVICE, sim.http, sim.Partie, sim.verifier
+
+
+def sql(requete: str) -> str:
+    import subprocess
+    return subprocess.run(
+        ['docker', 'exec', '-i', 'supabase_db_SMS-Noir',
+         'psql', '-U', 'postgres', '-d', 'postgres', '-qAt', '-c', requete],
+        capture_output=True, text=True, check=True).stdout.strip()
+
+
+def titre(t: str):
+    print('\n' + '=' * 78)
+    print(f'  {t}')
+    print('=' * 78)
+
+
+# ---------------------------------------------------------------------------
+# La pose d'essai
+# ---------------------------------------------------------------------------
+
+MICRO = [
+    ('Seule ??', 'proteger', "T'as une meilleure idée ?"),
+    ('Pourquoi cet endroit précisément ?', 'enquete', "J'y viens."),
+    ('Comment vous avez repéré cet endroit ?', 'raison', 'En cherchant. Pendant des mois.'),
+]
+
+
+def poser_essai(apres_message: int = 0):
+    """Ajoute une pause et trois micro-choix sur le N8."""
+    for i, (label, axe, reponse) in enumerate(MICRO):
+        inline = json.dumps([{
+            'sender': 'contact', 'content_type': 'text', 'body': reponse,
+            'delay_seconds': 2, 'typing_seconds': 2,
+        }]).replace("'", "''")
+        sql(f"""
+          insert into choices (node_id, position, label, kind, after_position,
+                               inline_response, effects)
+          select n.id, 90 + {i}, '{label.replace("'", "''")}', 'micro', {apres_message},
+                 '{inline}'::jsonb, '{{"motif": "{axe}"}}'::jsonb
+          from nodes n join chapters c on c.id = n.chapter_id
+          join stories s on s.id = c.story_id
+          where s.slug = 'numero-inconnu' and c.position = 1 and n.code = 'N8';""")
+
+
+def retirer_essai():
+    # `player_progress.last_choice_id` référence le choix joué : on relâche la
+    # trace d'idempotence avant de retirer la pose, sinon la clé étrangère tient.
+    sql("update player_progress set last_choice_id = null, last_choice_seq = null"
+        " where last_choice_id in (select id from choices where position >= 90);")
+    sql("delete from choices where position >= 90;")
+
+
+def aller_au_n8(email: str) -> Partie:
+    p = Partie(email, 'micro')
+    p.choisir('Qui ça')
+    p.choisir("Quelqu'un qui a reçu")
+    assert p.noeud['code'] == 'N8', p.noeud['code']
+    return p
+
+
+def progression(email: str) -> dict:
+    users = http(f'{API}/auth/v1/admin/users?per_page=1000', None, SERVICE, 'GET',
+                 {'apikey': SERVICE})
+    uid = next(u['id'] for u in users['users'] if u['email'] == email)
+    return http(f'{API}/rest/v1/player_progress?user_id=eq.{uid}'
+                f'&select=id,variables,node_cursor,node_gate', None, SERVICE, 'GET',
+                {'apikey': SERVICE})[0]
+
+
+# ---------------------------------------------------------------------------
+
+def la_pause_coupe_le_noeud():
+    titre('LA PAUSE — le nœud s\'arrête au bon endroit, puis repart')
+    p = aller_au_n8('micro-pause@test.local')
+
+    etat = progression(p.email)
+    verifier('Le déroulé s\'arrête sur la pause', etat['node_gate'], 0)
+    verifier('Le curseur est derrière le message de la pause', etat['node_cursor'], 1)
+
+    # Un seul message du N8 est sorti : celui de la position 0.
+    total = int(sql("select count(*) from messages m join nodes n on n.id = m.node_id"
+                    " where n.code = 'N8';"))
+    # Filtré sur CE joueur : sans ça le compte ramasse toutes les parties de
+    # test déjà en base et le contrôle passe par accident sur une base neuve.
+    sortis = int(sql(f"select count(*) from player_messages pm"
+                     f" where pm.progress_id = '{etat['id']}'::uuid"
+                     f" and pm.source = 'scripted' and pm.body in"
+                     f" (select body from messages m join nodes n on n.id = m.node_id"
+                     f"  where n.code = 'N8');"))
+    verifier(f'Un seul des {total} messages du N8 est sorti', sortis, 1)
+
+    verifier('Trois options offertes', len(p.noeud['choices']), 3)
+    verifier('Aucune n\'est signalée comme micro-choix',
+             sorted({c['kind'] for c in p.noeud['choices']}), ['reply'])
+    verifier('Le nœud n\'annonce pas qu\'on peut continuer', p.noeud['can_continue'], False)
+
+    r = p.choisir('Pourquoi cet endroit')
+    corps = [m['body'] for m in r['new_messages']]
+    verifier('La réplique du joueur s\'affiche', corps[0], 'Pourquoi cet endroit précisément ?')
+    verifier('La variante de Léna suit', corps[1], "J'y viens.")
+    verifier('Puis le reste du nœud sort', len(corps) > 2, True)
+
+    etat = progression(p.email)
+    verifier('La pause est refermée', etat['node_gate'], None)
+    verifier('Le nœud est arrivé au bout', p.noeud['code'], 'N8')
+    verifier('Les choix structurants sont là', len(p.noeud['choices']) >= 3, True)
+
+
+def on_ne_repond_pas_deux_fois():
+    titre('LA GARDE — une pause refermée ne se rejoue pas')
+    p = aller_au_n8('micro-garde@test.local')
+
+    # L'attaque n'est pas de rejouer LE MÊME choix — ça, l'idempotence le gère
+    # déjà et c'est même souhaitable sur une retransmission réseau. C'est d'en
+    # jouer un AUTRE sur la pause qu'on vient de refermer : sans garde, la
+    # posture serait comptée deux fois pour un seul moment de fiction.
+    autre = next(c['id'] for c in p.noeud['choices'] if c['label'].startswith('Comment'))
+    p.choisir('Seule')
+    avant = progression(p.email)['variables']['micro']['n']
+
+    try:
+        http(f'{API}/functions/v1/advance', {'choice_id': autre}, p.token)
+        verifier('Une seconde réponse à la même pause est refusée', 'acceptée', 'refusée')
+    except RuntimeError as e:
+        verifier('Une seconde réponse à la même pause est refusée',
+                 'choix_hors_pause' in str(e), True)
+    verifier('Le décompte n\'a pas bougé',
+             progression(p.email)['variables']['micro']['n'], avant)
+
+
+def la_posture_ne_ramifie_pas():
+    titre('LA GRAMMAIRE — trois postures, une seule suite')
+    arrivees = {}
+    for label, axe, _ in MICRO:
+        p = aller_au_n8(f'micro-{axe}@test.local')
+        p.choisir(label.split()[0])
+        arrivees[axe] = p.noeud['code']
+        etat = progression(p.email)
+        verifier(f'{axe:<9} → compté une fois', etat['variables']['micro'][axe], 1)
+        verifier(f'{axe:<9} → total des micro-choix', etat['variables']['micro']['n'], 1)
+    verifier('Les trois axes mènent au même endroit', len(set(arrivees.values())), 1)
+
+    # Un seul micro-choix ne doit presque rien changer : c'est le lissage.
+    etat = progression('micro-raison@test.local')
+    verifier('Un seul choix ne fait pas bondir la lucidité',
+             etat['variables']['lucidite'] <= 1, True)
+
+
+def la_proportion_est_stable():
+    titre('LA FORMULE — 20 et 60 micro-choix, même résultat')
+    p = aller_au_n8('micro-formule@test.local')
+    resultats = {}
+    for n in (20, 60):
+        # On pose directement le décompte : ce qu'on teste ici est la formule,
+        # pas le chemin qui y mène.
+        raison, autres = int(n * 0.8), n - int(n * 0.8)
+        sql(f"""update player_progress set variables = variables || jsonb_build_object(
+                  'micro', jsonb_build_object('n', {n}, 'raison', {raison},
+                                              'proteger', {autres}, 'enquete', 0))
+                where id = (select id from player_progress
+                            where user_id = (select id from auth.users
+                                             where email = 'micro-formule@test.local'));""")
+        # Un tour de moteur suffit à redériver.
+        etat_avant = progression(p.email)
+        p.choisir('Comment vous avez')  if etat_avant['node_gate'] == 0 else None
+        etat = progression(p.email)
+        resultats[n] = (etat['variables']['lucidite'], etat['variables']['confiance'])
+        print(f"   {n:>2} micro-choix à 80 % « raisonner » → lucidite "
+              f"{etat['variables']['lucidite']}, confiance {etat['variables']['confiance']}")
+
+    verifier('20 et 60 donnent la même lucidité', resultats[20][0], resultats[60][0])
+    verifier('20 et 60 donnent la même confiance', resultats[20][1], resultats[60][1])
+    verifier('Une posture nette se voit', resultats[60][0] >= 2, True)
+
+
+if __name__ == '__main__':
+    retirer_essai()
+    poser_essai()
+    try:
+        la_pause_coupe_le_noeud()
+        on_ne_repond_pas_deux_fois()
+        la_posture_ne_ramifie_pas()
+        la_proportion_est_stable()
+    finally:
+        retirer_essai()
+        print('\n  (pose d\'essai retirée)')
+
+    print('\n' + '=' * 78)
+    if sim.ECHECS:
+        print(f'  ❌  {len(sim.ECHECS)} ÉCHEC(S)')
+        for e in sim.ECHECS:
+            print(f'      · {e}')
+        sys.exit(1)
+    print('  ✅  Le mécanisme des micro-choix tient.')
+    print('=' * 78)

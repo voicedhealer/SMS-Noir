@@ -25,6 +25,7 @@ import {
   ecrireInlineResponse,
   ecrireMessageJoueur,
   entrerDansNoeud,
+  poursuivreDansNoeud,
   ErreurMoteur,
   etatFinDeChapitre,
   etatNoeud,
@@ -64,7 +65,7 @@ Deno.serve(servir(async (req) => {
 
   const reponse: AdvanceResponse = {
     new_messages: messages,
-    node: await etatNoeud(db, progression.current_node_id, progression.variables),
+    node: await etatNoeud(db, progression.current_node_id, progression.variables, progression.node_gate),
     conversations: await conversations(db, progression.id, histoire.id, progression.variables),
     chapter_end: await etatFinDeChapitre(db, progression, noeudFinal?.code ?? null, noeudFinal?.kind ?? null),
     ai_moment_pending: noeudFinal?.kind === 'ai_moment',
@@ -96,7 +97,9 @@ async function franchirTransition(
 ): Promise<Resultat> {
   const choix = await chargerChoix(db, noeud.id)
   const reponses = choix.filter(
-    (c) => c.kind !== 'interaction' && evaluerConditions(progression.variables, c.conditions),
+    (c) => c.kind !== 'interaction' &&
+      (c.after_position ?? null) === (progression.node_gate ?? null) &&
+      evaluerConditions(progression.variables, c.conditions),
   )
   // Un nœud qui propose des réponses ne se franchit pas tout seul : le joueur doit choisir.
   if (reponses.length > 0) {
@@ -141,6 +144,12 @@ async function appliquerChoix(
   if (!evaluerConditions(progression.variables, choix.conditions)) {
     throw new ErreurMoteur(403, 'choix_verrouille', 'Les conditions de ce choix ne sont pas remplies')
   }
+  // Le choix doit appartenir à la pause OUVERTE, pas à une autre du même nœud.
+  // Sans ce garde-fou, un client pourrait rejouer un micro-choix déjà passé ou
+  // sauter par-dessus la suite du nœud.
+  if ((choix.after_position ?? null) !== (progression.node_gate ?? null)) {
+    throw new ErreurMoteur(403, 'choix_hors_pause', 'Ce choix n\'est pas ouvert en ce moment')
+  }
 
   const contact = await contactDuNoeud(db, noeud.id)
   const messages: MessageEcrit[] = []
@@ -148,7 +157,7 @@ async function appliquerChoix(
   // --- Message du joueur -----------------------------------------------
   // « Ignorer » n'écrit rien : le joueur n'a rien dit, il avance quand même.
   // Une interaction non plus : sa réplique, s'il y en a une, est dans l'inline_response.
-  if (choix.kind === 'reply') {
+  if (choix.kind === 'reply' || choix.kind === 'micro') {
     messages.push(
       ...await ecrireMessageJoueur(db, progression.id, contact, choix.label, 'player_choice'),
     )
@@ -161,6 +170,19 @@ async function appliquerChoix(
   if (choix.next_node_id) {
     // Transition : le nœud atteint appliquera SES propres effects (refus, reveal_contact).
     const apres = await entrerDansNoeud(db, courante, choix.next_node_id)
+    courante = apres.progression
+    messages.push(...apres.messages)
+  } else if (choix.kind === 'micro') {
+    // Micro-choix : la variante de réplique de Léna, puis le nœud REPREND là
+    // où la pause l'avait arrêté. Le nœud ne change pas, mais le déroulé
+    // continue — c'est ce qui distingue un micro-choix d'une interaction.
+    messages.push(...await signerMedias(
+      db, await ecrireInlineResponse(db, progression.id, contact, choix.inline_response)))
+    const { error } = await db.from('player_progress')
+      .update({ variables: vars }).eq('id', progression.id)
+    if (error) throw new ErreurMoteur(500, 'maj_impossible', error.message)
+
+    const apres = await poursuivreDansNoeud(db, courante)
     courante = apres.progression
     messages.push(...apres.messages)
   } else {

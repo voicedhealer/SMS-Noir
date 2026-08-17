@@ -52,7 +52,7 @@ Deno.serve(servir(async (req) => {
     new_messages: messagesInitiaux,
     conversations: await conversations(db, progression.id, histoire.id, progression.variables),
     history: (await historique(db, progression.id)).filter((m) => !seqsAJouer.has(m.seq)),
-    node: await etatNoeud(db, progression.current_node_id, progression.variables),
+    node: await etatNoeud(db, progression.current_node_id, progression.variables, progression.node_gate),
     chapter_end: await etatFinDeChapitre(db, progression, noeud?.code ?? null, noeud?.kind ?? null),
     // Le nœud courant est le moment IA : la saisie libre s'ouvre (exécution au prompt 3).
     ai_moment_pending: noeud?.kind === 'ai_moment',

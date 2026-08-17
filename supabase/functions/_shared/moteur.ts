@@ -104,10 +104,11 @@ const CHAMPS_NOEUD = 'id, code, kind, next_node_id, ai_fallback_node_id, '
   + 'ai_system_prompt, ai_max_exchanges, effects, chapter_id'
 const CHAMPS_PROGRESSION = 'id, user_id, story_id, current_node_id, variables, '
   + 'chapter_unlocked_at, last_choice_id, last_choice_seq, ai_exchanges, '
-  + 'ai_consent_at, ai_consent_refuse'
+  + 'ai_consent_at, ai_consent_refuse, node_cursor, node_gate'
 
 const CHAMPS_CHOIX =
-  'id, node_id, position, label, kind, next_node_id, inline_response, effects, conditions'
+  'id, node_id, position, label, kind, next_node_id, inline_response, effects, conditions, '
+  + 'after_position'
 
 // ---------------------------------------------------------------------------
 // Chargements
@@ -285,16 +286,39 @@ export async function ecrireInlineResponse(
 // ---------------------------------------------------------------------------
 
 /** Le nœud propose-t-il au moins une interaction encore disponible ? */
+// Les trois helpers ci-dessous ne regardent que les choix de FIN de nœud
+// (`after_position` nul). Ceux qui portent une position sont des pauses
+// intermédiaires : ils ont déjà été joués, ou ils le seront plus loin dans le
+// déroulé — les compter ici arrêterait le nœud avant l'heure.
+
 async function interactionDisponible(
   db: SupabaseClient, nodeId: string, vars: Variables,
 ): Promise<boolean> {
   const choix = await chargerChoix(db, nodeId)
-  return choix.some((c) => c.kind === 'interaction' && evaluerConditions(vars, c.conditions))
+  return choix.some((c) =>
+    c.after_position === null && c.kind === 'interaction' && evaluerConditions(vars, c.conditions))
 }
 
 async function aDesReponses(db: SupabaseClient, nodeId: string, vars: Variables): Promise<boolean> {
   const choix = await chargerChoix(db, nodeId)
-  return choix.some((c) => c.kind !== 'interaction' && evaluerConditions(vars, c.conditions))
+  return choix.some((c) =>
+    c.after_position === null && c.kind !== 'interaction' && evaluerConditions(vars, c.conditions))
+}
+
+/**
+ * Prochaine pause du nœud : la plus petite `after_position` encore devant nous.
+ *
+ * `null` = plus aucune pause, le nœud peut se dérouler jusqu'au bout.
+ */
+async function prochainePause(
+  db: SupabaseClient, nodeId: string, vars: Variables, curseur: number,
+): Promise<number | null> {
+  const positions = (await chargerChoix(db, nodeId))
+    .filter((c) =>
+      c.after_position !== null && c.after_position >= curseur &&
+      evaluerConditions(vars, c.conditions))
+    .map((c) => c.after_position as number)
+  return positions.length ? Math.min(...positions) : null
 }
 
 /**
@@ -308,23 +332,52 @@ async function aDesReponses(db: SupabaseClient, nodeId: string, vars: Variables)
  *   • un ai_moment    -> saisie libre (prompt 3)
  *   • un chapter_end  -> pose chapter_unlocked_at
  */
-export async function entrerDansNoeud(
+export function entrerDansNoeud(
   db: SupabaseClient,
   progression: Progression,
   nodeId: string,
 ): Promise<{ progression: Progression; messages: MessageEcrit[] }> {
+  return derouler(db, progression, nodeId, 0)
+}
+
+async function derouler(
+  db: SupabaseClient,
+  progression: Progression,
+  nodeId: string,
+  curseurInitial: number,
+): Promise<{ progression: Progression; messages: MessageEcrit[] }> {
   let vars = progression.variables
   let courant: string | null = nodeId
   let unlockedAt = progression.chapter_unlocked_at
+  let curseur = curseurInitial
+  let pauseOuverte: number | null = null
   const messages: MessageEcrit[] = []
 
   for (let i = 0; courant && i < MAX_ENCHAINEMENTS; i++) {
     const noeud: NoeudBrut = await chargerNoeud(db, courant)
 
     // Effets portés par le nœud lui-même : refus (N11), reveal_contact (N5, N7).
-    vars = appliquerPlafonds(appliquerEffects(vars, noeud.effects))
+    // Sautés sur une REPRISE en cours de nœud : on n'y entre pas deux fois.
+    if (!(i === 0 && curseurInitial > 0)) {
+      vars = appliquerPlafonds(appliquerEffects(vars, noeud.effects))
+    }
 
-    messages.push(...await ecrireMessagesDuNoeud(db, progression.id, noeud.id))
+    // On ne délivre que jusqu'à la prochaine pause : au-delà, des choix
+    // attendent le joueur au milieu du nœud.
+    const pause = await prochainePause(db, noeud.id, vars, curseur)
+    const lot = await ecrireMessagesDuNoeud(
+      db, progression.id, noeud.id, curseur, pause ?? Number.MAX_SAFE_INTEGER)
+    messages.push(...lot.messages)
+
+    if (pause !== null) {
+      curseur = pause + 1
+      pauseOuverte = pause
+      break
+    }
+    // Tous les messages du nœud sont sortis. Le curseur passe DERRIÈRE la
+    // dernière position : sinon une pause déjà jouée se rouvrirait au tour
+    // suivant, et le joueur revivrait le même micro-choix.
+    curseur = lot.finPosition + 1
 
     if (noeud.kind === 'ai_moment') {
       // On entre dans un moment IA : le décompte repart de zéro. Sans ça, un
@@ -341,29 +394,71 @@ export async function entrerDansNoeud(
     if (!noeud.next_node_id) break
 
     courant = noeud.next_node_id
+    curseur = 0 // nouveau nœud, nouveau déroulé
   }
 
   const { error } = await db.from('player_progress')
-    .update({ current_node_id: courant, variables: vars, chapter_unlocked_at: unlockedAt })
+    .update({
+      current_node_id: courant,
+      variables: vars,
+      chapter_unlocked_at: unlockedAt,
+      node_cursor: curseur,
+      node_gate: pauseOuverte,
+    })
     .eq('id', progression.id)
   if (error) throw new ErreurMoteur(500, 'maj_impossible', error.message)
 
   return {
-    progression: { ...progression, current_node_id: courant, variables: vars, chapter_unlocked_at: unlockedAt },
+    progression: {
+      ...progression,
+      current_node_id: courant,
+      variables: vars,
+      chapter_unlocked_at: unlockedAt,
+      node_cursor: curseur,
+      node_gate: pauseOuverte,
+    },
     messages: await signerMedias(db, messages),
   }
 }
 
+/**
+ * Reprend le déroulé du nœud courant, là où une pause l'avait arrêté.
+ *
+ * Appelée après un micro-choix : le joueur a répondu, la suite des messages
+ * peut sortir. Même code que l'entrée dans un nœud, à ceci près qu'on ne
+ * réapplique pas les effects du nœud — on n'y entre pas une seconde fois.
+ */
+export function poursuivreDansNoeud(
+  db: SupabaseClient,
+  progression: Progression,
+): Promise<{ progression: Progression; messages: MessageEcrit[] }> {
+  if (!progression.current_node_id) {
+    throw new ErreurMoteur(409, 'progression_corrompue', 'Aucun nœud courant')
+  }
+  return derouler(db, progression, progression.current_node_id, progression.node_cursor ?? 0)
+}
+
+/**
+ * Délivre les messages d'un nœud entre deux positions, bornes comprises.
+ *
+ * Renvoie aussi la dernière position vue, y compris quand la tranche est vide :
+ * l'appelant en a besoin pour poser le curseur derrière la fin du nœud.
+ */
 async function ecrireMessagesDuNoeud(
   db: SupabaseClient, progressId: string, nodeId: string,
-): Promise<MessageEcrit[]> {
+  depuis = 0, jusqua = Number.MAX_SAFE_INTEGER,
+): Promise<{ messages: MessageEcrit[]; finPosition: number }> {
   const { data, error } = await db
     .from('messages')
     .select('position, contact_id, content_type, body, media_url, delay_seconds, typing_seconds, push_notification, push_text, phantom_typing_at, haptic_at')
     .eq('node_id', nodeId).order('position')
   if (error) throw new ErreurMoteur(500, 'erreur_base', error.message)
 
-  return await ecrire(db, progressId, (data ?? []).map((m) => ({
+  const tous = data ?? []
+  const finPosition = tous.length ? Number(tous[tous.length - 1].position) : depuis - 1
+  const tranche = tous.filter((m) => m.position >= depuis && m.position <= jusqua)
+
+  const messages = await ecrire(db, progressId, tranche.map((m) => ({
     contact_id: m.contact_id,
     sender: 'contact' as const,
     content_type: m.content_type,
@@ -377,6 +472,7 @@ async function ecrireMessagesDuNoeud(
     phantom_typing_at: m.phantom_typing_at,
     haptic_at: m.haptic_at,
   })))
+  return { messages, finPosition }
 }
 
 /** chapter_unlocked_at = now() + délai du chapitre SUIVANT (stub compris). */
@@ -404,27 +500,37 @@ async function calculerDeblocage(
  * Ne sortent jamais : next_node_id, effects, conditions, ni les choix verrouillés.
  */
 export async function etatNoeud(
-  db: SupabaseClient, nodeId: string | null, vars: Variables,
+  db: SupabaseClient, nodeId: string | null, vars: Variables, pauseCourante: number | null = null,
 ): Promise<ClientNode | null> {
   if (!nodeId) return null
   const noeud = await chargerNoeud(db, nodeId)
   const tous = await chargerChoix(db, nodeId)
-  const ouverts = tous.filter((c) => evaluerConditions(vars, c.conditions))
 
-  const reponses: ClientChoice[] = ouverts
-    .filter((c) => c.kind !== 'interaction')
-    .map((c) => ({ id: c.id, position: c.position, label: c.label, kind: c.kind }))
+  // Seule la pause où le déroulé s'est arrêté est ouverte. Les autres sont
+  // derrière nous ou devant. `after_position` nul = les choix de fin de nœud.
+  const ouverts = tous.filter((c) =>
+    c.after_position === pauseCourante && evaluerConditions(vars, c.conditions))
 
-  const interactions: ClientChoice[] = ouverts
-    .filter((c) => c.kind === 'interaction')
-    .map((c) => ({ id: c.id, position: c.position, label: c.label, kind: c.kind }))
+  // ⚠️ `micro` est renvoyé comme `reply`. Le client ne doit JAMAIS pouvoir
+  // distinguer un choix qui ramifie d'un choix qui n'enregistre qu'une posture
+  // — s'il le pouvait, le joueur saurait quels moments comptent, et la
+  // grammaire des trois axes ne mesurerait plus rien de sincère.
+  const visible = (c: ChoixBrut): ClientChoice => ({
+    id: c.id,
+    position: c.position,
+    label: c.label,
+    kind: c.kind === 'micro' ? 'reply' : c.kind,
+  })
+
+  const reponses = ouverts.filter((c) => c.kind !== 'interaction').map(visible)
+  const interactions = ouverts.filter((c) => c.kind === 'interaction').map(visible)
 
   return {
     code: noeud.code,
     kind: noeud.kind,
     choices: [...reponses, ...interactions],
     awaiting_interaction: reponses.length === 0 && interactions.length > 0,
-    can_continue: reponses.length === 0 &&
+    can_continue: reponses.length === 0 && pauseCourante === null &&
       (noeud.kind === 'ai_moment' ? noeud.ai_fallback_node_id !== null : noeud.next_node_id !== null),
   }
 }

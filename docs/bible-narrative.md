@@ -1,6 +1,13 @@
 # BIBLE NARRATIVE — Numéro Inconnu
 *Source de vérité du projet. Toute contribution (humaine ou Claude Code) doit être cohérente avec ce document. En cas de conflit, ce fichier gagne. Version 1.0 — chapitres 1 validé, 2-5 en structure.*
 
+> **Modifications apportées à ce fichier**, sur autorisation explicite de Vivien.
+> Ce document est en lecture seule par défaut ; chaque exception est listée ici.
+>
+> - **§3** — ancrage des dates sur le Jour J (jeudi 13 août 2026).
+> - **§6** — grammaire des trois axes, variable `enquete`, règle « raisonner
+>   n'est jamais puni ». Ajouté avec le chapitre 1 V3.1.
+
 ## 1. Pitch
 
 22h47, le joueur reçoit un SMS destiné à un certain Karim : une inconnue, Léna, part enquêter seule sur la disparition de sa sœur Chloé. Mauvais numéro... en apparence. Le joueur devient son seul contact. Cinq chapitres, trois fins, et une question qui monte : pourquoi LUI ?
@@ -72,17 +79,40 @@ Sensation visée : trois mécanismes différents = trois frissons différents (l
 | Variable | Plage | Alimentée par |
 |---|---|---|
 | `confiance` | 0-10 (départ 3, plafond 6 si `refus`) | Choix empathiques, moment IA, loyauté dans le groupe |
-| `lucidite` | 0-5 ch. 1, extensible | Incohérences repérées (voir §7) |
+| `lucidite` | 0-5 ch. 1, extensible | Incohérences repérées (§7) **+ posture « raisonner »** |
+| `enquete` | 0-10 (départ 0) | **Posture « enquêter » uniquement** — paliers 3 et 6 |
 | `indices` | liste | Interactions cachées + choix d'enquête |
 | `refus` | bool | Branche N11 |
 | `branche_ch1` | code | Callbacks d'ouverture ch. 2 |
 | `detail_perso` | texte (RGPD §9) | Moment IA N9 |
 | `loyaute` (ch. 3+) | leña / karim / neutre | Ce que le joueur répercute du privé vers le groupe |
 
+**La grammaire des trois axes** *(ajoutée en V3.1 — voir « Modifications » en tête de fichier)*
+
+Chaque micro-choix offre trois options, toujours dans le même ordre : **protéger ·
+enquêter · raisonner**. Aucune ne ramifie, aucune n'est étiquetée, et le joueur
+ne sait jamais qu'il alimente quoi que ce soit.
+
+Ce qui compte n'est pas *combien de fois* il a choisi un axe, mais **quelle
+part** de ses micro-choix c'était. Un joueur qui raisonne aux trois quarts finit
+au même endroit qu'il en ait rencontré vingt ou soixante — la posture est une
+proportion, pas un compteur. La formule exacte est dans `docs/LOGIQUE.md`.
+
+`enquete` mesure la **posture** (le joueur creuse-t-il ?), `indices` les
+**découvertes**. On peut beaucoup chercher et trouver peu.
+
+**Règle absolue : raisonner n'est jamais puni.** Douter ne fait jamais baisser la
+`confiance`. Un joueur qui doute est un bon joueur — c'est lui qui trouve les
+incohérences du §7. Le punir lui apprendrait à ne plus douter, et il raterait la
+fin cachée.
+
 **Fins (déterminées ch. 5) :**
 1. **La sauver** : confiance ≥ 7 ET ≥ 3 indices — le joueur guide Léna dans la nuit finale
 2. **Trop tard** : par défaut — vérité découverte, mais après le drame
 3. **Fin cachée** : lucidite ≥ 4 ET a répondu à Chloé (ch. 5) — la vérité complète, y compris le 12 mars et le rôle réel de Karim
+
+Aux chapitres 4-5, `enquete ≥ 3` ouvre les options d'enquête, `enquete ≥ 6` les
+options avancées.
 
 ## 7. Incohérences plantées (le carburant de `lucidite`)
 

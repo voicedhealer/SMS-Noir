@@ -151,7 +151,7 @@ Deno.serve(servir(async (req) => {
 
   return json({
     new_messages: messages,
-    node: await etatNoeud(db, progression.current_node_id, variables),
+    node: await etatNoeud(db, progression.current_node_id, variables, progression.node_gate),
     conversations: await conversations(db, progression.id, histoire.id, variables),
     chapter_end: null,
     ai_moment_pending: true,
@@ -276,7 +276,7 @@ async function raccrocher(
 
   return {
     new_messages: messages,
-    node: await etatNoeud(db, apres.progression.current_node_id, apres.progression.variables),
+    node: await etatNoeud(db, apres.progression.current_node_id, apres.progression.variables, apres.progression.node_gate),
     conversations: await conversations(db, progression.id, storyId, apres.progression.variables),
     chapter_end: await etatFinDeChapitre(
       db, apres.progression, noeudFinal?.code ?? null, noeudFinal?.kind ?? null),
@@ -302,7 +302,7 @@ async function enregistrerConsentement(
   if (accepte) {
     return {
       new_messages: [],
-      node: await etatNoeud(db, progression.current_node_id, progression.variables),
+      node: await etatNoeud(db, progression.current_node_id, progression.variables, progression.node_gate),
       conversations: await conversations(db, progression.id, storyId, progression.variables),
       chapter_end: null,
       ai_moment_pending: true,
