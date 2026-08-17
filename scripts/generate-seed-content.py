@@ -25,7 +25,19 @@ import sys
 
 RACINE = pathlib.Path(__file__).resolve().parent.parent
 DOC = RACINE / 'docs' / 'chapitre-1-v3.2.md'
-SEED = RACINE / 'supabase' / 'seed.sql'
+#: Le contenu vit dans une migration datée, pas dans le seed. En développement
+#: on réécrit la PLUS RÉCENTE ; une nouvelle n'est créée qu'à la publication
+#: (`--publier`), sinon chaque régénération produirait une migration de plus.
+def cible() -> pathlib.Path:
+    migs = sorted((RACINE / 'supabase' / 'migrations').glob('*_contenu_chapitre_1.sql'))
+    if '--publier' in sys.argv or not migs:
+        import datetime
+        horodatage = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+        return RACINE / 'supabase' / 'migrations' / f'{horodatage}_contenu_chapitre_1.sql'
+    return migs[-1]
+
+
+SEED = cible()
 
 AXE = {'🛡': 'proteger', '🔍': 'enquete', '🧠': 'raison'}
 
@@ -314,6 +326,59 @@ def sql_choix(noeuds):
     return '\n'.join(lignes) + '\n'
 
 
+#: Préambule de toute migration de contenu.
+#:
+#: Remplacer le contenu supprime les nœuds et les contacts. Les progressions en
+#: cours les référencent : sans ce préambule, la migration échoue sur une clé
+#: étrangère — constaté sur l'hébergé le 17 août 2026, la migration locale
+#: passant parce que `db reset` avait déjà tout vidé.
+#:
+#: **On réinitialise, on n'efface pas.** Les lignes `player_progress` restent,
+#: avec leur compte et leur historique de consentement RGPD ; seul le pointeur
+#: narratif est remis à zéro. Voir docs/ARCHITECTURE.md.
+PREAMBULE = """-- Remise à zéro des parties en cours, AVANT de toucher au contenu.
+--
+-- Les nœuds et les contacts vont être remplacés ; les progressions les
+-- référencent. Sans ça, la migration échoue sur une clé étrangère.
+--
+-- On réinitialise, on n'efface pas : le compte et l'historique de consentement
+-- survivent, seul le pointeur narratif est perdu. Voir ARCHITECTURE.md.
+delete from player_messages;
+update player_progress set
+  current_node_id = null, node_cursor = 0, node_gate = null,
+  last_choice_id = null, last_choice_seq = null, ai_exchanges = 0,
+  variables = default, chapter_unlocked_at = null;
+
+-- Puis le contenu, dans l'ordre des dépendances.
+--
+-- Un simple `delete from stories` ne suffit pas : la cascade atteint `contacts`
+-- avant `messages`, qui les référence sans ON DELETE CASCADE. En local ça
+-- passait — la base était vide et le delete n'avait rien à supprimer. C'est la
+-- première base peuplée qui l'a révélé.
+delete from messages;
+delete from choices;
+-- Les chapitres pointent leur nœud d'entrée : on relâche le lien avant
+-- de supprimer les nœuds, sinon la clé étrangère tient.
+update chapters set entry_node_id = null;
+delete from nodes;
+-- Les chapitres aussi : sans la cascade de `stories`, ils survivraient et
+-- l'insertion buterait sur (story_id, position). Rien ne les référence côté
+-- joueur, leur suppression est sans conséquence.
+delete from chapters;
+delete from contacts;
+
+-- ⚠️ **On ne supprime JAMAIS la ligne `stories`.**
+--
+-- `player_progress.story_id` la référence en ON DELETE CASCADE : la supprimer
+-- emporte toutes les progressions, avec les comptes et l'historique de
+-- consentement RGPD. C'est arrivé le 17 août 2026, sur l'application de cette
+-- migration même qui prétendait les protéger.
+--
+-- L'histoire est donc mise à jour en place, jamais recréée.
+
+"""
+
+
 def remplacer(seed, depuis, ouvre, ferme, contenu):
     """Remplace entre deux bornes, en cherchant APRÈS un marqueur de départ.
 
@@ -350,7 +415,13 @@ if __name__ == '__main__':
     if '--dry' in sys.argv:
         sys.exit(1 if ecarts else 0)
 
-    seed = SEED.read_text()
+    # En publication, la nouvelle migration part de la précédente : le squelette
+    # (histoire, contacts, chapitres, nœuds) n'est pas généré, seuls les
+    # messages et les choix le sont.
+    precedentes = sorted((RACINE / 'supabase' / 'migrations')
+                         .glob('*_contenu_chapitre_1.sql'))
+    source = SEED if SEED.exists() else precedentes[-1]
+    seed = source.read_text()
     seed = remplacer(
         seed, 'insert into messages', 'from (values\n',
         '\n) as v(node, pos, ctype, body, media, delay, typing, push, push_text)',
@@ -367,5 +438,20 @@ if __name__ == '__main__':
               'v.effects::jsonb\nfrom (values\n',
         '\n) as v(node, pos, label, apres, inline, effects)',
         sql_micro(noeuds))
+    # Le préambule vit en tête, sous l'en-tête de la migration.
+    if 'delete from player_messages;' not in seed:
+        i = seed.index('delete from stories')
+        seed = seed[:i] + PREAMBULE + seed[i:]
+    # L'histoire est mise à jour en place, jamais supprimée puis recréée :
+    # `player_progress.story_id` la référence en ON DELETE CASCADE.
+    seed = seed.replace("delete from stories where slug = 'numero-inconnu';\n", '')
+    seed = seed.replace(
+        "insert into stories (slug, title, tagline, genre, status, is_premium) values (",
+        "insert into stories (slug, title, tagline, genre, status, is_premium) values (")
+    seed = re.sub(r"(insert into stories \([^)]*\) values \([^;]*?)\n\);",
+                  r"\1\n)\non conflict (slug) do update set\n"
+                  r"  title = excluded.title, tagline = excluded.tagline,\n"
+                  r"  genre = excluded.genre, status = excluded.status,\n"
+                  r"  is_premium = excluded.is_premium;", seed, count=1)
     SEED.write_text(seed)
-    print('  ✅ supabase/seed.sql régénéré depuis le chapitre V3.2')
+    print(f'  ✅ {SEED.name} régénéré depuis le chapitre V3.2')
