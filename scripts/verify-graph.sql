@@ -234,7 +234,7 @@ select _chk(43, 'Aucun média sans URL', '',
   coalesce((select string_agg(n.code || '#' || m.position, ', ') from _n n join messages m on m.node_id = n.id
             where m.content_type in ('image','audio') and m.media_url is null), ''));
 
-select _chk(44, 'Nombre total de messages', '64',
+select _chk(44, 'Nombre total de messages', '65',
   (select count(*)::text from _n n join messages m on m.node_id = n.id));
 
 select _chk(45, 'Nombre total de choix', '96',

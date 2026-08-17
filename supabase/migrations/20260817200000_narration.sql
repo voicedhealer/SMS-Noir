@@ -23,3 +23,13 @@ alter table messages drop constraint text_needs_body;
 alter table messages add constraint text_needs_body
   check (content_type not in ('text', 'system', 'separator', 'narration')
          or body is not null);
+
+-- Et le fil du joueur, qui reçoit la copie délivrée.
+--
+-- Oublier cette table est le piège de tout nouveau content_type : `messages`
+-- est le contenu, `player_messages` est ce qui arrive vraiment au joueur. Le
+-- seed passe sans broncher, et c'est la première partie jouée qui casse.
+alter table player_messages drop constraint player_messages_content_type_check;
+alter table player_messages add constraint player_messages_content_type_check
+  check (content_type in ('text', 'image', 'audio', 'system', 'separator',
+                          'contact_card', 'narration'));

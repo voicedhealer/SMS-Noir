@@ -71,13 +71,15 @@ class PartieIA(Partie):
 
     def __init__(self, email: str, nom: str, consentement=True):
         super().__init__(email, nom)
-        self.choisir('Qui ça')
+        # Libellés V3.2. Le marcheur franchit les blocs de micro-choix tout
+        # seul (posture « protéger » par défaut) : seules les décisions
+        # structurantes sont écrites ici, et le chemin reste lisible.
+        self.choisir('Bonsoir, qui')
         self.choisir("Quelqu'un qui a reçu")
-        self.choisir("C'est qui, ce type ?")
-        self.choisir('Ok. Je garde mon téléphone')
+        self.choisir("D'accord, je garde mon")
         self.choisir('Prenez la plaque')
-        self.choisir("Zoomer sur l'autocollant")
-        self.choisir('Il faut porter ça à la police')
+        self.choisir("Zoomer sur l'auto")
+        self.choisir('Il faut porter')
         assert self.noeud['code'] == 'N9', f'attendu N9, obtenu {self.noeud["code"]}'
         if consentement is not None:
             self.consentir(consentement)

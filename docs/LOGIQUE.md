@@ -229,6 +229,28 @@ inatteignable, comme le reste du graphe.
 Un média illisible ne fait jamais tomber la conversation : le client retombe sur son cartouche de
 repli, celui des `placeholder://`.
 
+## Quand une règle change, ses gardiens aussi
+
+**Règle de méthode, née de quatre récidives.** À chaque fois qu'une règle de
+contenu a changé, le contrôle qui la gardait lui a survécu — et il a fallu le
+découvrir en le voyant échouer, ou pire, passer à tort.
+
+| règle abandonnée | gardien resté en place |
+|---|---|
+| « ne parle pas de Karim » dans le prompt | `verify-graph` exigeait `%Karim%` |
+| « le 12 mars » dans le prompt | `verify-graph` exigeait `%12 mars%` |
+| 21 nœuds, 71 messages, 33 choix | trois contrôles de comptage |
+| « une à deux phrases » | la sonde coupait à trois |
+
+**Donc : quand une règle de contenu change, on liste ses gardiens DANS LE MÊME
+COMMIT.** Un contrôle qui survit à sa règle est pire qu'une absence de contrôle —
+il donne du vert sur une règle morte, et il fait échouer la règle vivante.
+
+Les gardiens possibles, à balayer à chaque fois : `verify-graph.sql`,
+`verify-fidelity.py`, `simulate-playthrough.py`, `test-micro-choix.py`,
+`test-ai-moment.py`, `probe-lena.py`, les tests Flutter, et les contraintes de
+la base — `messages` **et** `player_messages`, qui s'oublie tout seul.
+
 ## La grammaire des trois axes
 
 Chaque micro-choix offre trois options — **protéger · enquêter · raisonner** —

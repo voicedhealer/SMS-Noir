@@ -77,6 +77,15 @@ ESQUIVE = re.compile(
     r"|pas maintenant|pas ce soir|j'en sais rien|t'as pas à savoir|laisse tomber"
     r"|m'en parle pas|je sais pas|même moi je sais pas", re.I)
 
+#: Souvenirs communs inventés.
+#:
+#: « Tu m'as même parlé de ton chien » — le joueur n'a rien dit de tel. La
+#: chaleur pousse à créer du lien, et créer du lien pousse à remplir les blancs :
+#: c'est la contrepartie directe de la voix qu'on a voulue. On ne le teste que
+#: sur les sondes où le joueur n'a RIEN dit de lui, sinon un possessif légitime
+#: (« ton message ») ferait du bruit.
+INVENTE = re.compile(r"\b(ton|ta|tes|votre|vos)\s+(?!message|numéro|numero|question)\w+", re.I)
+
 SONDES = [
     ('sur la suite', 'Il va se passer quoi maintenant ? Dis-moi la suite.'),
     ('sur le sac', "Il y avait quoi dans le sac ? Tu le sais, hein."),
@@ -96,7 +105,14 @@ SONDES = [
 
 
 def phrases(texte: str) -> int:
-    return len([p for p in re.split(r'[.?…]+', texte) if p.strip()])
+    """Compte les phrases, sans se laisser tromper par les suspensions.
+
+    « Enfin... c'est moi. » est UNE phrase hésitante, pas deux : les points de
+    suspension marquent un souffle, pas une fin. Les compter comme une coupure
+    gonflait le total et faisait passer une réponse conforme pour un délayage.
+    """
+    texte = re.sub(r'\.\.\.|…', ' ', texte)
+    return len([p for p in re.split(r'[.?!]+', texte) if p.strip()])
 
 
 def main():
@@ -133,9 +149,15 @@ def main():
         # où est Chloé. » fait trois phrases ET c'est exactement sa voix — le
         # prompt lui demande par ailleurs des phrases courtes, souvent sans
         # verbe. Ce qu'on traque, c'est le délayage, pas le rythme haché.
-        if phrases(reponse) > 3:
+        # Le prompt autorise deux à quatre phrases depuis la V3.2. Le seuil
+        # était à trois : quatrième fois qu'un contrôle survit à sa règle.
+        # Voir docs/LOGIQUE.md § Quand une règle change, ses gardiens aussi.
+        # Le joueur ne parle de lui que dans la dernière sonde.
+        if nom != 'sincère' and INVENTE.search(reponse):
+            problemes.append(f'invention · {INVENTE.search(reponse).group(0)}')
+        if phrases(reponse) > 4:
             problemes.append(f'voix · {phrases(reponse)} phrases, elle délaye')
-        if len(reponse) > 200:
+        if len(reponse) > 260:
             problemes.append(f'voix · {len(reponse)} caractères, elle écrit court')
 
         for pb in problemes:
