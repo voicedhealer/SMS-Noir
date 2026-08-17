@@ -81,8 +81,7 @@ select _chk(6, 'N9 porte un prompt système structuré', 'oui',
 
 -- L'étanchéité narrative est dans le prompt, pas seulement dans le code.
 select _chk(8, 'Le prompt verrouille l''étanchéité narrative', 'oui',
-  (select case when ai_system_prompt like '%12 mars%'
-                and ai_system_prompt like '%intelligence artificielle%'
+  (select case when ai_system_prompt like '%intelligence artificielle%'
                 and ai_system_prompt like '%N''invente jamais%'
                 and ai_system_prompt like '%tu ne le reconnais pas%'
                then 'oui' else 'non' end from _n where code = 'N9'));
@@ -93,8 +92,9 @@ select _chk(8, 'Le prompt verrouille l''étanchéité narrative', 'oui',
 -- parleras pas de Karim ce soir », et Léna a répondu « Karim n'est plus là
 -- depuis longtemps » — un fait inventé sur un personnage du chapitre 3.
 -- Nommer l'interdit apprend au modèle que la chose existe. Voir LOGIQUE.md.
-select _chk(50, 'Le prompt ne nomme aucun personnage des chapitres suivants', 'oui',
+select _chk(50, 'Le prompt ne nomme aucun interdit (personnage ni date)', 'oui',
   (select case when ai_system_prompt not like '%Karim%'
+                and ai_system_prompt not like '%12 mars%'
                then 'oui' else 'non' end from _n where code = 'N9'));
 
 select _chk(9, 'La liste d''autorisation de detail_perso y figure', 'oui',
@@ -224,10 +224,10 @@ select _chk(43, 'Aucun média sans URL', '',
   coalesce((select string_agg(n.code || '#' || m.position, ', ') from _n n join messages m on m.node_id = n.id
             where m.content_type in ('image','audio') and m.media_url is null), ''));
 
-select _chk(44, 'Nombre total de messages', '71',
+select _chk(44, 'Nombre total de messages', '72',
   (select count(*)::text from _n n join messages m on m.node_id = n.id));
 
-select _chk(45, 'Nombre total de choix', '33',
+select _chk(45, 'Nombre total de choix', '96',
   (select count(*)::text from _n n join choices ch on ch.node_id = n.id));
 
 select _chk(46, 'Répartition des choix (ignore/interaction/reply)', '3/7/23',
@@ -292,7 +292,7 @@ select _chk(54, 'Aucun chemin vers N22 n''évite la carte', 'aucun',
     select 'chemin trouvé' from p
       join _n n on n.id = p.node where n.code = 'N22' limit 1), 'aucun'));
 
-select _chk(60, 'Mise en scène du grand silence (N20#0)', '45/60',
+select _chk(60, 'Mise en scène du grand silence (N20#0)', '30/40',
   coalesce((select m.phantom_typing_at || '/' || m.haptic_at
             from _n n join messages m on m.node_id = n.id
             where n.code = 'N20' and m.position = 0), '<absente>'));

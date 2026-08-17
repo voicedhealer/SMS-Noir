@@ -1,3 +1,7 @@
+> **ARCHIVE — remplacé par `chapitre-1-v3.1.md`.** Conservé pour la trace :
+> la V3.1 réécrit la texture du chapitre (micro-choix, délais) sans toucher
+> à l'intrigue. Ce fichier n'est plus comparé à la base.
+
 # NUMÉRO INCONNU — Chapitre 1 V2 : Le mauvais numéro
 
 **Changements vs V1 :** délais compressés (max 90s), moment IA déplacé après l'entrepôt, branche du refus avec conséquences durables, 3 interactions "enquêteur", scripts vocaux complets pour TTS, callbacks préparés pour le ch. 2, bouton « Ignorer » explicite.

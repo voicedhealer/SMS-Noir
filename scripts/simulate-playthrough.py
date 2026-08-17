@@ -100,9 +100,17 @@ def variables_en_base(email: str) -> dict:
 # ---------------------------------------------------------------------------
 
 class Partie:
-    def __init__(self, email: str, nom: str):
+    #: Posture prise par défaut aux micro-choix, quand le script ne vise qu'un
+    #: choix structurant. Le rang suffit à désigner l'axe : l'ordre protéger ·
+    #: enquêter · raisonner est constant, et c'est justement pour ça qu'il l'est
+    #: — le client ne reçoit AUCUNE étiquette d'axe (voir LOGIQUE.md).
+    RANG = {'proteger': 0, 'enquete': 1, 'raison': 2}
+
+    def __init__(self, email: str, nom: str, posture: str = 'proteger'):
         self.email = email
         self.nom = nom
+        self.posture = posture
+        self.micro_vus = 0
         self.token = nouveau_joueur(email)
         self.etat = http(f'{API}/functions/v1/get-state', {}, self.token)
         self.journal: list[str] = []
@@ -117,8 +125,51 @@ class Partie:
                      'chapter_end': r['chapter_end'], 'ai_moment_pending': r['ai_moment_pending']}
         return r
 
+    def pause_ouverte(self) -> bool:
+        """Le nœud courant est-il arrêté sur une pause ?
+
+        Lu en service_role, donc DANS LA BASE. Un client ne pourrait pas le
+        savoir — un bloc de trois micro-choix est indiscernable d'un bloc de
+        trois réponses structurantes, et c'est toute l'idée. Un banc d'essai,
+        lui, a le droit de regarder la vérité.
+        """
+        rows = http(
+            f'{API}/rest/v1/player_progress?select=node_gate'
+            f'&user_id=eq.{self._uid()}', None, SERVICE, 'GET', {'apikey': SERVICE})
+        return bool(rows) and rows[0]['node_gate'] is not None
+
+    def _uid(self) -> str:
+        if not getattr(self, '_uid_cache', None):
+            users = http(f'{API}/auth/v1/admin/users?per_page=1000', None, SERVICE, 'GET',
+                         {'apikey': SERVICE})
+            self._uid_cache = next(u['id'] for u in users['users'] if u['email'] == self.email)
+        return self._uid_cache
+
+    def franchir_pauses(self, cible: str | None = None, arret_sur: str | None = None) -> None:
+        """Répond aux micro-choix jusqu'à la prochaine décision structurante.
+
+        `arret_sur` : code de nœud où s'arrêter sans franchir sa pause — utile
+        pour observer une pause précise plutôt que de la traverser.
+        """
+        for _ in range(12):
+            n = self.noeud
+            if not n or not n['choices'] or not self.pause_ouverte():
+                return
+            if arret_sur and n['code'] == arret_sur:
+                return
+            if cible and any(c['label'].startswith(cible) for c in n['choices']):
+                return
+            reponses = [c for c in n['choices'] if c['kind'] == 'reply']
+            if not reponses:
+                return
+            c = reponses[min(self.RANG[self.posture], len(reponses) - 1)]
+            self._avancer({'choice_id': c['id']})
+            self.micro_vus += 1
+            self.journal.append(f"  {n['code']:>4} · ({self.posture}) « {c['label'][:44]} »")
+
     def choisir(self, debut_du_label: str) -> dict:
         """Joue le choix dont le libellé commence par le texte donné."""
+        self.franchir_pauses(debut_du_label)
         n = self.noeud
         assert n, 'aucun nœud courant'
         for c in n['choices']:

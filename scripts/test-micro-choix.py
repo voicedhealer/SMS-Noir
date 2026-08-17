@@ -6,11 +6,10 @@ Usage :
   supabase start && supabase functions serve &
   python3 scripts/test-micro-choix.py
 
-La phase 2 seedera 21 blocs de micro-choix. Les livrer sans avoir éprouvé le
-moteur reviendrait à découvrir un bug de pause au milieu de 63 options de
-contenu, sans savoir si le fautif est le moteur ou le seed. On pose donc une
-POSE D'ESSAI sur le N8 — une pause et trois micro-choix insérés en base — on
-la joue, et on la retire.
+Le N8 porte le premier bloc de micro-choix du chapitre, juste après « Voilà le
+truc. Ce soir je vais à l'ancien entrepôt Verdier ». C'est ce bloc réel qu'on
+exerce ici — la première version de ce script posait une pause d'essai, avant
+que le contenu n'existe.
 
 Vérifie trois choses que le contenu ne pourra plus révéler seul :
   · la pause coupe le nœud au bon endroit, et la suite sort après la réponse
@@ -58,35 +57,12 @@ MICRO = [
 ]
 
 
-def poser_essai(apres_message: int = 0):
-    """Ajoute une pause et trois micro-choix sur le N8."""
-    for i, (label, axe, reponse) in enumerate(MICRO):
-        inline = json.dumps([{
-            'sender': 'contact', 'content_type': 'text', 'body': reponse,
-            'delay_seconds': 2, 'typing_seconds': 2,
-        }]).replace("'", "''")
-        sql(f"""
-          insert into choices (node_id, position, label, kind, after_position,
-                               inline_response, effects)
-          select n.id, 90 + {i}, '{label.replace("'", "''")}', 'micro', {apres_message},
-                 '{inline}'::jsonb, '{{"motif": "{axe}"}}'::jsonb
-          from nodes n join chapters c on c.id = n.chapter_id
-          join stories s on s.id = c.story_id
-          where s.slug = 'numero-inconnu' and c.position = 1 and n.code = 'N8';""")
-
-
-def retirer_essai():
-    # `player_progress.last_choice_id` référence le choix joué : on relâche la
-    # trace d'idempotence avant de retirer la pose, sinon la clé étrangère tient.
-    sql("update player_progress set last_choice_id = null, last_choice_seq = null"
-        " where last_choice_id in (select id from choices where position >= 90);")
-    sql("delete from choices where position >= 90;")
-
 
 def aller_au_n8(email: str) -> Partie:
     p = Partie(email, 'micro')
     p.choisir('Qui ça')
     p.choisir("Quelqu'un qui a reçu")
+    p.franchir_pauses(arret_sur='N8')   # le N5 porte lui aussi un bloc
     assert p.noeud['code'] == 'N8', p.noeud['code']
     return p
 
@@ -134,9 +110,10 @@ def la_pause_coupe_le_noeud():
     verifier('Puis le reste du nœud sort', len(corps) > 2, True)
 
     etat = progression(p.email)
-    verifier('La pause est refermée', etat['node_gate'], None)
-    verifier('Le nœud est arrivé au bout', p.noeud['code'], 'N8')
-    verifier('Les choix structurants sont là', len(p.noeud['choices']) >= 3, True)
+    # Le N8 porte DEUX blocs : la pause ne se referme pas, elle avance.
+    verifier('La pause a avancé au bloc suivant', etat['node_gate'], 1)
+    verifier('On est toujours dans le N8', p.noeud['code'], 'N8')
+    verifier('Trois options à nouveau', len(p.noeud['choices']), 3)
 
 
 def on_ne_repond_pas_deux_fois():
@@ -165,17 +142,22 @@ def la_posture_ne_ramifie_pas():
     titre('LA GRAMMAIRE — trois postures, une seule suite')
     arrivees = {}
     for label, axe, _ in MICRO:
+        # Le trajet jusqu'au N8 traverse déjà le bloc du N5 : on mesure l'ÉCART,
+        # pas l'absolu.
         p = aller_au_n8(f'micro-{axe}@test.local')
+        avant = progression(p.email)['variables']['micro']
         p.choisir(label.split()[0])
         arrivees[axe] = p.noeud['code']
-        etat = progression(p.email)
-        verifier(f'{axe:<9} → compté une fois', etat['variables']['micro'][axe], 1)
-        verifier(f'{axe:<9} → total des micro-choix', etat['variables']['micro']['n'], 1)
+        apres = progression(p.email)['variables']['micro']
+        verifier(f'{axe:<9} → un choix de plus sur son axe',
+                 apres[axe] - avant[axe], 1)
+        verifier(f'{axe:<9} → un seul choix compté au total',
+                 apres['n'] - avant['n'], 1)
     verifier('Les trois axes mènent au même endroit', len(set(arrivees.values())), 1)
 
     # Un seul micro-choix ne doit presque rien changer : c'est le lissage.
     etat = progression('micro-raison@test.local')
-    verifier('Un seul choix ne fait pas bondir la lucidité',
+    verifier('Deux choix ne font pas bondir la lucidité',
              etat['variables']['lucidite'] <= 1, True)
 
 
@@ -207,16 +189,10 @@ def la_proportion_est_stable():
 
 
 if __name__ == '__main__':
-    retirer_essai()
-    poser_essai()
-    try:
-        la_pause_coupe_le_noeud()
-        on_ne_repond_pas_deux_fois()
-        la_posture_ne_ramifie_pas()
-        la_proportion_est_stable()
-    finally:
-        retirer_essai()
-        print('\n  (pose d\'essai retirée)')
+    la_pause_coupe_le_noeud()
+    on_ne_repond_pas_deux_fois()
+    la_posture_ne_ramifie_pas()
+    la_proportion_est_stable()
 
     print('\n' + '=' * 78)
     if sim.ECHECS:

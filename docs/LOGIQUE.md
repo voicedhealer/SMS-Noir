@@ -315,6 +315,22 @@ N8a/N8b/N8c. Le chapitre 1 serait passé de 21 à ~45 nœuds, et il en reste qua
 à écrire. Une table de nœuds qu'on ne peut plus relire est une dette narrative
 avant d'être technique.
 
+### RÈGLE GÉNÉRALE — le joueur ne doit jamais pouvoir détecter quand il est mesuré
+
+Elle dépasse les micro-choix, et elle vaut pour tout ce qu'on ajoutera aux
+chapitres suivants. Deux applications déjà en production :
+
+- le **champ de saisie** ne change pas d'apparence au moment IA, alors que le
+  texte y part vraiment vers un modèle ;
+- un **micro-choix** est renvoyé avec `kind: "reply"`, jamais `"micro"`.
+
+Dans les deux cas, l'information existe côté serveur et n'a aucune raison
+d'atteindre le client. Si le joueur savait quels moments comptent, il jouerait
+ces moments-là — et ce qu'on mesure cesserait d'être lui.
+
+À vérifier par un test à chaque nouveau mécanisme mesuré, pas par relecture :
+c'est une contrainte esthétique, donc la première à tomber lors d'une refonte.
+
 ### Ce que le client ne doit jamais savoir
 
 Un micro-choix est renvoyé au client avec `kind: "reply"`, **jamais `"micro"`**.

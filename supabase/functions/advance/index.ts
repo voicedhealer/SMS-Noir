@@ -195,7 +195,12 @@ async function appliquerChoix(
 
     // Plus aucune interaction disponible, aucune réponse à donner, et le nœud
     // enchaîne tout seul : on poursuit, sinon le joueur resterait bloqué.
-    const encoreOuverts = choixDuNoeud.filter((c) => evaluerConditions(vars, c.conditions))
+    //
+    // On ne compte que les choix de FIN de nœud. Les micro-choix du même nœud
+    // sont derrière nous — leur pause est refermée — et les compter ici
+    // laisserait le joueur bloqué sur un nœud qui n'a plus rien à offrir.
+    const encoreOuverts = choixDuNoeud.filter((c) =>
+      c.after_position === null && evaluerConditions(vars, c.conditions))
     if (encoreOuverts.length === 0 && noeud.next_node_id) {
       const apres = await entrerDansNoeud(db, courante, noeud.next_node_id)
       courante = apres.progression

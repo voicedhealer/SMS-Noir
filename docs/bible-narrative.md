@@ -80,7 +80,7 @@ Sensation visée : trois mécanismes différents = trois frissons différents (l
 |---|---|---|
 | `confiance` | 0-10 (départ 3, plafond 6 si `refus`) | Choix empathiques, moment IA, loyauté dans le groupe |
 | `lucidite` | 0-5 ch. 1, extensible | Incohérences repérées (§7) **+ posture « raisonner »** |
-| `enquete` | 0-10 (départ 0) | **Posture « enquêter » uniquement** — paliers 3 et 6 |
+| `enquete` | 0-10 (départ 0) | **Posture « enquêter » uniquement** — paliers 2 et 6 |
 | `indices` | liste | Interactions cachées + choix d'enquête |
 | `refus` | bool | Branche N11 |
 | `branche_ch1` | code | Callbacks d'ouverture ch. 2 |
@@ -111,8 +111,12 @@ fin cachée.
 2. **Trop tard** : par défaut — vérité découverte, mais après le drame
 3. **Fin cachée** : lucidite ≥ 4 ET a répondu à Chloé (ch. 5) — la vérité complète, y compris le 12 mars et le rôle réel de Karim
 
-Aux chapitres 4-5, `enquete ≥ 3` ouvre les options d'enquête, `enquete ≥ 6` les
+Aux chapitres 4-5, `enquete ≥ 2` ouvre les options d'enquête, `enquete ≥ 6` les
 options avancées.
+
+Le palier bas est ce qui rend la **rejouabilité visible** : un joueur ordinaire
+doit ouvrir quelque chose, sinon il ne saura jamais qu'il y avait quelque chose
+à ouvrir. Le palier haut récompense la posture assumée.
 
 ## 7. Incohérences plantées (le carburant de `lucidite`)
 
