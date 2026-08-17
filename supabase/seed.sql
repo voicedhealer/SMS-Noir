@@ -214,117 +214,110 @@ from (values
 
 -- N1
 ('N1', 0, 'separator', $$jeudi — 22h47$$, null::text, 0, 0, false, null::text),
-('N1', 1, 'text', $$C'est bon. J'ai trouvé où il la garde.$$, null, 4, 3, false, null),
-('N1', 2, 'text', $$J'y vais ce soir. Si t'as pas de nouvelles de moi avant 2h du mat, tu sais quoi faire.$$, null, 5, 3, false, null),
+('N1', 1, 'text', $$Salut Karim ! Je pense avoir trouvé où ma sœur est retenue...$$, null, 5, 3, false, null),
+('N1', 2, 'text', $$J'y vais ce soir pour vérifier, être sûre ! Si tu n'as pas de nouvelles de moi avant 2h du matin, alors tu sais ce que tu dois faire !$$, null, 5, 3, false, null),
+('N1', 3, 'text', $$S'il te plaît Karim, veille sur moi juste le temps que je regarde, j'ai personne d'autre pour ça.$$, null, 5, 3, false, null),
 
 -- N2
-('N2', 0, 'text', $$Merde.$$, null, 20, 20, false, null),
-('N2', 1, 'text', $$Merde merde merde. C'est pas le numéro de Karim ?$$, null, 4, 3, false, null),
-('N2', 2, 'text', $$Putain. Un chiffre. J'ai raté d'un chiffre.$$, null, 4, 3, false, null),
+('N2', 0, 'text', $$Oula, désolée ! Je pensais envoyer ce sms à mon ami Karim, et visiblement ce n'est pas vous...$$, null, 20, 20, false, null),
+('N2', 1, 'text', $$C'est un nouveau portable, je me suis trompée d'un chiffre en enregistrant son numéro, j'étais pourtant sûre de moi... rooo.$$, null, 5, 3, false, null),
 
 -- N3
-('N3', 0, 'text', $$Attends$$, null, 12, 3, false, null),
-('N3', 1, 'text', $$T'es pas Karim.$$, null, 5, 3, false, null),
-('N3', 2, 'text', $$Karim me demanderait jamais ça. T'es qui ?$$, null, 5, 3, false, null),
+('N3', 0, 'text', $$Attendez, vous n'êtes pas Karim.$$, null, 12, 3, false, null),
+('N3', 1, 'text', $$Karim ne me demanderait jamais ça, qui êtes-vous ?$$, null, 5, 3, false, null),
 
 -- N4
 ('N4', 0, 'separator', $$23h02$$, null, 15, 0, false, null),
-('N4', 1, 'text', $$Karim ?$$, null, 4, 3, true, null),
-('N4', 2, 'text', $$Réponds, c'est pas le moment de me lâcher.$$, null, 6, 3, false, null),
-('N4', 3, 'text', $$Une chance sur deux avec ce foutu nouveau tel.$$, null, 8, 3, false, null),
+('N4', 1, 'text', $$Karim ? Réponds, ce n'est vraiment pas le moment de me lâcher.$$, null, 5, 3, true, null),
+('N4', 2, 'text', $$Une chance sur deux avec ce nouveau téléphone, et je la rate.$$, null, 5, 3, false, null),
 
 -- N5
-('N5', 0, 'text', $$Désolée. J'aurais jamais dû envoyer ça à un inconnu.$$, null, 15, 3, false, null),
-('N5', 1, 'text', $$C'est ma sœur. Chloé. Elle a disparu il y a 7 mois.$$, null, 6, 3, false, null),
-('N5', 2, 'text', $$La police a classé. "Départ volontaire". Mon cul.$$, null, 6, 3, false, null),
-('N5', 3, 'text', $$Moi c'est Léna, au passage. Puisqu'on en est là.$$, null, 10, 3, false, null),
-('N5', 4, 'contact_card', $$lena$$, null, 2, 0, false, null),
+('N5', 0, 'text', $$Désolée, j'aurais jamais dû envoyer ça à un inconnu, mais puisque vous êtes là... c'est ma sœur, Chloé, elle a disparu il y a 7 mois.$$, null, 15, 3, false, null),
+('N5', 1, 'text', $$Moi c'est Léna, au passage. Puisqu'on en est là.$$, null, 5, 3, false, null),
+('N5', 2, 'contact_card', null, null, 2, 0, false, null),
 
 -- N6
-('N6', 0, 'text', $$Ouais. Désolée du dérangement.$$, null, 12, 3, false, null),
+('N6', 0, 'text', $$Ouais, désolée du dérangement.$$, null, 12, 3, false, null),
 ('N6', 1, 'separator', $$23h18$$, null, 25, 0, false, null),
-('N6', 2, 'text', $$En fait non. J'ai personne d'autre.$$, null, 4, 3, true, null),
-('N6', 3, 'text', $$Ma sœur a disparu il y a 7 mois et ce soir je sais enfin où chercher.$$, null, 6, 3, false, null),
-('N6', 4, 'text', $$Léna. Je m'appelle Léna, tant qu'à vous déranger.$$, null, 8, 3, false, null),
-('N6', 5, 'contact_card', $$lena$$, null, 2, 0, false, null),
+('N6', 2, 'text', $$En fait non, je n'ai personne d'autre.$$, null, 5, 3, true, null),
+('N6', 3, 'text', $$Ma sœur a disparu il y a 7 mois, et ce soir je sais enfin où chercher.$$, null, 5, 3, false, null),
+('N6', 4, 'text', $$Léna, je m'appelle Léna, tant qu'à vous déranger.$$, null, 5, 3, false, null),
+('N6', 5, 'contact_card', null, null, 2, 0, false, null),
 
 -- N7
-('N7', 0, 'text', $$Quelqu'un qui cherche sa sœur. Depuis 7 mois.$$, null, 15, 3, false, null),
-('N7', 1, 'text', $$Et toi t'es le mec au bout d'un mauvais numéro qui pose beaucoup de questions.$$, null, 5, 3, false, null),
-('N7', 2, 'text', $$Ça tombe bien. Tout le monde a arrêté d'en poser sur Chloé.$$, null, 6, 3, false, null),
-('N7', 3, 'text', $$Léna, au fait. Puisqu'on en est là.$$, null, 8, 3, false, null),
-('N7', 4, 'contact_card', $$lena$$, null, 2, 0, false, null),
+('N7', 0, 'text', $$Quelqu'un qui cherche sa sœur depuis 7 mois, et vous, vous êtes la personne au bout d'un mauvais numéro qui pose beaucoup de questions.$$, null, 15, 3, false, null),
+('N7', 1, 'text', $$Ça tombe bien, tout le monde a arrêté d'en poser sur Chloé.$$, null, 5, 3, false, null),
+('N7', 2, 'text', $$Léna, au fait. Puisqu'on en est là.$$, null, 5, 3, false, null),
+('N7', 3, 'contact_card', null, null, 2, 0, false, null),
 
 -- N8
-('N8', 0, 'text', $$Voilà le truc. Ce soir je vais à l'ancien entrepôt Verdier, route de Lacan.$$, null, 10, 3, false, null),
-('N8', 1, 'text', $$Un type louche y va tous les jeudis à 23h30. Je l'ai suivi deux fois.$$, null, 6, 3, false, null),
-('N8', 2, 'text', $$Si j'y vais et qu'il m'arrive un truc, il faut que quelqu'un sache où je suis.$$, null, 6, 3, false, null),
-('N8', 3, 'text', $$T'as rien demandé, je sais. Mais t'es là.$$, null, 5, 3, false, null),
+('N8', 0, 'text', $$La police a classé le dossier en à peine 2 semaines ! Sous le motif « départ volontaire », c'est le retour que j'ai eu... Alors qu'elle avait laissé ses clés et son sac dans son appartement. Qui fait ça ? Personne.$$, null, 10, 3, false, null),
+('N8', 1, 'image', null, $$photo-N10-recepisse.png$$, 5, 3, false, null),
+('N8', 2, 'text', $$Pour moi elle a été enlevée, ou tuée... mon dieu j'espère que non. Depuis je cherche seule, et ce soir pour la première fois depuis des mois j'ai une piste, je pense savoir où aller vérifier, un ancien entrepôt sur la route de Lacan.$$, null, 5, 3, false, null),
+('N8', 3, 'text', $$J'ai repéré un homme qui y va tous les jeudis vers 23h30, une fois la nuit tombée. Je l'ai suivi plusieurs fois, je sais ce n'est pas bien ! Mais à chaque fois il charge des cartons dans sa voiture avant de repartir, qui déménage ou travaille seul à cette heure-là ?$$, null, 5, 3, false, null),
+('N8', 4, 'text', $$Je vous demande juste une chose, si jamais il m'arrive quelque chose... j'ai peur ! Il faut que quelqu'un sache où je suis.$$, null, 5, 3, false, null),
+('N8', 5, 'text', $$Vous n'aviez rien demandé, je sais, vous vouliez sûrement passer une soirée tranquille et vous êtes tombé sur moi. Je m'en excuse d'avance, car ça ne doit pas être facile de se retrouver embarqué dans cette histoire. Mais si j'ai raison, vous aurez participé à l'arrestation d'un criminel et épaulé une jeune femme à bout de nerfs.$$, null, 5, 3, false, null),
 
 -- N10
-('N10', 0, 'text', $$La police ? Vous croyez que j'ai pas essayé ?$$, null, 12, 3, false, null),
-('N10', 1, 'image', null, $$photo-N10-recepisse.png$$, 5, 3, false, null),
-('N10', 2, 'text', $$Alors oui, un inconnu au bout d'un mauvais numéro, c'est tout ce qui me reste. Ironique, hein.$$, null, 8, 3, false, null),
+('N10', 0, 'text', $$J'y suis retournée trois fois, ils m'ont dit que je devenais insistante, la dernière fois on m'a demandé si je n'avais pas besoin de voir quelqu'un. C'est clairement pas ce que j'attends d'eux, mais juste qu'ils fassent leur travail, simplement.$$, null, 12, 3, false, null),
+('N10', 1, 'text', $$Alors oui, un inconnu au bout d'un mauvais numéro, c'est tout ce qu'il me reste, c'est assez ironique quand on y pense.$$, null, 5, 3, false, null),
 
 -- N11
-('N11', 0, 'text', $$Je comprends. Vraiment.$$, null, 20, 3, false, null),
-('N11', 1, 'text', $$Merci quand même d'avoir répondu.$$, null, 5, 3, false, null),
-('N11', 2, 'separator', $$23h58$$, null, 25, 0, false, null),
-('N11', 3, 'text', $$Je vous dérange une dernière fois. Je suis devant l'entrepôt.$$, null, 4, 3, true, $$Léna : 1 nouveau message$$),
-('N11', 4, 'text', $$Si dans une heure je n'ai rien envoyé, appelez le 17. Entrepôt Verdier, route de Lacan.$$, null, 6, 3, false, null),
-('N11', 5, 'text', $$Vous n'êtes pas obligé de répondre. Juste de lire.$$, null, 5, 3, false, null),
+('N11', 0, 'text', $$Je comprends, vraiment. Merci quand même d'avoir répondu.$$, null, 20, 3, false, null),
+('N11', 1, 'separator', $$23h58$$, null, 25, 0, false, null),
+('N11', 2, 'text', $$Je vous dérange une dernière fois, je suis devant l'entrepôt.$$, null, 5, 3, false, null),
+('N11', 3, 'text', $$Si dans une heure je n'ai rien envoyé, appelez le 17 : entrepôt Verdier, route de Lacan. Vous n'êtes pas obligé de répondre, juste de lire.$$, null, 5, 3, true, $$Léna : 1 nouveau message$$),
 
 -- N12
-('N12', 0, 'text', $$Merci. Sérieux.$$, null, 8, 3, false, null),
+('N12', 0, 'text', $$Merci, vraiment. Vous ne pouvez pas savoir ce que ça change de ne pas être complètement seule ce soir.$$, null, 8, 3, false, null),
 
 -- N13
-('N13', 0, 'text', $$Franchement ? Le hasard. Mauvais numéro, bon timing.$$, null, 22, 22, false, null),
-('N13', 1, 'text', $$T'as répondu comme quelqu'un qui s'en fout pas. C'est rare.$$, null, 6, 3, false, null),
+('N13', 0, 'text', $$Franchement ? Le hasard, un mauvais numéro et un bon timing.$$, null, 22, 22, false, null),
 
 -- N14
-('N14', 0, 'text', $$Ok. J'y vais. Le tel en silencieux mais je te lis.$$, null, 8, 3, false, null),
+('N14', 0, 'text', $$Je me rends à l'entrepôt, mon téléphone sera en silencieux, je ne veux pas qu'il me repère ! Mais je vous lis. S'il vous plaît, gardez votre téléphone près de vous, juste ce soir... Je pars maintenant.$$, null, 8, 3, false, null),
 ('N14', 1, 'separator', $$23h31$$, null, 20, 0, false, null),
-('N14', 2, 'text', $$Je suis devant. Sa caisse est là. Une berline grise, la même que les deux dernières fois.$$, null, 4, 3, true, null),
+('N14', 2, 'text', $$Je me suis approchée, tout près ! Accroupie derrière un muret, il fait noir et mon cœur bat à 200 battements par minute, pourvu qu'il ne m'arrive rien !$$, null, 5, 3, true, null),
+('N14', 3, 'text', $$Je vois sa voiture, une berline Peugeot 508 grise avec un macaron derrière, j'ai du mal à lire et j'ai peur de me lever, il va me repérer. C'est la même voiture que les autres fois. Que dois-je faire ?$$, null, 5, 3, false, null),
 
 -- N16
 ('N16', 0, 'image', null, $$photo-N16-plaque.png$$, 18, 3, false, null),
-('N16', 1, 'text', $$C'est tout ce que j'arrive à choper sans m'approcher.$$, null, 4, 3, false, null),
+('N16', 1, 'text', $$C'est tout ce que j'arrive à avoir sans m'approcher, la lumière du lampadaire tape en plein dessus et mon flash empire les choses, je vais me faire griller.$$, null, 5, 3, false, null),
 
 -- N17
 ('N17', 0, 'audio', null, $$audio-N17-reperage.mp3$$, 20, 3, false, null),
-('N17', 1, 'text', $$Je vais me rapprocher.$$, null, 6, 3, false, null),
 
 -- N18
-('N18', 0, 'text', $$J'ai pas fait tout ça pour repartir.$$, null, 10, 3, false, null),
-('N18', 1, 'text', $$Chloé aurait pas abandonné, elle. C'est moi qui l'ai abandonnée la première.$$, null, 6, 3, false, null),
+('N18', 0, 'text', $$Je n'ai pas fait tout ça pour repartir maintenant, pas alors que je suis à vingt mètres.$$, null, 10, 3, false, null),
+('N18', 1, 'text', $$Chloé n'aurait pas abandonné, elle. C'est moi qui l'ai abandonnée la première.$$, null, 5, 3, false, null),
 
 -- N19
-('N19', 0, 'system', $$Léna est hors ligne$$, null, 0, 0, false, null),
-('N19', 1, 'text', $$il sort$$, null, 25, 3, true, null),
-('N19', 2, 'text', $$il met un sac dans le coffre$$, null, 3, 3, false, null),
-('N19', 3, 'text', $$il regarde vers moi$$, null, 4, 3, false, null),
-('N19', 4, 'text', $$merde$$, null, 3, 2, false, null),
-('N19', 5, 'system', $$Léna est hors ligne$$, null, 0, 0, false, null),
+('N19', 0, 'text', $$Il sort, de l'entrepôt, il s'approche de ma position, mince...$$, null, 25, 3, false, null),
+('N19', 1, 'text', $$Il est en train de mettre un sac dans son coffre, il a l'air lourd, j'espère que ce n'est pas...$$, null, 5, 3, true, null),
+('N19', 2, 'text', $$Il regarde vers moi, j'ai croisé son regard, je suis en danger ?$$, null, 5, 3, false, null),
+('N19', 3, 'text', $$merde$$, null, 5, 3, false, null),
 
 -- N20
 ('N20', 0, 'separator', $$00h34$$, null, 60, 0, false, null),
-('N20', 1, 'text', $$C'est bon. Je suis dans ma caisse. Il m'a pas vue. Je crois.$$, null, 4, 3, true, null),
-('N20', 2, 'text', $$Mon cœur va exploser.$$, null, 5, 3, false, null),
+('N20', 1, 'text', $$C'est bon, je suis dans ma voiture, il ne m'a pas vue... enfin je crois, je vois une ombre, c'est quoi ! ... oula c'était juste un animal et la lune, il faut que je redescende en émotion car je deviens parano.$$, null, 5, 3, true, null),
+('N20', 2, 'text', $$On peut se tutoyer ? Après ce qu'on vient de vivre, le « vous » me paraît un peu ridicule, qu'en penses-tu ?$$, null, 5, 3, false, null),
+('N20', 3, 'text', $$Et merci pour cette présence, même à distance, ça me donne de la force, ce dont j'avais grand besoin.$$, null, 5, 3, false, null),
 
 -- N9
-('N9', 0, 'text', $$Je tremble encore. C'est con, hein.$$, null, 15, 3, false, null),
-('N9', 1, 'text', $$Dis... ça fait 2h que tu me suis dans ce délire et je sais rien de toi. Un vrai truc. N'importe lequel. J'ai besoin de penser à autre chose cinq minutes.$$, null, 6, 3, false, null),
+('N9', 0, 'text', $$Je tremble encore, je me sens bête, tout ce cinéma pour un sac dans un coffre, sans avoir de preuve, encore et encore.$$, null, 15, 3, false, null),
+('N9', 1, 'text', $$Dis... ça fait deux heures que tu me suis dans cette galère et je ne sais rien de toi, même pas ton prénom. Tu me le dis ? J'ai besoin de penser à autre chose 5 minutes, et de mettre un nom sur mon ange gardien.$$, null, 5, 3, false, null),
 
 -- N21
-('N21', 0, 'text', $$Attends. Avant qu'il sorte, j'ai pris ça par la fenêtre du bas.$$, null, 12, 3, false, null),
+('N21', 0, 'text', $$Je t'ai pas dit, mais je me suis approchée de l'entrepôt, je sais c'était risqué, c'est pour ça que je ne te l'ai pas dit, je ne voulais pas que tu t'inquiètes pour moi. Donc avant qu'il sorte j'ai pris une photo par une fenêtre, un peu floue et mal prise, j'étais accroupie, mais je pense avoir trouvé des preuves...$$, null, 12, 3, false, null),
 ('N21', 1, 'image', null, $$photo-N21-porte-cles.jpeg$$, 5, 3, false, null),
-('N21', 2, 'text', $$Tu vois le porte-clés ? Zoome.$$, null, 6, 3, false, null),
+('N21', 2, 'text', $$Tu vois le trousseau accroché au mur ? Zoome sur le porte-clés.$$, null, 5, 3, false, null),
 
 -- N22
-('N22', 0, 'text', $$Chloé avait exactement le même. C'est moi qui lui avais offert.$$, null, 6, 3, false, null),
-('N22', 1, 'text', $$Il n'en existe que deux au monde. Je les avais fait graver. Un pour elle, un pour moi.$$, null, 6, 3, false, null),
-('N22', 2, 'text', $$Et le mien a disparu de mon appart il y a 3 semaines.$$, null, 6, 3, false, null),
-('N22', 3, 'system', $$Quelqu'un est entré chez Léna. Quelqu'un sait qu'elle cherche.$$, null, 8, 0, false, null)
+('N22', 0, 'text', $$Chloé avait exactement le même, c'est moi qui le lui avais offert.$$, null, 6, 3, false, null),
+('N22', 1, 'text', $$Je t'explique, il n'en existe que deux au monde, je les avais fait graver pour nous deux, un pour elle et un pour moi, lors d'un voyage où on était en vacances. Ça symbolisait notre amitié, nous quoi !$$, null, 5, 3, false, null),
+('N22', 2, 'text', $$Et le mien a disparu de mon appartement il y a trois semaines, impossible de mettre la main dessus, et là...$$, null, 5, 3, false, null),
+('N22', 3, 'system', $$Quelqu'un est entré chez Léna. Quelqu'un sait qu'elle cherche. Et ce quelqu'un a désormais votre numéro.$$, null, 8, 0, false, null)
+
 ) as v(node, pos, ctype, body, media, delay, typing, push, push_text)
 join stories  s  on s.slug = 'numero-inconnu'
 join chapters c  on c.story_id = s.id and c.position = 1
@@ -352,110 +345,110 @@ insert into choices (node_id, position, label, kind, after_position, inline_resp
 select n.id, v.pos, v.label, 'micro', v.apres, v.inline::jsonb, v.effects::jsonb
 from (values
 
--- N2 · pause après le message 1
-('N2', 10, $$Vous allez bien ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Non. Pas vraiment.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N2', 11, $$Qui est Karim ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Personne. Enfin si. Mais c'est pas le sujet.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N2', 12, $$Vous envoyez ça à n'importe qui ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Une chance sur deux. J'ai perdu.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+-- N2 · pause après le message 0
+('N2', 10, $$Vous avez besoin d'aide ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Oui ! Je sais que vous n'y êtes pour rien, vous ne me connaissez pas, mais votre aide serait précieuse...", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N2', 11, $$Vous alliez où, ce soir ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Je qualifierais ça de \"sortie imprévue\", et pas pour me divertir dans un bar ou un restaurant en tout cas.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N2', 12, $$C'est vraiment une erreur, ou vous vouliez que quelqu'un lise ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Quelle drôle de question... Non, bien sûr que non.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
--- N3 · pause après le message 1
-('N3', 10, $$Non. Mais votre message m'inquiète.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Il devrait pas. C'est pas ton problème.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N3', 11, $$Pourquoi, j'écris comme lui ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Non. Justement.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N3', 12, $$Vous en êtes sûre après un seul message ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Certaine. Il aurait déjà appelé.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+-- N3 · pause après le message 0
+('N3', 10, $$Non, mais votre message m'inquiète.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Il ne devrait pas, ce n'est pas votre problème... enfin, je crois.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N3', 11, $$Pourquoi, j'écris comme lui ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Non, justement.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N3', 12, $$Vous en êtes sûre après un seul message ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Certaine, il aurait déjà appelé.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
--- N4 · pause après le message 2
-('N4', 10, $$Ce n'est pas Karim. Mais il se passe quoi ?$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Rien qui te regarde. Désolée.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N4', 11, $$Vous attendez quoi de lui exactement ?$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Qu'il décroche. Comme d'hab, non.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N4', 12, $$Vous vous trompez de numéro.$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Évidemment.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+-- N4 · pause après le message 1
+('N4', 10, $$Ce n'est pas Karim, mais il se passe quoi ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Rien qui vous regarde, désolée.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N4', 11, $$Vous attendez quoi de lui exactement ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Qu'il décroche, comme d'habitude, non.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N4', 12, $$On ne se connaît pas, vous vous trompez de numéro.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Évidemment.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
--- N5 · pause après le message 1
-('N5', 10, $$Je suis désolé.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Ouais. Tout le monde l'est.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N5', 11, $$Disparu comment ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Un soir elle était là. Le lendemain non. Son sac est resté.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N5', 12, $$Et la police n'a rien fait ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "J'y viens.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+-- N5 · pause après le message 0
+('N5', 10, $$Je suis désolé pour vous.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Merci, c'est déjà plus que ce que j'entends d'habitude.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N5', 11, $$Disparu comment ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Un soir elle était là, le lendemain non, plus aucun message, plus rien.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N5', 12, $$Et la police n'a rien fait ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "J'y viens, et croyez-moi, vous allez comprendre pourquoi je fais ça toute seule.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N6 · pause après le message 2
-('N6', 10, $$Je vous écoute.$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Merci.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N6', 11, $$Personne pour quoi ?$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Pour savoir où je suis. Ce soir.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N6', 12, $$Il est presque minuit, vous savez.$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Je sais. C'est ce soir ou jamais.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+('N6', 10, $$Je vous écoute.$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Merci, vraiment.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N6', 11, $$Personne pour quoi ?$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Pour savoir où je suis, ce soir.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N6', 12, $$Il est presque minuit, vous savez.$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Je sais, c'est ce soir ou jamais.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
--- N7 · pause après le message 1
-('N7', 10, $$J'arrête si vous voulez.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Surtout pas.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N7', 11, $$Votre sœur, elle s'appelle comment ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Chloé.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N7', 12, $$C'est un reproche ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Non. Un constat.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
-
--- N8 · pause après le message 0
-('N8', 10, $$Seule ??$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "T'as une meilleure idée ?", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N8', 11, $$Pourquoi cet endroit précisément ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "J'y viens.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N8', 12, $$Comment vous avez repéré cet endroit ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "En cherchant. Pendant des mois.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+-- N7 · pause après le message 0
+('N7', 10, $$J'arrête si vous voulez.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Surtout pas, s'il vous plaît.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N7', 11, $$Votre sœur, elle s'appelle comment ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Chloé.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N7', 12, $$C'est un reproche ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Non, un constat, et plutôt une bonne surprise.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N8 · pause après le message 1
-('N8', 20, $$Vous l'avez suivi ? C'est dangereux.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Je sais.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N8', 21, $$Il fait quoi, là-bas ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Il charge des trucs. Il ressort.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N8', 22, $$Louche comment ? Ça veut rien dire.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "...T'as raison. Mais je le sens.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+('N8', 10, $$C'est révoltant.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Merci de le dire, vous savez, à force on finit par douter de soi.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N8', 11, $$Ils vous ont dit quoi exactement ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Qu'une majeure a le droit de partir sans prévenir, et que je devrais accepter qu'elle ait voulu couper les ponts.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N8', 12, $$Vous avez signalé quand exactement ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "...En juin. Je sais ce que vous allez dire.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison", "inc": {"lucidite": 1}}$$),
 
--- N10 · pause après le message 1
-('N10', 10, $$C'est dégueulasse.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Ouais. Bienvenue.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N10', 11, $$Ils ont dit quoi exactement ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Que partir n'est pas un crime. Mot pour mot.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N10', 12, $$Vous avez signalé quand ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "...En juin.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison", "inc": {"lucidite": 1}}$$),
+-- N8 · pause après le message 2
+('N8', 20, $$Vous comptez y aller seule ?$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Je n'ai personne qui ne m'ait pas abandonnée, et je n'ai plus la patience d'attendre, je dois y aller, je dois savoir... pour elle je dois le faire.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N8', 21, $$Pourquoi cet endroit précisément ?$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Le dernier signal du téléphone de Chloé a borné à 400 mètres de là, et la police m'a dit que ça ne prouvait rien, 400 mètres.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N8', 22, $$Mais comment avez-vous trouvé cet endroit ?$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "En cherchant pendant des mois, en recoupant des indices, des détails que personne ne voulait recouper avec moi.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
--- N11 · pause après le message 3
-('N11', 10, $$Ne faites pas de bêtise.$$, 3, $$[{"sender": "contact", "content_type": "text", "body": "Trop tard pour ça.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N11', 11, $$Qu'est-ce que vous voulez ?$$, 3, $$[{"sender": "contact", "content_type": "text", "body": "Que quelqu'un sache. C'est tout.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N11', 12, $$Je vous avais dit non.$$, 3, $$[{"sender": "contact", "content_type": "text", "body": "Je sais. C'est pour ça que je demande rien.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+-- N10 · pause après le message 0
+('N10', 10, $$Ils n'avaient pas le droit de vous dire ça.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Merci, ça fait du bien de l'entendre, j'ai fini par croire que c'était moi le problème.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N10', 11, $$Ils ont regardé le bornage au moins ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Ils l'ont noté, classé, et rien fait, pour eux ce n'est pas anormal de passer un appel à cet endroit, rien ne les choque ! Un dossier de plus dans une pile de dossiers, ils sont débordés, je peux le comprendre, mais là on n'est pas sur un défaut de stationnement.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N10', 12, $$Et si vous aviez raison, mais que ce soit dangereux ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Alors ce sera dangereux, mais je ne peux pas passer une nuit de plus à ne rien faire.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+
+-- N11 · pause après le message 2
+('N11', 10, $$Ne faites pas de bêtise.$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "C'est un peu tard pour ça.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N11', 11, $$Qu'est-ce que vous voulez ?$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Que quelqu'un sache, c'est tout.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N11', 12, $$Je vous avais dit non.$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Je sais, c'est pour ça que je ne demande rien.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N12 · pause après le message 0
-('N12', 10, $$Prenez soin de vous.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "J'essaierai.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N12', 11, $$Envoyez-moi votre position.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Non. Si ça tourne mal, t'as l'adresse. Ça suffit.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N12', 12, $$Vous avez prévu quoi, exactement ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Regarder. Rien d'autre. Promis.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+('N12', 10, $$Promettez-moi de ne pas entrer dans le bâtiment.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Je vous le promets, je regarde et je repars, c'est tout.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N12', 11, $$Envoyez-moi tout ce que vous voyez, même les détails.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "D'accord, je vous raconterai en direct, ça m'évitera de trop réfléchir.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N12', 12, $$Vous avez prévu quoi si ça tourne mal ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Courir jusqu'à ma voiture, c'est un plan, non ?", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N13 · pause après le message 0
-('N13', 10, $$Peu importe. Je suis là.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Merci.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N13', 11, $$Vous auriez insisté avec n'importe qui ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Non. Justement.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N13', 12, $$Ça ne me rassure pas, cette réponse.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Moi non plus, si tu veux tout savoir.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+('N13', 10, $$Peu importe, je suis là.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Merci, j'en avais besoin.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N13', 11, $$Vous auriez insisté avec n'importe qui ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Non, justement, et c'est peut-être ça qui devrait m'inquiéter.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N13', 12, $$Ça ne me rassure pas, cette réponse.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Moi non plus, si vous voulez tout savoir.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N14 · pause après le message 0
-('N14', 10, $$Restez dans la voiture.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "On verra.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N14', 11, $$Écrivez-moi tout ce que vous voyez.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Compte sur moi.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N14', 12, $$Vous avez un plan si ça tourne mal ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Courir. C'est un plan, non ?", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+('N14', 10, $$Restez dans votre voiture le plus longtemps possible.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Oui, mais je suis trop loin, je ne vois pas grand-chose d'ici.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N14', 11, $$Décrivez-moi tout, même ce qui vous paraît sans importance.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "D'accord, ça permettra de me relire au cas où j'oublierais un détail par la suite, et au passage ça m'occupera l'esprit et calmera cette peur viscérale.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N14', 12, $$Vous êtes vraiment sûre de vouloir faire ça ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Non. Mais je n'ai pas le choix, personne d'autre ne le fera.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N16 · pause après le message 1
-('N16', 10, $$Ne prenez plus de photos, c'est trop risqué.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Trop tard.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N16', 11, $$Il y a un autocollant sur la vitre.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Où ça ? ...Ah. J'avais pas vu.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N16', 12, $$Une plaque partielle, ça sert à quoi ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "À rien. Ou à tout. On verra.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+('N16', 10, $$Ne prenez plus de photos, c'est trop risqué.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Je sais bien, mais je voulais au moins avoir le courage de faire ça, ça ne suffira peut-être pas, ou peut-être que si.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N16', 11, $$Il y a un autocollant sur la vitre arrière.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Oui, mais je n'arrive pas à le lire d'ici, et vous ?", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N16', 12, $$Une plaque à moitié lisible, ça sert à quoi ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "À rien peut-être, ou alors c'est le début d'un indice, on verra bien. J'ai fait mon maximum toute seule, et pourtant j'ai l'impression d'être lâche et de ne pas avoir eu le courage d'affronter ça.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N17 · pause après le message 0
-('N17', 10, $$N'approchez pas.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Deux minutes.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N17', 11, $$Il y a quelqu'un au premier ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Une silhouette. Elle bouge.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N17', 12, $$Vous êtes où exactement, là ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Devant. Pourquoi ?", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison", "inc": {"lucidite": 1}}$$),
+('N17', 10, $$N'approchez pas, restez où vous êtes.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Deux minutes, juste deux minutes et je repars.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N17', 11, $$Il y a quelqu'un d'autre avec lui au premier ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Je ne sais pas, je n'ai vu qu'une silhouette, mais elle bougeait vite comme si elle savait où aller.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N17', 12, $$Vous êtes où exactement, là ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Devant, derrière le muret, pourquoi cette question ?", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison", "inc": {"lucidite": 1}}$$),
 
 -- N18 · pause après le message 0
-('N18', 10, $$Ça ne ramènera pas Chloé si vous y passez.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "...Je sais.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N18', 11, $$Vous cherchez quoi, concrètement ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Une preuve. N'importe laquelle.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N18', 12, $$Vous vous mettez en danger pour une intuition.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "C'est tout ce que j'ai.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+('N18', 10, $$Ça ne ramènera pas Chloé si vous y passez.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "...Je sais. Je sais que vous avez raison, et c'est bien ça le problème.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N18', 11, $$Vous cherchez quoi exactement, concrètement ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Une preuve, n'importe laquelle, quelque chose que la police ne pourra pas classer d'un revers de main.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N18', 12, $$Vous vous mettez en danger pour une intuition.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "C'est tout ce que j'ai, une intuition, c'est tout ce qu'il me reste, ça ne vaut pas grand-chose je sais ! Je n'ai que ça en 7 mois.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+
+-- N19 · pause après le message 1
+('N19', 10, $$Cachez-vous.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Je suis derrière le muret, je ne bouge pas, je l'entends, je le sens pas loin de moi.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N19', 11, $$Quelle taille, le sac ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Grand, lourd, il le porte à deux mains et galère à le soulever.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N19', 12, $$J'appelle la police ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Non pas encore, attendez, ça se trouve c'est des déchets, il me faut plus de preuves, si on rate notre coup on n'aura pas de deuxième chance, déjà que la police me prend pour une folle.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N19 · pause après le message 2
-('N19', 10, $$cachez-vous$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "je suis derrière la benne", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N19', 11, $$quelle taille le sac$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "grand. lourd. il le porte à deux mains", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N19', 12, $$j'appelle la police ?$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "NON. pas encore.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
-
--- N19 · pause après le message 3
-('N19', 20, $$NE BOUGEZ PAS$$, 3, null, $${"motif": "proteger"}$$),
-('N19', 21, $$il vous voit ?$$, 3, null, $${"motif": "enquete"}$$),
-('N19', 22, $$Léna répondez$$, 3, null, $${"motif": "raison"}$$),
+('N19', 20, $$NE BOUGEZ PLUS, ça va aller !$$, 2, null, $${"motif": "proteger"}$$),
+('N19', 21, $$Il vous voit ?$$, 2, null, $${"motif": "enquete"}$$),
+('N19', 22, $$Léna répondez, s'il vous plaît, ou j'appelle la police !$$, 2, null, $${"motif": "raison"}$$),
 
 -- N20 · pause après le message 1
-('N20', 10, $$Vous m'avez fait flipper.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Toi ? Je tremble encore.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N20', 11, $$Il vous a vue ou pas ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Je sais pas. C'est ça le pire.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N20', 12, $$Vous avez pris la plaque au moins ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "...Merde. Attends.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+('N20', 10, $$Vous m'avez fait une peur bleue.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Désolée de vous embarquer là-dedans, je tremble encore de tout mon corps, je n'arrive pas à tenir mon téléphone droit, je ne sais même pas si je pourrai conduire pour le retour, en plus je pleure, il me faut un peu de temps pour encaisser tout ça, je crois...", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N20', 11, $$Il vous a vue ou pas, dites-moi la vérité.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Je ne sais pas, il a regardé dans ma direction et il s'est arrêté, et c'est ça le pire, ne pas savoir.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N20', 12, $$Vous êtes vraiment en sécurité là ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Il me semble que oui, j'ai les portes verrouillées, j'ai appuyé genre 10 fois sur le bouton pour être sûre, mon moteur est allumé, et je suis pratiquement prête à partir, mon état émotionnel lui c'est autre chose.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N21 · pause après le message 1
-('N21', 10, $$Vous avez pris ce risque pour ça ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Regarde d'abord.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N21', 11, $$Il y a un téléphone sur l'établi.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "...Où ça. Montre.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete", "inc": {"enquete": 1}}$$),
-('N21', 12, $$Qu'est-ce que je dois voir ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Le mur. À droite.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+('N21', 10, $$Tu as pris ce risque juste pour ça ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Regarde bien s'il te plaît, tu comprendras, tu as un regard extérieur.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N21', 11, $$Il y a un téléphone posé sur l'établi.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Ah ouais ! Mais j'ai pas vu ça moi, où ça ?", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N21', 12, $$Qu'est-ce que je suis censé voir ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Le mur, à droite, au-dessus de l'établi.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N22 · pause après le message 0
-('N22', 10, $$...Merde.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Ouais.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N22', 11, $$Vous êtes sûre que c'est le même ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Certaine.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N22', 12, $$Ça peut être une coïncidence.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Attends.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$)
+('N22', 10, $$Tu es sûre de toi, vraiment ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Sûre et certaine.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N22', 11, $$Ça peut être une coïncidence, non ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Attends, écoute-moi, je vais t'expliquer pourquoi.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N22', 12, $$...Ben ça alors !$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Ouais. Attends, c'est pas fini.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$)
 
 ) as v(node, pos, label, apres, inline, effects)
 join stories  s on s.slug = 'numero-inconnu'
@@ -484,102 +477,65 @@ select n.id, v.pos, v.label, v.kind, tgt.id, v.inline::jsonb, v.effects::jsonb, 
 from (values
 
 -- N1
-('N1', 0, $$Je crois que vous vous trompez de numéro$$, 'reply', 'N2', null::text, '{}', '{}'),
-('N1', 1, $$Qui ça, "elle" ?$$, 'reply', 'N3', null, '{"inc": {"confiance": 1}}', '{}'),
-('N1', 2, $$Ignorer$$, 'ignore', 'N4', null, '{}', '{}'),
+('N1', 0, $$Je ne suis pas Karim ! Vous faites erreur.$$, 'reply', 'N2', null::text, $${}$$, $${}$$),
+('N1', 1, $$Bonsoir, qui êtes-vous ? On se connaît ?$$, 'reply', 'N3', null, $${"inc": {"confiance": 1}}$$, $${}$$),
+('N1', 2, $$On ne se connaît pas.$$, 'reply', 'N4', null, $${}$$, $${}$$),
 
 -- N2
-('N2', 0, $$Non, désolé. Mais ça va ? Votre message était inquiétant$$, 'reply', 'N5', null,
-  '{"inc": {"confiance": 1}, "set": {"branche_ch1": "empathie"}}', '{}'),
-('N2', 1, $$Non. Bonne soirée$$, 'reply', 'N6', null, '{}', '{}'),
+('N2', 0, $$Votre message était inquiétant, ça va ?$$, 'reply', 'N5', null, $${"inc": {"confiance": 1}, "set": {"branche_ch1": "empathie"}}$$, $${}$$),
+('N2', 1, $$Bonne soirée.$$, 'reply', 'N6', null, $${}$$, $${}$$),
 
 -- N3
-('N3', 0, $$Quelqu'un qui a reçu votre message par erreur. Et qui s'inquiète un peu, là$$, 'reply', 'N5', null,
-  '{"inc": {"confiance": 1}, "set": {"branche_ch1": "empathie"}}', '{}'),
-('N3', 1, $$Et vous, vous êtes qui ? C'est quoi cette histoire ?$$, 'reply', 'N7', null,
-  '{"set": {"branche_ch1": "curieux"}}', '{}'),
+('N3', 0, $$Quelqu'un qui a reçu votre message par erreur, et qui s'inquiète un peu, là.$$, 'reply', 'N5', null, $${"inc": {"confiance": 1}, "set": {"branche_ch1": "empathie"}}$$, $${}$$),
+('N3', 1, $$Et vous, c'est quoi cette histoire ?$$, 'reply', 'N7', null, $${"set": {"branche_ch1": "curieux"}}$$, $${}$$),
 
 -- N4
-('N4', 0, $$Non, en effet. C'est quoi cette histoire ?$$, 'reply', 'N7', null,
-  '{"set": {"branche_ch1": "curieux"}}', '{}'),
-('N4', 1, $$Vous devriez vérifier vos numéros avant d'envoyer ce genre de trucs$$, 'reply', 'N6', null,
-  '{"inc": {"lucidite": 1}}', '{}'),
+('N4', 0, $$C'est quoi cette histoire ?$$, 'reply', 'N7', null, $${"set": {"branche_ch1": "curieux"}}$$, $${}$$),
+('N4', 1, $$Vous devriez vérifier vos numéros avant d'envoyer ce genre de messages.$$, 'reply', 'N6', null, $${"inc": {"lucidite": 1}}$$, $${}$$),
 
 -- N6
-('N6', 0, $$Ok. Je vous écoute$$, 'reply', 'N8', null, '{"inc": {"confiance": 1}}', '{}'),
-('N6', 1, $$Appelez la police, pas un inconnu$$, 'reply', 'N10', null, '{}', '{}'),
-('N6', 2, $$Ignorer$$, 'ignore', 'N11', null, '{}', '{}'),
+('N6', 0, $$D'accord, je vous écoute.$$, 'reply', 'N8', null, $${"inc": {"confiance": 1}}$$, $${}$$),
+('N6', 1, $$Appelez la police, pas un inconnu.$$, 'reply', 'N10', null, $${}$$, $${}$$),
+('N6', 2, $$Je ne peux pas vous aider.$$, 'reply', 'N11', null, $${}$$, $${}$$),
 
--- N8 — 3 réponses + LA relance (2 questions, une seule possible : même clé RELANCE_N8)
-('N8', 0, $$N'y allez pas seule. Appelez la police, vraiment$$, 'reply', 'N10', null,
-  '{"inc": {"lucidite": 1}}', '{}'),
-('N8', 1, $$Ok. Je garde mon téléphone à côté de moi$$, 'reply', 'N12', null,
-  '{"inc": {"confiance": 2}, "set": {"branche_ch1": "allié"}}', '{}'),
-('N8', 2, $$Pourquoi moi ? Vous ne me connaissez pas$$, 'reply', 'N13', null,
-  '{"inc": {"lucidite": 1}}', '{}'),
-('N8', 3, $$C'est qui, ce type ?$$, 'interaction', null,
-  $$[{"sender":"player","content_type":"text","body":"C'est qui, ce type ?","delay_seconds":0,"typing_seconds":0},
-     {"sender":"contact","content_type":"text","body":"Aucune idée de son nom. La cinquantaine, toujours seul, toujours le jeudi. Il a chargé des cartons la dernière fois.","delay_seconds":8,"typing_seconds":4}]$$,
-  '{"append": {"indices": "PROFIL_SUSPECT", "interactions_faites": "RELANCE_N8"}}',
-  '{"not_contains": {"interactions_faites": "RELANCE_N8"}}'),
-('N8', 4, $$Pourquoi cet entrepôt ?$$, 'interaction', null,
-  $$[{"sender":"player","content_type":"text","body":"Pourquoi cet entrepôt ?","delay_seconds":0,"typing_seconds":0},
-     {"sender":"contact","content_type":"text","body":"Le dernier signal du tel de Chloé a borné à 400m de là. La police dit que ça prouve rien. 400 mètres.","delay_seconds":8,"typing_seconds":4}]$$,
-  '{"append": {"indices": "BORNAGE", "interactions_faites": "RELANCE_N8"}}',
-  '{"not_contains": {"interactions_faites": "RELANCE_N8"}}'),
+-- N8
+('N8', 0, $$N'y allez pas seule, retournez voir la police d'abord.$$, 'reply', 'N10', null, $${"inc": {"lucidite": 1}}$$, $${}$$),
+('N8', 1, $$D'accord, je garde mon téléphone à côté de moi, mais soyez prudente ! Vraiment.$$, 'reply', 'N12', null, $${"inc": {"confiance": 2}, "set": {"branche_ch1": "allié"}}$$, $${}$$),
+('N8', 2, $$Pourquoi moi ? Vous ne me connaissez pas, et si j'étais quelqu'un de pire ?$$, 'reply', 'N13', null, $${"inc": {"lucidite": 1}}$$, $${}$$),
+('N8', 50, $$Zoomer sur la capture$$, 'interaction', null, null, $${"inc": {"lucidite": 1}, "append": {"interactions_faites": "ZOOM_RECEPISSE"}}$$, $${"not_contains": {"interactions_faites": "ZOOM_RECEPISSE"}}$$),
+('N8', 51, $$Vous l'avez déjà vu de près ?$$, 'interaction', null, $$[{"sender": "player", "content_type": "text", "body": "Vous l'avez déjà vu de près ?", "delay_seconds": 0, "typing_seconds": 0}, {"sender": "contact", "content_type": "text", "body": "La cinquantaine, toujours seul, il ne parle à personne et personne ne le connaît dans le coin, il regarde toujours autour de lui avant d'ouvrir la porte, c'est vraiment suspect ! Enfin, pour moi...", "delay_seconds": 8, "typing_seconds": 4}]$$, $${"append": {"indices": "PROFIL_SUSPECT", "interactions_faites": "RELANCE_N8"}}$$, $${"not_contains": {"interactions_faites": "RELANCE_N8"}}$$),
+('N8', 52, $$Et s'il vous a repérée ?$$, 'interaction', null, $$[{"sender": "player", "content_type": "text", "body": "Et s'il vous a repérée ?", "delay_seconds": 0, "typing_seconds": 0}, {"sender": "contact", "content_type": "text", "body": "Je fais attention, je change de place à chaque fois, je ne peux pas vous jurer que non... mais je suis encore là, donc il est fort probable que non.", "delay_seconds": 8, "typing_seconds": 4}]$$, $${"append": {"indices": "BORNAGE", "interactions_faites": "RELANCE_N8"}}$$, $${"not_contains": {"interactions_faites": "RELANCE_N8"}}$$),
 
--- N10 — dont le zoom sur le récépissé : effet SILENCIEUX, aucune réponse de Léna.
--- La date du récépissé (J-2 mois) contredit les « 7 mois » : incohérence VOLONTAIRE (bible §7 n°1).
-('N10', 0, $$Ok... je reste en ligne ce soir. Mais promettez-moi de ne pas entrer dans ce bâtiment$$, 'reply', 'N12', null,
-  '{"inc": {"confiance": 1}, "set": {"branche_ch1": "prudent"}}', '{}'),
-('N10', 1, $$Je suis désolé. Je ne peux pas être responsable de ça$$, 'reply', 'N11', null, '{}', '{}'),
-('N10', 2, $$Zoomer sur la capture$$, 'interaction', null, null,
-  '{"inc": {"lucidite": 1}, "append": {"interactions_faites": "ZOOM_RECEPISSE_N10"}}',
-  '{"not_contains": {"interactions_faites": "ZOOM_RECEPISSE_N10"}}'),
+-- N10
+('N10', 0, $$D'accord, je reste en ligne, mais n'entrez pas dans ce bâtiment.$$, 'reply', 'N12', null, $${"inc": {"confiance": 1}, "set": {"branche_ch1": "prudent"}}$$, $${}$$),
+('N10', 1, $$Je suis désolé, je ne peux pas.$$, 'reply', 'N11', null, $${}$$, $${}$$),
 
 -- N11
-('N11', 0, $$Je lis. Soyez prudente$$, 'reply', 'N14', null, '{"inc": {"confiance": 1}}', '{}'),
-('N11', 1, $$Ignorer$$, 'ignore', 'N14', null, '{}', '{}'),
+('N11', 0, $$Je lis, soyez prudente.$$, 'reply', 'N14', null, $${"inc": {"confiance": 1}}$$, $${}$$),
+('N11', 1, $$...$$, 'reply', 'N14', null, $${}$$, $${}$$),
 
--- N13 — insister sur les 50 s d'hésitation (bible §7 n°2)
-('N13', 0, $$...50 secondes pour répondre ça ?$$, 'interaction', null,
-  $$[{"sender":"player","content_type":"text","body":"...50 secondes pour répondre ça ?","delay_seconds":0,"typing_seconds":0},
-     {"sender":"contact","content_type":"text","body":"J'hésitais à te dire un truc. Une autre fois. Pas ce soir.","delay_seconds":8,"typing_seconds":4}]$$,
-  '{"inc": {"lucidite": 1}, "append": {"interactions_faites": "INSISTER_N13"}}',
-  '{"not_contains": {"interactions_faites": "INSISTER_N13"}}'),
+-- N13
+('N13', 50, $$22 secondes pour répondre ça ?$$, 'interaction', null, $$[{"sender": "player", "content_type": "text", "body": "22 secondes pour répondre ça ?", "delay_seconds": 0, "typing_seconds": 0}, {"sender": "contact", "content_type": "text", "body": "J'hésitais à vous dire quelque chose, une autre fois, pas ce soir.", "delay_seconds": 8, "typing_seconds": 4}]$$, $${"inc": {"lucidite": 1}, "append": {"interactions_faites": "INSISTER_N13"}}$$, $${"not_contains": {"interactions_faites": "INSISTER_N13"}}$$),
 
 -- N14
-('N14', 0, $$Prenez la plaque en photo$$, 'reply', 'N16', null,
-  '{"append": {"indices": "PLAQUE"}}', '{}'),
-('N14', 1, $$Restez cachée. Décrivez-moi ce que vous voyez$$, 'reply', 'N17', null, '{}', '{}'),
-('N14', 2, $$Repartez. Maintenant$$, 'reply', 'N18', null, '{}', '{}'),
+('N14', 0, $$Prenez la plaque en photo, discrètement mais avec le flash.$$, 'reply', 'N16', null, $${"append": {"indices": "PLAQUE"}}$$, $${}$$),
+('N14', 1, $$Restez cachée, à couvert, et décrivez-moi ce que vous voyez, sans prendre de risque.$$, 'reply', 'N17', null, $${}$$, $${}$$),
+('N14', 2, $$Je ne le sens pas, partez maintenant tant que vous le pouvez, on avisera plus tard.$$, 'reply', 'N18', null, $${}$$, $${}$$),
 
--- N16 — zoom sur l'autocollant : effet silencieux (piste Sentinel Pro, ch. 2)
-('N16', 0, $$Zoomer sur l'autocollant$$, 'interaction', null, null,
-  '{"append": {"indices": "AUTOCOLLANT", "interactions_faites": "ZOOM_AUTOCOLLANT_N16"}}',
-  '{"not_contains": {"interactions_faites": "ZOOM_AUTOCOLLANT_N16"}}'),
+-- N16
+('N16', 50, $$Zoomer sur l'autocollant$$, 'interaction', null, null, $${"append": {"indices": "AUTOCOLLANT", "interactions_faites": "ZOOM_AUTOCOLLANT"}}$$, $${"not_contains": {"interactions_faites": "ZOOM_AUTOCOLLANT"}}$$),
 
--- N17 — la réplique n'est proposée qu'APRÈS une réécoute du vocal (geste client).
--- Le son de fond urbain/radio est l'incohérence n°3 de la bible §7.
-('N17', 0, $$NON. Restez où vous êtes$$, 'reply', 'N19', null, '{}', '{}'),
-('N17', 1, $$Ok mais restez à distance de la porte$$, 'reply', 'N19', null,
-  '{"inc": {"confiance": 1}}', '{}'),
-('N17', 2, $$C'est quoi ce bruit derrière vous ?$$, 'interaction', null,
-  $$[{"sender":"player","content_type":"text","body":"C'est quoi ce bruit derrière vous ?","delay_seconds":0,"typing_seconds":0},
-     {"sender":"contact","content_type":"text","body":"Quel bruit ? ...La radio d'une caisse qui passait, j'imagine. Concentre-toi.","delay_seconds":8,"typing_seconds":4}]$$,
-  '{"inc": {"lucidite": 1}, "append": {"interactions_faites": "REECOUTE_N17"}}',
-  '{"not_contains": {"interactions_faites": "REECOUTE_N17"}}'),
+-- N17
+('N17', 0, $$Non, vous n'approchez pas, c'est non.$$, 'reply', 'N19', null, $${}$$, $${}$$),
+('N17', 1, $$D'accord mais restez loin de la porte, vraiment loin.$$, 'reply', 'N19', null, $${"inc": {"confiance": 1}}$$, $${}$$),
+('N17', 50, $$C'est quoi ce bruit derrière vous ?$$, 'interaction', null, $$[{"sender": "player", "content_type": "text", "body": "C'est quoi ce bruit derrière vous ?", "delay_seconds": 0, "typing_seconds": 0}, {"sender": "contact", "content_type": "text", "body": "Quel bruit ? ...Une voiture qui passait je suppose, il y en a parfois. Concentrez-vous s'il vous plaît.", "delay_seconds": 8, "typing_seconds": 4}]$$, $${"inc": {"lucidite": 1}, "append": {"interactions_faites": "REECOUTE_N17"}}$$, $${"not_contains": {"interactions_faites": "REECOUTE_N17"}}$$),
 
 -- N20
-('N20', 0, $$Rentrez chez vous. On fait le point demain$$, 'reply', 'N9', null, '{}', '{}'),
-('N20', 1, $$Il faut porter ça à la police, MAINTENANT. Le sac, la plaque, tout$$, 'reply', 'N9', null,
-  '{"inc": {"lucidite": 1}}', '{}'),
+('N20', 0, $$Rentre chez toi, on fait le point demain.$$, 'reply', 'N9', null, $${}$$, $${}$$),
+('N20', 1, $$Il faut porter ça à la police, maintenant.$$, 'reply', 'N9', null, $${"inc": {"lucidite": 1}}$$, $${}$$),
 
--- N21 — zoom quasi obligatoire, guidé par Léna. Effet silencieux.
--- Indice TELEPHONE attribué dès le ch. 1 (décision Q3) : le geste prouve qu'il a vu.
-('N21', 0, $$Zoomer sur la photo$$, 'interaction', null, null,
-  '{"append": {"indices": "TELEPHONE", "interactions_faites": "ZOOM_TELEPHONE_N21"}}',
-  '{"not_contains": {"interactions_faites": "ZOOM_TELEPHONE_N21"}}')
+-- N21
+('N21', 50, $$Zoomer sur la photo$$, 'interaction', null, null, $${"append": {"indices": "TELEPHONE", "interactions_faites": "ZOOM_TELEPHONE"}}$$, $${"not_contains": {"interactions_faites": "ZOOM_TELEPHONE"}}$$)
 
 ) as v(node, pos, label, kind, target, inline, effects, conditions)
 join stories  s   on s.slug = 'numero-inconnu'

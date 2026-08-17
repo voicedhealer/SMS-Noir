@@ -146,10 +146,20 @@ select _chk(21, 'Relance N8 — BORNAGE', 'oui',
    where n.code = 'N8' and ch.kind = 'interaction' and ch.effects->'append'->>'indices' = 'BORNAGE'));
 select _chk(22, 'Relance N8 — les 2 questions s''excluent (même clé)', 'RELANCE_N8',
   coalesce((select distinct ch.effects->'append'->>'interactions_faites' from _n n join choices ch on ch.node_id = n.id
-   where n.code = 'N8' and ch.kind = 'interaction'), '<absent>'));
-select _chk(23, 'Zoom récépissé N10 — lucidite +1', '1',
+   where n.code = 'N8' and ch.kind = 'interaction'
+     and ch.effects->'append'->>'interactions_faites' = 'RELANCE_N8'), '<absent>'));
+-- V3.2 : le zoom du récépissé remonte du N10 au N8. Au N10 il n'était visible
+-- que sur la branche « appelez la police », et l'incohérence n°1 restait
+-- inaccessible aux deux autres — la fin cachée ne doit pas dépendre d'un choix
+-- structurant pris au hasard.
+select _chk(23, 'Zoom récépissé au N8 — lucidite +1', '1',
   coalesce((select (ch.effects->'inc'->>'lucidite') from _n n join choices ch on ch.node_id = n.id
-   where n.code = 'N10' and ch.kind = 'interaction'), '<absent>'));
+   where n.code = 'N8' and ch.kind = 'interaction'
+     and ch.effects->'append'->>'interactions_faites' = 'ZOOM_RECEPISSE'), '<absent>'));
+
+select _chk(51, 'Le N10 ne porte plus d''interaction', '0',
+  (select count(*)::text from _n n join choices ch on ch.node_id = n.id
+   where n.code = 'N10' and ch.kind = 'interaction'));
 select _chk(24, 'Insister N13 — lucidite +1', '1',
   coalesce((select (ch.effects->'inc'->>'lucidite') from _n n join choices ch on ch.node_id = n.id
    where n.code = 'N13' and ch.kind = 'interaction'), '<absent>'));
@@ -162,7 +172,7 @@ select _chk(26, 'Réécoute vocal N17 — lucidite +1', '1',
 select _chk(27, 'Zoom téléphone N21 — TELEPHONE', 'TELEPHONE',
   coalesce((select ch.effects->'append'->>'indices' from _n n join choices ch on ch.node_id = n.id
    where n.code = 'N21' and ch.kind = 'interaction'), '<absent>'));
-select _chk(28, 'Total : 6 interactions cachées sur 7 lignes', '6/7',
+select _chk(28, '6 interactions sur 7 lignes, réparties sur 5 nœuds', '5/7',
   (select count(distinct n.code) || '/' || count(*) from _n n join choices ch on ch.node_id = n.id
    where ch.kind = 'interaction'));
 
@@ -224,13 +234,13 @@ select _chk(43, 'Aucun média sans URL', '',
   coalesce((select string_agg(n.code || '#' || m.position, ', ') from _n n join messages m on m.node_id = n.id
             where m.content_type in ('image','audio') and m.media_url is null), ''));
 
-select _chk(44, 'Nombre total de messages', '72',
+select _chk(44, 'Nombre total de messages', '64',
   (select count(*)::text from _n n join messages m on m.node_id = n.id));
 
 select _chk(45, 'Nombre total de choix', '96',
   (select count(*)::text from _n n join choices ch on ch.node_id = n.id));
 
-select _chk(46, 'Répartition des choix (ignore/interaction/reply)', '3/7/23',
+select _chk(46, 'Répartition des choix (ignore/interaction/reply)', '0/7/26',
   (select count(*) filter (where ch.kind='ignore') || '/' ||
           count(*) filter (where ch.kind='interaction') || '/' ||
           count(*) filter (where ch.kind='reply')
