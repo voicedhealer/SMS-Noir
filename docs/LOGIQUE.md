@@ -270,6 +270,15 @@ découvrir en le voyant échouer, ou pire, passer à tort.
 COMMIT.** Un contrôle qui survit à sa règle est pire qu'une absence de contrôle —
 il donne du vert sur une règle morte, et il fait échouer la règle vivante.
 
+**Corollaire, appris à ses dépens : protéger explicitement une donnée ne sert à
+rien si une clé étrangère peut l'emporter par ailleurs.** Une migration
+réinitialisait soigneusement les progressions sans les effacer — puis supprimait
+trois lignes plus bas la ligne `stories` qui les tenait en `ON DELETE CASCADE`.
+La partie visible de la règle était vérifiée, la porte à côté était ouverte.
+
+Quand on protège une donnée, remonter ses références : `\d+ table` dans psql,
+et lire les `on delete` autant que les `delete`.
+
 Les gardiens possibles, à balayer à chaque fois : `verify-graph.sql`,
 `verify-fidelity.py`, `simulate-playthrough.py`, `test-micro-choix.py`,
 `test-ai-moment.py`, `probe-lena.py`, les tests Flutter, et les contraintes de

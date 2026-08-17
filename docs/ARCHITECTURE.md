@@ -272,3 +272,29 @@ Séquence de déploiement :
 3. `DISTANT=1 scripts/upload-media.sh` — le seed repose des `placeholder://`
 4. `supabase functions deploy`
 5. `app/tool/run_remote.sh --release`
+
+### L'angle mort du `db reset`
+
+**Un `db reset` local ne peut pas voir les défauts de migration liés aux
+données.** Il applique les migrations sur une base vide : les `delete` ne
+suppriment rien, aucune clé étrangère n'est tendue, aucune cascade ne se
+déclenche. Une migration de contenu peut donc rester verte pendant des mois et
+casser à la première base peuplée.
+
+Trois défauts sont sortis d'un coup le 17 août 2026, tous invisibles en local :
+
+- `contacts` supprimé avant `messages`, qui les référence ;
+- les chapitres pointant encore leur nœud d'entrée ;
+- `delete from stories`, qui emportait **toutes les progressions** par cascade —
+  dans la migration même qui prétendait les préserver.
+
+La couverture retenue est `scripts/test-migration-peuplee.py` : il joue une
+partie, pose un consentement, puis **rejoue la migration par-dessus** et vérifie
+que les comptes, les progressions et les consentements survivent, pendant que le
+pointeur narratif est bien remis à zéro.
+
+Une préproduction peuplée aurait couvert la même chose, pour bien plus cher et
+avec une base de plus à maintenir. Le test fait ce que le reset ne fait jamais,
+en quelques secondes.
+
+**À lancer avant chaque publication de contenu**, avec les cinq autres.
