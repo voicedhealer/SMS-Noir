@@ -482,12 +482,73 @@ def erreurs_et_idempotence():
 
 
 # ---------------------------------------------------------------------------
+# PARCOURS 4 — les postures
+# ---------------------------------------------------------------------------
+
+CHEMIN_ALLIE = ['Bonsoir, qui', "Quelqu'un qui a reçu", "D'accord, je garde mon",
+                'Prenez la plaque', "Zoomer sur l'auto", 'Il faut porter']
+
+
+def parcours_postures():
+    """Le même chemin narratif, joué avec trois postures différentes.
+
+    C'est le contrôle qui donne son sens à la grammaire des trois axes : si
+    trois joueurs prennent exactement les mêmes décisions structurantes et
+    finissent au même endroit avec le même profil, les micro-choix ne mesurent
+    rien. On vérifie donc qu'ils divergent — et surtout COMMENT.
+    """
+    print('\n' + '=' * 78)
+    print('  PARCOURS « POSTURES » — trois joueurs, le même chemin')
+    print('=' * 78)
+
+    profils = {}
+    for posture in ('proteger', 'enquete', 'raison'):
+        p = Partie(f'posture-{posture}@test.local', posture, posture)
+        for cible in CHEMIN_ALLIE:
+            p.choisir(cible)
+        v = variables_en_base(p.email)['variables']
+        profils[posture] = v
+        print(f"   {posture:<9} · {p.micro_vus} micro-choix · confiance {v['confiance']}"
+              f" · lucidite {v['lucidite']} · enquete {v['enquete']}")
+
+    print()
+    verifier('Protéger maximise la confiance',
+             profils['proteger']['confiance'] > profils['raison']['confiance'], True)
+    verifier('Enquêter maximise enquete',
+             profils['enquete']['enquete'] > profils['proteger']['enquete'], True)
+    verifier('Raisonner maximise la lucidité',
+             profils['raison']['lucidite'] > profils['proteger']['lucidite'], True)
+
+    # La règle la plus facile à casser sans s'en apercevoir : douter ne coûte
+    # rien. On la compare à « enquêter », qui ne touche pas non plus la
+    # confiance — les deux doivent finir au même niveau.
+    verifier('Raisonner n\'est jamais puni (= enquêter en confiance)',
+             profils['raison']['confiance'], profils['enquete']['confiance'])
+
+    # Les paliers d'enquete servent aux ch. 4-5 : un joueur qui enquête
+    # franchit les deux, un joueur qui ne le fait pas n'en franchit aucun.
+    verifier('Un enquêteur franchit le palier bas (2)',
+             profils['enquete']['enquete'] >= 2, True)
+    verifier('Un enquêteur franchit le palier haut (6)',
+             profils['enquete']['enquete'] >= 6, True)
+    verifier('Un non-enquêteur n\'ouvre rien',
+             profils['proteger']['enquete'] < 2, True)
+
+    # La fin cachée demande lucidite >= 4. Elle doit rester atteignable sans
+    # passer par une branche structurante particulière — c'est la raison du
+    # déplacement du zoom au N8.
+    verifier('La fin cachée reste atteignable en raisonnant',
+             profils['raison']['lucidite'] >= 4, True)
+
+
+# ---------------------------------------------------------------------------
 
 if __name__ == '__main__':
     allie = parcours_allie()
     refus = parcours_refus()
     n6 = parcours_branche_n6()
     parcours_carte()
+    parcours_postures()
     erreurs_et_idempotence()
 
     print('\n' + '=' * 78)

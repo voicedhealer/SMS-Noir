@@ -102,14 +102,17 @@ def la_pause_coupe_le_noeud():
                      f" and pm.source = 'scripted' and pm.body in"
                      f" (select body from messages m join nodes n on n.id = m.node_id"
                      f"  where n.code = 'N8');"))
-    verifier(f'Deux des {total} messages du N8 sont sortis', sortis, 2)
+    # Compté par le TEXTE : la capture du mail, en position 1, n'a pas de body
+    # et n'apparaît donc pas ici. Elle est bien sortie — c'est même après elle
+    # que la pause est posée.
+    verifier(f'Un seul message TEXTE du N8 sur {total} est sorti', sortis, 1)
 
     verifier('Trois options offertes', len(p.noeud['choices']), 3)
     verifier('Aucune n\'est signalée comme micro-choix',
              sorted({c['kind'] for c in p.noeud['choices']}), ['reply'])
     verifier('Le nœud n\'annonce pas qu\'on peut continuer', p.noeud['can_continue'], False)
 
-    r = p.choisir('Pourquoi cet endroit')
+    r = p.choisir('Ils vous ont dit quoi', puis_franchir=False)
     corps = [m['body'] for m in r['new_messages']]
     verifier('La réplique du joueur s\'affiche', corps[0], 'Ils vous ont dit quoi exactement ?')
     verifier('La variante de Léna suit', corps[1], MICRO[1][2])
@@ -183,7 +186,9 @@ def la_proportion_est_stable():
                                              where email = 'micro-formule@test.local'));""")
         # Un tour de moteur suffit à redériver.
         etat_avant = progression(p.email)
-        p.choisir('Vous avez signalé', puis_franchir=False) if etat_avant['node_gate'] is not None else None
+        # Un tour de moteur suffit à redériver : peu importe lequel, on ne
+        # teste pas le chemin ici mais la formule.
+        p.franchir_pauses()
         etat = progression(p.email)
         resultats[n] = (etat['variables']['lucidite'], etat['variables']['confiance'])
         print(f"   {n:>2} micro-choix à 80 % « raisonner » → lucidite "
