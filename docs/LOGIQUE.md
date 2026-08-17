@@ -229,6 +229,30 @@ inatteignable, comme le reste du graphe.
 Un média illisible ne fait jamais tomber la conversation : le client retombe sur son cartouche de
 repli, celui des `placeholder://`.
 
+## Un geste débloque une option
+
+Le vocal du N17 en est le premier cas, et le motif resservira.
+
+L'option « C'est quoi ce bruit derrière vous ? » **n'existe qu'à la deuxième
+écoute**. Un joueur qui écoute une fois et passe à la suite ne la verra jamais —
+et c'est voulu : l'incohérence n°3 (une radio en fond alors qu'elle est dehors,
+seule) ne se remarque qu'en réécoutant.
+
+Le compteur vit **côté client**, dans la bulle audio, et déclenche l'interaction
+à partir de la seconde lecture (`message_widgets.dart`). Le serveur ne sait rien
+du nombre d'écoutes : il ne connaît que l'interaction, et sa condition de
+non-répétition habituelle.
+
+C'est le bon partage. Compter les écoutes côté serveur supposerait de lui
+envoyer un événement à chaque appui sur « lecture » — du bruit réseau pour une
+information qui ne change rien à l'état de la partie tant que le geste n'a pas
+été fait deux fois. **Le client compte le geste, le serveur en enregistre
+l'effet.**
+
+⚠️ Rien ne signale l'option au joueur. C'est la règle générale des interactions
+cachées, et elle est la même que pour les micro-choix : il ne doit jamais savoir
+quels moments comptent.
+
 ## Quand une règle change, ses gardiens aussi
 
 **Règle de méthode, née de quatre récidives.** À chaque fois qu'une règle de

@@ -244,3 +244,31 @@ Contrats détaillés (payloads entrée/sortie) : voir `LOGIQUE.md`.
 | 11 | Idempotence via `player_progress.last_choice_id` / `last_choice_seq` | Une retransmission réseau ne doit ni rejouer les `effects` ni renvoyer une erreur. Migration `20260814194049_advance_idempotency.sql` |
 | 12 | **GRANT explicites** plutôt que privilèges ambiants | Les privilèges par défaut du rôle `postgres` n'accordent pas `SELECT` aux rôles API : les tables étaient illisibles même en `service_role`. Le schéma déclare désormais lui-même qui a droit à quoi, ce qui rendra aussi le déploiement distant reproductible. Migration `20260814211556_explicit_grants.sql` |
 | 13 | `Content-Type: application/json; charset=utf-8` sur les réponses | Sans `charset`, le paquet `http` de Dart décode en **latin1** : « Léna » devient « LÃ©na ». Le client décode aussi les octets lui-même, pour ne dépendre de personne |
+
+## RÈGLE PERMANENTE — jamais de `db reset` sur l'hébergé
+
+Les déploiements de contenu se font par **migration + `supabase db push`**,
+jamais par `db reset`.
+
+`db reset` détruit et recrée la base : les comptes, les consentements, les
+progressions partent avec. C'est acceptable en local, où les joueurs sont des
+fixtures. Sur l'hébergé, ce sont des gens.
+
+**Réinitialiser une progression n'est pas l'effacer**, et la distinction est le
+cœur de la règle. Quand un changement de contenu recrée les nœuds, les
+progressions existantes pointent vers des nœuds disparus : on les **remet à
+l'entrée du chapitre**, on ne supprime pas les lignes. Le compte survit,
+l'historique de consentement RGPD survit — seul le pointeur narratif est perdu,
+et lui seul devait l'être.
+
+La règle vaut dès maintenant, alors que les seuls comptes sont des tests. Elle
+n'aura aucune chance d'être adoptée le jour où elle comptera vraiment si elle
+n'est pas déjà un réflexe.
+
+Séquence de déploiement :
+
+1. `supabase db push` — migrations et seed, sans reset
+2. remise à l'entrée des progressions devenues incohérentes
+3. `DISTANT=1 scripts/upload-media.sh` — le seed repose des `placeholder://`
+4. `supabase functions deploy`
+5. `app/tool/run_remote.sh --release`
