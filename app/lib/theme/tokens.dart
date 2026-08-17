@@ -95,10 +95,14 @@ class AppSpacing {
   /// rejoignent au milieu et le fil cesse de ressembler à une conversation.
   static const double largeurMaxBulle = 0.72;
   static const double rayonBulle = 18;
+  /// Deux niveaux, et c'est eux qui font le rythme de la conversation.
+  ///
+  /// Serré à l'intérieur d'un groupe — plusieurs bulles du même émetteur dans
+  /// la même minute de fiction se lisent comme un seul souffle. Nettement plus
+  /// large entre deux groupes : c'est ce blanc qui dit qu'on a changé de tour
+  /// de parole, bien plus sûrement que le côté de l'écran.
   static const double interBulles = 3;
-
-  /// Respiration entre deux prises de parole différentes.
-  static const double interGroupes = 10;
+  static const double interGroupes = 14;
 }
 
 /// Durées d'animation. Rien de gratuit : seuls comptent l'arrivée d'un message,

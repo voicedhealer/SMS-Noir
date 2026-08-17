@@ -71,6 +71,30 @@ signalerait « application » en une fraction de seconde.
 Échelle base 4 : `4 · 8 · 12 · 16 · 20 · 24`.
 
 - **Rayon de bulle** : 18, uniforme, sans queue. Les messageries modernes ont abandonné la pointe.
+- **Horodatage** : **sous** la bulle, jamais dedans, dans le gris discret, aligné du
+  même côté que ses bulles. À l'intérieur, il forçait la bulle à s'élargir au-delà de
+  son texte — « Disparu comment ? » occupait deux fois la place nécessaire, avec un
+  vide en dessous. Dehors, la bulle épouse ses mots.
+
+- **Une seule heure par groupe**, sous le dernier message. Un groupe = **même
+  émetteur et même minute de fiction**, sans rien entre les deux. La minute compte
+  autant que l'émetteur : grouper sur le seul émetteur ferait disparaître un
+  changement d'heure au milieu d'une série, et l'heure de fiction est la seule
+  horloge dont dispose le joueur. Trois « 22h47 » empilés ne sont pas trois
+  informations.
+
+- **Deux niveaux d'espacement** : `interBulles` = **3** dans un groupe,
+  `interGroupes` = **14** entre deux. C'est ce blanc qui dit qu'on a changé de tour
+  de parole — bien plus sûrement que le côté de l'écran.
+
+- **Nom de l'émetteur** : jamais en tête-à-tête, l'en-tête le dit déjà. Réservé à la
+  conversation de groupe (ch. 3 : Léna, Karim, le joueur), sous le même traitement
+  que l'heure. Le mécanisme existe déjà — `estGroupe` s'allume dès que le fil compte
+  plus d'un contact.
+
+- **« Vu. » et la coche « non délivré »** suivent la même règle : dans le pied du
+  groupe, jamais sous chaque bulle.
+
 - **Largeur max de bulle** : **72 %** de l'écran (`AppSpacing.largeurMaxBulle`).
   Les bulles forment une colonne régulière de chaque côté, et laissent en face un
   couloir vide qui ne se referme jamais — c'est ce couloir, plus que l'alignement,

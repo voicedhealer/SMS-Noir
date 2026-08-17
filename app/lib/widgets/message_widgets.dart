@@ -13,7 +13,6 @@ class MessageBubble extends StatelessWidget {
   const MessageBubble({
     super.key,
     required this.message,
-    this.heure,
     this.vu = false,
   });
 
@@ -22,8 +21,6 @@ class MessageBubble extends StatelessWidget {
   /// Ce message porte le marqueur « Vu. ». Voir ReadReceipts.
   final bool vu;
 
-  /// Heure **de fiction** (« 23h31 »). Jamais l'horloge système.
-  final String? heure;
 
   bool get _duJoueur => message.sender == MessageSender.player;
 
@@ -49,6 +46,10 @@ class MessageBubble extends StatelessWidget {
               : AppColors.bulleContact,
           borderRadius: BorderRadius.circular(AppSpacing.rayonBulle),
         ),
+        // Plus rien sous le texte : l'heure vivait ici, et forçait la bulle à
+        // s'élargir au-delà de ses mots. « Disparu comment ? » occupait deux
+        // fois la place nécessaire, avec un vide en dessous. La bulle épouse
+        // maintenant son texte, et l'heure est passée dans MessageFooter.
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
@@ -59,33 +60,69 @@ class MessageBubble extends StatelessWidget {
                 color: _duJoueur ? AppColors.texteJoueur : AppColors.texteContact,
               ),
             ),
-            if (heure != null || message.isLocalDecorative)
-              Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.xs),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (heure != null)
-                      Text(
-                        heure!,
-                        style: AppText.horodatage.copyWith(
-                          color: _duJoueur
-                              ? AppColors.texteJoueur.withValues(alpha: 0.55)
-                              : AppColors.texteTertiaire,
-                        ),
-                      ),
-                    if (message.isLocalDecorative) ...[
-                      const SizedBox(width: AppSpacing.xs),
-                      // Une seule coche : envoyé, jamais délivré. Il ne passera
-                      // pas — et rien ne doit le dire au joueur.
-                      Icon(Icons.check,
-                          size: 13, color: AppColors.texteJoueur.withValues(alpha: 0.45)),
-                    ],
-                  ],
-                ),
-              ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Pied d'un GROUPE de messages : heure de fiction, nom, « Vu. ».
+///
+/// Sous le dernier message du groupe seulement. Trois « 22h47 » identiques
+/// empilés ne sont pas trois informations, c'est du bruit — et l'heure répétée
+/// sous chaque bulle rendait la colonne illisible.
+///
+/// Aligné du même côté que ses bulles : c'est ce qui rattache le pied à son
+/// groupe sans avoir besoin d'un trait ni d'un cadre.
+class MessageFooter extends StatelessWidget {
+  const MessageFooter({
+    super.key,
+    required this.duJoueur,
+    this.heure,
+    this.nom,
+    this.vu = false,
+    this.nonDelivre = false,
+  });
+
+  final bool duJoueur;
+
+  /// Heure **de fiction** (« 23h31 »). Jamais l'horloge système.
+  final String? heure;
+
+  /// Nom de l'émetteur — **conversation de groupe uniquement**.
+  ///
+  /// Nul en tête-à-tête : l'en-tête dit déjà à qui on parle, et « Léna » répété
+  /// sous chaque groupe serait exactement le bruit qu'on vient d'enlever. Le
+  /// mécanisme attend le chapitre 3 (Léna, Karim et le joueur).
+  final String? nom;
+
+  final bool vu;
+
+  /// Envoyé, jamais délivré. Une seule coche, et rien ne le dit au joueur.
+  final bool nonDelivre;
+
+  @override
+  Widget build(BuildContext context) {
+    final morceaux = <Widget>[
+      if (nom != null)
+        Text(nom!, style: AppText.horodatage.copyWith(color: AppColors.texteTertiaire)),
+      if (heure != null)
+        Text(heure!, style: AppText.horodatage.copyWith(color: AppColors.texteTertiaire)),
+      if (nonDelivre)
+        Icon(Icons.check, size: 12, color: AppColors.texteTertiaire.withValues(alpha: 0.7)),
+      if (vu) Text('Vu.', style: AppText.horodatage.copyWith(color: AppColors.texteTertiaire)),
+    ];
+    if (morceaux.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(
+          left: AppSpacing.l + AppSpacing.s, right: AppSpacing.l + AppSpacing.s, top: 2),
+      child: Row(
+        mainAxisAlignment: duJoueur ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: [
+          for (final m in morceaux) ...[m, const SizedBox(width: AppSpacing.s)],
+        ],
       ),
     );
   }

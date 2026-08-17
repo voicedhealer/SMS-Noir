@@ -68,6 +68,26 @@ class ConversationState {
 
   Conversation? get contact => conversations.isEmpty ? null : conversations.first;
 
+  /// Le fil réunit-il plusieurs interlocuteurs ?
+  ///
+  /// Faux tant que le chapitre 3 n'existe pas — c'est là que Léna, Karim et le
+  /// joueur se retrouvent dans le même fil. Le mécanisme est posé maintenant
+  /// pour que le nom d'émetteur n'ait pas à être rétro-ajouté au moment où le
+  /// groupe arrivera : il suffira que `conversations` en contienne plusieurs.
+  bool get estGroupe => conversations.length > 1;
+
+  /// Nom à afficher sous un message, en conversation de groupe.
+  ///
+  /// Nul pour le joueur : dans une messagerie, on ne voit jamais son propre nom
+  /// sous ses propres messages.
+  String? nomDe(ClientMessage m) {
+    if (m.sender == MessageSender.player) return null;
+    for (final c in conversations) {
+      if (c.contactId == m.contactId) return c.displayName;
+    }
+    return null;
+  }
+
   /// Messages reçus depuis la dernière ouverture de la conversation.
   /// C'est de l'état de présentation : le serveur ne sait pas ce que le joueur
   /// a regardé.

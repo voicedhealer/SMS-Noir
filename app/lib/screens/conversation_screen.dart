@@ -113,7 +113,12 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                   itemCount: etat.fil.length + (etat.typing != TypingState.aucun ? 1 : 0),
                   itemBuilder: (context, i) {
                     if (i == etat.fil.length) return const TypingIndicator();
-                    return _Element(message: etat.fil[i], etat: etat, vu: vu);
+                    return _Element(
+                      message: etat.fil[i],
+                      suivant: i + 1 < etat.fil.length ? etat.fil[i + 1] : null,
+                      etat: etat,
+                      vu: vu,
+                    );
                   },
                 ),
               ),
@@ -245,8 +250,12 @@ class _EnTete extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class _Element extends ConsumerWidget {
-  const _Element({required this.message, required this.etat, this.vu});
+  const _Element({required this.message, required this.etat, this.suivant, this.vu});
   final ClientMessage message;
+
+  /// Le message suivant du fil, pour savoir si on clôt un groupe.
+  final ClientMessage? suivant;
+
   final ConversationState etat;
 
   /// `seq` du message qui porte le marqueur « Vu. » dans tout le fil.
@@ -256,6 +265,17 @@ class _Element extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final minutes = etat.heures[message.seq];
     final heure = minutes == null ? null : FictionClock.formater(minutes);
+
+    // Un groupe = même émetteur, même minute de FICTION, sans rien entre les
+    // deux. La minute compte autant que l'émetteur : grouper sur le seul
+    // émetteur ferait disparaître un changement d'heure au milieu d'une série,
+    // et l'heure de fiction est la seule horloge que le joueur ait.
+    final s = suivant;
+    final finDeGroupe = s == null ||
+        s.sender != message.sender ||
+        s.contentType != ContentType.text ||
+        message.contentType != ContentType.text ||
+        etat.heures[s.seq] != minutes;
 
     return switch (message.contentType) {
       ContentType.separator => SeparatorPill(libelle: message.body ?? ''),
@@ -296,12 +316,25 @@ class _Element extends ConsumerWidget {
           onEnregistrer: () =>
               ref.read(conversationProvider.notifier).enregistrerContact(),
         ),
-      ContentType.text => Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            MessageBubble(message: message, heure: heure),
-            if (message.seq == vu) const ReadReceiptMarker(),
-          ],
+      ContentType.text => Padding(
+          padding: EdgeInsets.only(
+              bottom: finDeGroupe ? AppSpacing.interGroupes : AppSpacing.interBulles),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              MessageBubble(message: message),
+              // Heure, « Vu. » et coche : sous le DERNIER du groupe seulement.
+              if (finDeGroupe)
+                MessageFooter(
+                  duJoueur: message.sender == MessageSender.player,
+                  heure: heure,
+                  // Nul en tête-à-tête. Le mécanisme attend le groupe du ch. 3.
+                  nom: etat.contact != null && etat.estGroupe ? etat.nomDe(message) : null,
+                  vu: message.seq == vu,
+                  nonDelivre: message.isLocalDecorative,
+                ),
+            ],
+          ),
         ),
     };
   }
