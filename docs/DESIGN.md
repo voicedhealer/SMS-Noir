@@ -671,3 +671,50 @@ simple tap escamotait. Une seule source de vérité, et tout est `const` donc l'
 Vérifié sur un vrai binaire release : `Réinitialiser l'histoire`, `restart_alt` et `fast_forward`
 sont **absents** des chaînes de `App.framework`, alors que `Message`, `Messages` et `en ligne` y
 figurent. Contrôle à refaire si un nouvel outil de debug est ajouté.
+
+## L'écran de Réglages
+
+**Accessible depuis la liste des conversations uniquement.** Une icône discrète dans l'en-tête,
+là où une vraie messagerie met ses paramètres. Jamais depuis le fil avec Léna : là-bas, aucun
+élément ne doit rappeler qu'on est dans une app.
+
+Apparence : liste sobre avec interrupteurs, même noir que le reste. Un écran de réglages
+d'application ordinaire, pas un menu de jeu.
+
+| Section | Contenu |
+|---|---|
+| Son | Sons · Vibrations |
+| Accessibilité | Ralentir le rythme |
+| Confidentialité | Politique en **texte intégral embarqué** |
+| Données | Effacer ma progression |
+
+**Rien d'autre.** Pas de statistiques, pas de progression, pas de chapitres débloqués : ce sont
+des objets de jeu, et cette app n'en est pas une.
+
+Les réglages ne sont **pas cloisonnés par joueur**, contrairement au LocalStore. Couper le son ou
+ralentir le rythme est une préférence de la personne qui tient le téléphone, pas de la partie : la
+perdre en réinitialisant serait absurde, et franchement pénible pour qui a besoin du réglage
+d'accessibilité.
+
+La politique est **embarquée et pas liée** : lisible hors ligne, impossible à pointer vers une
+page morte, versionnée avec le code qu'elle décrit. C'est aussi ce qui lève le blocage
+`PRIVACY_URL` — l'écran de consentement du moment IA a enfin quelque chose à montrer.
+
+## Le silence avant les choix
+
+Les choix apparaissent dès l'affichage du dernier message, mais ne répondent pas au tap pendant
+un court silence — de **1 à 2 s**, selon la longueur de ce message (900 ms + 10 ms/caractère,
+borné). Sans ça, un joueur qui lit encore tape parfois avant d'avoir fini, surtout sur un bloc de
+plusieurs messages.
+
+**Rien à l'écran ne distingue le silence de l'état normal.** Pas de grisé, pas d'icône d'attente :
+`TextButton.styleFrom` fixe la même couleur pour tous les états, verrouillé ou non. Le joueur se
+sent juste moins bousculé — il ne doit jamais pouvoir repérer mécaniquement pourquoi. Même règle
+pour le « + » des interactions cachées : verrouillé pendant le même silence.
+
+## Le fil ne vole jamais la position de lecture
+
+Remonter dans le fil pour relire ne doit jamais être interrompu par une nouvelle livraison —
+c'est le réflexe de toute vraie messagerie. Le défilement automatique vers le bas ne s'applique
+que si le joueur est **déjà à moins de 120 px du bas** au moment où le nouveau contenu arrive ; au-
+delà, sa position ne bouge pas d'un pixel.
