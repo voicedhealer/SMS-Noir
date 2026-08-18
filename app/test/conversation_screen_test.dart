@@ -538,6 +538,9 @@ void main() {
       expect(find.text('C\'est qui, ce type ?'), findsNothing);
       expect(find.text('Pourquoi cet entrepôt ?'), findsNothing);
 
+      // Le « + » répond après un court silence de lecture — voir
+      // « le tap est ignoré pendant le silence de lecture » plus bas.
+      await tester.pump(const Duration(seconds: 2));
       await tester.tap(find.byIcon(Icons.add));
       await tester.pumpAndSettle();
       expect(find.text('C\'est qui, ce type ?'), findsOneWidget);
@@ -650,5 +653,233 @@ void main() {
     await tester.tap(find.text('Réponse A'));
     await tester.pumpAndSettle();
     expect(find.text('Léna'), findsOneWidget);
+  });
+
+  group('Silence de lecture avant les choix', () {
+    Map<String, dynamic> etatAvecChoix(String dernierMessage) => {
+          'story': {'slug': 's', 'title': 'T'},
+          'conversations': [conversation()],
+          'history': [message(seq: 1, body: dernierMessage)],
+          'node': noeud(choix: [
+            {'id': 'a', 'position': 0, 'label': 'Réponse A', 'kind': 'reply'},
+            {'id': 'b', 'position': 1, 'label': 'Réponse B', 'kind': 'reply'},
+          ]),
+          'chapter_end': null,
+          'ai_moment_pending': false,
+        };
+
+    /// Comme `monter()`, mais SANS `pumpAndSettle()` au montage.
+    ///
+    /// `pumpAndSettle()` avance l'horloge factice par pas jusqu'à ce que plus
+    /// aucune frame ne soit programmée — et selon ce qui reste à animer à cet
+    /// instant précis, ce pas peut suffire à faire expirer un minuteur de
+    /// 1 à 2 s avant même que le corps du test ait commencé à pomper. Constaté
+    /// en dur : le verrou d'un message de 200 caractères se retrouvait déjà
+    /// levé au retour de `monter()`. Des `pump()` sans durée vident la file de
+    /// microtâches et peignent une frame sans avancer le temps — assez pour
+    /// résoudre l'authentification et le premier `get-state`.
+    Future<void> monterSansAvancerHorloge(
+      WidgetTester tester, {
+      required Map<String, dynamic> getState,
+      Map<String, dynamic>? advance,
+    }) async {
+      SharedPreferences.setMockInitialValues({});
+      final api = EngineApi(
+        jetonAcces: () => 'jeton',
+        baseUrl: 'http://test.local',
+        apiKey: 'k',
+        httpClient: MockClient((requete) async {
+          final corps = requete.url.path.endsWith('advance') ? advance! : getState;
+          return http.Response.bytes(utf8.encode(jsonEncode(corps)), 200);
+        }),
+      );
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          authPreteProvider.overrideWith((ref) async => 'joueur-test'),
+          engineApiProvider.overrideWithValue(api),
+        ],
+        child: MaterialApp(theme: AppTheme.sombre, home: const ConversationScreen()),
+      ));
+      for (var i = 0; i < 5; i++) {
+        await tester.pump();
+      }
+    }
+
+    testWidgets('le tap est ignoré pendant le silence de lecture', (tester) async {
+      await monterSansAvancerHorloge(tester,
+          getState: etatAvecChoix('Une réplique de taille ordinaire.'));
+
+      // Présents dès l'affichage — rien ne doit manquer à l'écran.
+      expect(find.text('Réponse A'), findsOneWidget);
+
+      // Mais le tap immédiat ne fait rien : aucune requête n'est partie, donc
+      // aucun nouveau nœud n'est arrivé et le bouton est toujours là.
+      await tester.tap(find.text('Réponse A'));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.text('Réponse A'), findsOneWidget);
+    });
+
+    testWidgets('rien à l\'écran ne distingue le silence de l\'état normal',
+        (tester) async {
+      // Contrainte du produit : jamais de grisé, jamais d'icône d'attente —
+      // le joueur ne doit jamais pouvoir repérer qu'un verrou existe.
+      await monterSansAvancerHorloge(tester, getState: etatAvecChoix('Une réplique.'));
+      final avant = tester
+          .widget<TextButton>(find.ancestor(
+              of: find.text('Réponse A'), matching: find.byType(TextButton)))
+          .style;
+
+      await tester.pump(const Duration(seconds: 3));
+      final apres = tester
+          .widget<TextButton>(find.ancestor(
+              of: find.text('Réponse A'), matching: find.byType(TextButton)))
+          .style;
+
+      expect(avant?.backgroundColor?.resolve({}), apres?.backgroundColor?.resolve({}));
+    });
+
+    testWidgets('le tap fonctionne une fois le silence passé', (tester) async {
+      await monterSansAvancerHorloge(
+        tester,
+        getState: etatAvecChoix('Une réplique.'),
+        advance: {
+          'new_messages': [message(seq: 2, body: 'suite')],
+          'node': noeud(code: 'N2'),
+          'conversations': [conversation()],
+          'chapter_end': null,
+          'ai_moment_pending': false,
+          'idempotent_replay': false,
+        },
+      );
+
+      await tester.pump(const Duration(seconds: 2));
+      await tester.tap(find.text('Réponse A'));
+      await tester.pumpAndSettle();
+      expect(find.text('suite'), findsOneWidget);
+    });
+
+    testWidgets('un message plus long tient le verrou plus longtemps', (tester) async {
+      final long = 'x' * 200;
+      await monterSansAvancerHorloge(tester, getState: etatAvecChoix(long));
+
+      // 900 + 200×10 = 2900, borné à 2000 ms : encore verrouillé à 1,5 s.
+      await tester.pump(const Duration(milliseconds: 1500));
+      await tester.tap(find.text('Réponse A'));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.text('Réponse A'), findsOneWidget,
+          reason: 'un message long garde le verrou plus longtemps qu\'un court');
+    });
+  });
+
+  group('Le fil ne vole jamais la position de lecture', () {
+    testWidgets('un joueur remonté n\'est pas ramené en bas par une livraison',
+        (tester) async {
+      // Container explicite : la lazy-list ne construit que les items
+      // visibles, donc une fois remonté, le nouveau message livré au bas du
+      // fil n'apparaît jamais dans l'arbre de widgets — vérifier l'ÉTAT
+      // directement est la seule façon fiable de confirmer qu'il est bien
+      // arrivé sans dépendre de ce qui est rendu à l'écran.
+      final api = EngineApi(
+        jetonAcces: () => 'jeton',
+        baseUrl: 'http://test.local',
+        apiKey: 'k',
+        httpClient: MockClient((requete) async {
+          final estAdvance = requete.url.path.endsWith('advance');
+          final corps = estAdvance
+              ? {
+                  'new_messages': [
+                    message(seq: 41, body: 'Nouveau message pendant la lecture'),
+                  ],
+                  'node': noeud(code: 'N2'),
+                  'conversations': [conversation()],
+                  'chapter_end': null,
+                  'ai_moment_pending': false,
+                  'idempotent_replay': false,
+                }
+              : {
+                  'story': {'slug': 's', 'title': 'T'},
+                  'conversations': [conversation()],
+                  'history': [for (var i = 1; i <= 40; i++) message(seq: i, body: 'Message $i')],
+                  'node': noeud(choix: [
+                    {'id': 'a', 'position': 0, 'label': 'Réponse A', 'kind': 'reply'},
+                  ]),
+                  'chapter_end': null,
+                  'ai_moment_pending': false,
+                };
+          return http.Response.bytes(utf8.encode(jsonEncode(corps)), 200);
+        }),
+      );
+      final conteneur = ProviderContainer(overrides: [
+        authPreteProvider.overrideWith((ref) async => 'joueur-test'),
+        engineApiProvider.overrideWithValue(api),
+      ]);
+      addTearDown(conteneur.dispose);
+
+      await tester.pumpWidget(UncontrolledProviderScope(
+        container: conteneur,
+        child: MaterialApp(theme: AppTheme.sombre, home: const ConversationScreen()),
+      ));
+      await tester.pumpAndSettle();
+
+      // Ciblé explicitement sur le ListView du fil : `find.byType(Scrollable)`
+      // seul aurait pu accrocher un autre scrollable de l'arbre (champ de
+      // texte multi-ligne, transition de route) sans qu'on s'en aperçoive.
+      final liste =
+          find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable));
+      final scroll = tester.state<ScrollableState>(liste).position;
+      // Le joueur remonte délibérément, sans pour autant remonter jusqu'au
+      // tout début du fil — un drag trop généreux collerait au sommet
+      // (pixels == 0) et donnerait un résultat correct pour la mauvaise
+      // raison.
+      await tester.drag(liste, const Offset(0, 800));
+      await tester.pumpAndSettle();
+      final positionAvant = scroll.pixels;
+      // Même seuil que _ConversationScreenState._seuilProcheDuBas.
+      expect(positionAvant, lessThan(scroll.maxScrollExtent - 120),
+          reason: 'le remontage doit avoir vraiment éloigné le joueur du bas');
+
+      // Le composer et la zone de choix vivent HORS de la liste défilable :
+      // le tap fonctionne quelle que soit la position de lecture.
+      await tester.pump(const Duration(seconds: 2));
+      await tester.tap(find.text('Réponse A'));
+      await tester.pumpAndSettle();
+
+      final etat = conteneur.read(conversationProvider).value!;
+      expect(etat.fil.map((m) => m.body), contains('Nouveau message pendant la lecture'),
+          reason: 'le message est bien arrivé, même invisible à l\'écran');
+      expect(scroll.pixels, positionAvant,
+          reason: 'mais il n\'a pas ramené le joueur en bas');
+    });
+
+    testWidgets('un joueur déjà en bas suit le direct normalement', (tester) async {
+      await monter(
+        tester,
+        getState: {
+          'story': {'slug': 's', 'title': 'T'},
+          'conversations': [conversation()],
+          'history': [message(seq: 1, body: 'Premier message')],
+          'node': noeud(choix: [
+            {'id': 'a', 'position': 0, 'label': 'Réponse A', 'kind': 'reply'},
+          ]),
+          'chapter_end': null,
+          'ai_moment_pending': false,
+        },
+        advance: {
+          'new_messages': [message(seq: 2, body: 'Réponse de Léna')],
+          'node': noeud(code: 'N2'),
+          'conversations': [conversation()],
+          'chapter_end': null,
+          'ai_moment_pending': false,
+          'idempotent_replay': false,
+        },
+      );
+
+      // Le joueur n'a jamais quitté le bas du fil : le comportement historique
+      // — suivre le direct — doit tenir exactement comme avant ce correctif.
+      await tester.pump(const Duration(seconds: 2));
+      await tester.tap(find.text('Réponse A'));
+      await tester.pumpAndSettle();
+      expect(find.text('Réponse de Léna'), findsOneWidget);
+    });
   });
 }

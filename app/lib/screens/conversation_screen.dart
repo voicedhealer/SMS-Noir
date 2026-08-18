@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -25,6 +27,32 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   final _scroll = ScrollController();
   bool _finMontree = false;
 
+  /// Distance au bas du fil en dessous de laquelle une nouvelle livraison peut
+  /// encore faire défiler automatiquement. Au-delà, le joueur a délibérément
+  /// remonté pour relire, et rien ne doit l'en déloger — pas plus qu'une vraie
+  /// messagerie ne le ferait.
+  static const double _seuilProcheDuBas = 120;
+
+  /// Les choix restent présents à l'écran dès l'arrivée du dernier message,
+  /// mais ne répondent pas au tap tant que ce verrou tient. Aucune icône, aucun
+  /// grisé : `TextButton.styleFrom` fixe la même couleur pour tous les états,
+  /// donc rien à l'écran ne trahit ce court délai — le joueur se sent juste
+  /// moins bousculé, sans jamais voir pourquoi.
+  bool _choixVerrouilles = false;
+  Timer? _minuteurChoix;
+
+  /// `seq` du dernier message pour lequel le verrou a déjà été armé.
+  ///
+  /// Comparé à chaque `build()`, pas détecté par transition dans `ref.listen`.
+  /// Riverpod ne garantit pas qu'un `ref.listen` posé pendant `build()` reçoive
+  /// un événement pour la toute première émission (`previous == null`) — sur
+  /// un écran ouvert directement sur un nœud déjà arrêté (aucun déroulé à
+  /// jouer), cette première émission peut être la SEULE, et un verrou qui
+  /// dépend d'y avoir assisté ne s'arme jamais. Une comparaison de marqueur à
+  /// chaque `build()` n'a pas ce problème : elle voit chaque état, y compris
+  /// le premier.
+  int? _dernierLotArme;
+
   @override
   void initState() {
     super.initState();
@@ -34,8 +62,20 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
   @override
   void dispose() {
+    _minuteurChoix?.cancel();
     _scroll.dispose();
     super.dispose();
+  }
+
+  /// Le joueur était-il déjà en bas AVANT cette mise à jour ?
+  ///
+  /// Appelé depuis `ref.listen`, donc avant que le nouveau contenu soit posé
+  /// dans la liste : `_scroll.position` reflète encore l'ancien fil. C'est ce
+  /// qui permet de distinguer « il lit le direct » de « il est remonté ».
+  bool get _procheDuBas {
+    if (!_scroll.hasClients) return true;
+    final pos = _scroll.position;
+    return pos.pixels >= pos.maxScrollExtent - _seuilProcheDuBas;
   }
 
   void _versLeBas() {
@@ -49,12 +89,46 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     });
   }
 
+  /// Un court silence avant que les choix ne répondent, pour laisser le temps
+  /// de lire le dernier message. Sa durée suit la longueur de ce message :
+  /// « Merci. » n'a pas besoin des deux secondes que mérite une réplique
+  /// entière — mais elle reste bornée, pour ne jamais devenir une vraie
+  /// attente.
+  void _armerVerrouChoix(ConversationState? etat) {
+    _minuteurChoix?.cancel();
+    final dernier = (etat?.fil.isNotEmpty ?? false) ? etat!.fil.last.body ?? '' : '';
+    final ms = (900 + dernier.length * 10).clamp(1000, 2000);
+    setState(() => _choixVerrouilles = true);
+    _minuteurChoix = Timer(Duration(milliseconds: ms), () {
+      if (mounted) setState(() => _choixVerrouilles = false);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(conversationProvider);
     final ctrl = ref.read(conversationProvider.notifier);
 
-    ref.listen(conversationProvider, (_, _) => _versLeBas());
+    ref.listen(conversationProvider, (previous, next) {
+      // Ne jamais voler la position de lecture : seul un joueur déjà proche du
+      // bas suit le fil automatiquement.
+      final premiereFois = previous == null || previous is! AsyncData;
+      if (premiereFois || _procheDuBas) _versLeBas();
+    });
+
+    // Un lot de messages vient de s'installer (déroulé arrêté, choix présents
+    // ou non) : si c'en est un nouveau, on arme le verrou. Comparé à chaque
+    // build plutôt qu'à une transition — voir le commentaire sur
+    // `_dernierLotArme`.
+    final etatPourVerrou = async.value;
+    if (etatPourVerrou != null && !etatPourVerrou.enDeroule) {
+      final lot = etatPourVerrou.fil.isNotEmpty ? etatPourVerrou.fil.last.seq : -1;
+      if (lot != _dernierLotArme) {
+        _dernierLotArme = lot;
+        WidgetsBinding.instance
+            .addPostFrameCallback((_) => _armerVerrouChoix(etatPourVerrou));
+      }
+    }
 
     // Fin de chapitre : plein écran, une fois le déroulé terminé.
     final etatCourant = async.value;
@@ -142,6 +216,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                   for (final c in etat.interactionsParlees) (id: c.id, label: c.label),
                 ],
                 onChoisir: ctrl.declencherInteraction,
+                verrouille: _choixVerrouilles,
               ),
             if (!etat.enDeroule)
               ChoiceArea(
@@ -150,7 +225,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                     (id: c.id, label: c.label, estIgnore: c.kind == ChoiceKind.ignore),
                 ],
                 onChoisir: ctrl.choisir,
-                verrouille: false,
+                verrouille: _choixVerrouilles,
               ),
             Composer(
               mode: etat.mode,
