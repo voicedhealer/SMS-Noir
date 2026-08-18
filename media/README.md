@@ -64,6 +64,31 @@ n° 3** de la bible §7 : elle est censée être seule dans une zone déserte.
 
 ---
 
+## La musique — trois segments
+
+| Rôle | Reconnu par | Colonne |
+|---|---|---|
+| Intronisation | `intro` dans le nom | `intro_music_url` |
+| Écran noir du N19 | `60-sec`, `N19` ou `narration` dans le nom | `narration_music_url` |
+| Écran de fin | `clap-de-fin` ou `fin-music` dans le nom, **sinon** : le seul fichier audio restant | `chapter_end_music_url` |
+
+**L'écran de fin accepte un vrai titre de morceau.** Une composition n'a
+aucune raison de porter un mot-clé technique — « Unmarked_Evidence.mp3 » est
+un nom d'œuvre, pas un identifiant. S'il ne reste qu'un seul fichier audio non
+réclamé par l'intro et le N19, le script le prend pour la fin, quel que soit
+son nom.
+
+**Ce repli ne marche qu'à un fichier près.** S'il en reste deux non identifiés
+à la fois, aucun n'est pris automatiquement — inclure `fin` quelque part dans
+le nom lève l'ambiguïté.
+
+Durées : l'intro et le N19 sont coupés net par l'app à la fin de leur écran —
+**60 s minimum** suffit pour le N19, pas besoin d'une précision à la seconde.
+L'écran de fin, lui, joue jusqu'au bout : c'est le seul qui doit vraiment finir
+en musique, pas être coupé en plein élan.
+
+---
+
 ## Lisibilité au zoom — la contrainte qui décide de tout
 
 Trois des six interactions cachées reposent sur un détail visible au zoom, sur un

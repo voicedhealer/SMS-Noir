@@ -195,41 +195,55 @@ sonner reception sound_received_url "son de réception"
 sonner envoi     sound_sent_url     "son d'envoi"
 sonner frappe    sound_typing_url   "son de frappe"
 
-# --- Musique d'intronisation ------------------------------------------------
-# Repérée par élimination : un audio de media/ qui n'appartient à aucun nœud.
-musique=""
-for f in "$DOSSIER"/*; do
-  [ -e "$f" ] || continue
-  nom="$(basename "$f")"
-  case "$nom" in *.md) continue;; esac
-  case "$nom" in *.mp3|*.m4a|*.aac|*.wav) ;; *) continue;; esac
-  case "$nom" in *N17*|*audio-N*) continue;; esac
-  # Les sons de message ne sont pas la musique d'intro.
-  case "$(echo "$nom" | tr 'A-Z' 'a-z')" in *reception*|*envoi*|*frappe*|*son-*) continue;; esac
-  musique="$f"; break
-done
-
-# Les TROIS segments musicaux, désignés par un mot-clé du nom de fichier.
+# Les trois segments musicaux.
 #
-# Le repérage « premier fichier audio venu » ne tenait plus : il y a désormais
-# trois morceaux issus du même enregistrement, et rien dans leur en-tête ne dit
-# lequel va où. On les nomme.
+# Un fichier de contenu (intro-music.mp4, un mot-clé de nœud dans son nom) se
+# reconnaît sans ambiguïté. Une COMPOSITION MUSICALE n'a aucune raison de
+# porter un mot-clé technique dans son titre — « Unmarked_Evidence.mp3 » est un
+# vrai nom de morceau, pas un identifiant. Deux passes, donc : mots-clés
+# d'abord, puis repli sur « le seul fichier audio encore non attribué ».
+_MUSIQUES_PRISES=""
+
+trouver_musique() {  # trouver_musique <motifs séparés par |>
+  local motifs="$1" f nom
+  for f in "$DOSSIER"/*; do
+    [ -f "$f" ] || continue
+    nom="$(basename "$f")"
+    case "$nom" in *.mp3|*.m4a|*.aac|*.wav|*.mp4) ;; *) continue;; esac
+    case " $_MUSIQUES_PRISES " in *" $nom "*) continue;; esac
+    case "$nom" in *N17*|*audio-N*) continue;; esac
+    case "$(echo "$nom" | tr 'A-Z' 'a-z')" in *reception*|*envoi*|*frappe*|*son-*) continue;; esac
+    if [ -z "$motifs" ]; then echo "$f"; return; fi
+    # Pas de sous-shell pour découper sur « | » : un `return` à l'intérieur de
+    # ( … ) ne sort que du sous-shell, pas de la fonction — la boucle
+    # extérieure continuait et pouvait renvoyer DEUX fichiers concaténés.
+    # Constaté : `curl --data-binary` recevait deux chemins sur deux lignes.
+    for motif in ${motifs//|/ }; do
+      case "$nom" in *"$motif"*) echo "$f"; return;; esac
+    done
+  done
+}
+
 for triplet in "intro:intro_music_url:intro-music" \
-               "60-sec:narration_music_url:narration-music" \
-               "clap-de-fin:chapter_end_music_url:fin-music"; do
+               "60-sec|N19|narration:narration_music_url:narration-music" \
+               "clap-de-fin|fin-music:chapter_end_music_url:fin-music"; do
   motif="${triplet%%:*}"; reste="${triplet#*:}"
   colonne="${reste%%:*}"; base="${reste#*:}"
 
-  fichier=""
-  for f in "$DOSSIER"/*; do
-    [ -f "$f" ] || continue
-    case "$(basename "$f")" in *"$motif"*) fichier="$f"; break;; esac
-  done
+  fichier="$(trouver_musique "$motif")"
+
+  # Repli, pour la fin uniquement : une vraie composition n'a aucune raison de
+  # porter un mot-clé technique dans son titre. S'il ne reste qu'UN fichier
+  # audio non réclamé par l'intro ou le N19, c'est lui.
+  if [ -z "$fichier" ] && [ "$colonne" = "chapter_end_music_url" ]; then
+    fichier="$(trouver_musique "")"
+  fi
 
   if [ -z "$fichier" ]; then
     printf "  ⏳ %-28s absent — écran muet\n" "($motif)"
     continue
   fi
+  _MUSIQUES_PRISES="$_MUSIQUES_PRISES $(basename "$fichier")"
 
   objet="$base.${fichier##*.}"
   code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
