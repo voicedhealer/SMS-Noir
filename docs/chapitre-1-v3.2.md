@@ -149,16 +149,16 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 
 ## N7 — ELLE TESTE
 
-**[Léna]** Quelqu'un qui cherche sa sœur depuis 7 mois, et vous, vous êtes la personne au bout d'un mauvais numéro qui pose beaucoup de questions.
+**[Léna]** Une personne qui recherche sa sœur depuis plus de 7 mois, et vous, la personne qui reçoit le message destiné à un autre, comme une bouteille à la mer portant un mot...
 
 **MICRO-CHOIX :**
-- 🛡 « J'arrête si vous voulez. » → *« Surtout pas, s'il vous plaît. »*
+- 🛡 « J'arrête si vous voulez. » → *« Je peux vous demander une chose, une seule, s'il vous plaît ? »*
 - 🔍 « Votre sœur, elle s'appelle comment ? » → *« Chloé. »*
-- 🧠 « C'est un reproche ? » → *« Non, un constat, et plutôt une bonne surprise. »*
+- 🧠 « Et si j'ouvre cette bouteille, quel serait ce message ? » → *« Un appel à l'aide. »*
 
-**[Léna]** Ça tombe bien, tout le monde a arrêté d'en poser sur Chloé.
+**[Léna]** Plus personne ne croit en mon histoire, plus personne ne pose de questions, les gens préfèrent oublier qu'imaginer le pire...
 
-**[Léna]** Léna, au fait. Puisqu'on en est là.
+**[Léna]** Vous recevez ma bouteille, mais je ne vous ai même pas dit mon nom, je m'appelle Léna.
 
 *(→ carte d'enregistrement du contact · révélation d'identité)*
 → **N8**

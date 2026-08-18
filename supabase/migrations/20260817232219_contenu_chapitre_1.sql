@@ -299,9 +299,9 @@ from (values
 ('N6', 5, 'contact_card', null, null, 2, 0, false, null),
 
 -- N7
-('N7', 0, 'text', $$Quelqu'un qui cherche sa sœur depuis 7 mois, et vous, vous êtes la personne au bout d'un mauvais numéro qui pose beaucoup de questions.$$, null, 15, 3, false, null),
-('N7', 1, 'text', $$Ça tombe bien, tout le monde a arrêté d'en poser sur Chloé.$$, null, 5, 3, false, null),
-('N7', 2, 'text', $$Léna, au fait. Puisqu'on en est là.$$, null, 5, 3, false, null),
+('N7', 0, 'text', $$Une personne qui recherche sa sœur depuis plus de 7 mois, et vous, la personne qui reçoit le message destiné à un autre, comme une bouteille à la mer portant un mot...$$, null, 15, 3, false, null),
+('N7', 1, 'text', $$Plus personne ne croit en mon histoire, plus personne ne pose de questions, les gens préfèrent oublier qu'imaginer le pire...$$, null, 5, 3, false, null),
+('N7', 2, 'text', $$Vous recevez ma bouteille, mais je ne vous ai même pas dit mon nom, je m'appelle Léna.$$, null, 5, 3, false, null),
 ('N7', 3, 'contact_card', null, null, 2, 0, false, null),
 
 -- N8
@@ -426,9 +426,9 @@ from (values
 ('N6', 12, $$Il est presque minuit, vous savez.$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Je sais, c'est ce soir ou jamais.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N7 · pause après le message 0
-('N7', 10, $$J'arrête si vous voulez.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Surtout pas, s'il vous plaît.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N7', 10, $$J'arrête si vous voulez.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Je peux vous demander une chose, une seule, s'il vous plaît ?", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
 ('N7', 11, $$Votre sœur, elle s'appelle comment ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Chloé.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N7', 12, $$C'est un reproche ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Non, un constat, et plutôt une bonne surprise.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+('N7', 12, $$Et si j'ouvre cette bouteille, quel serait ce message ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Un appel à l'aide.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N8 · pause après le message 1
 ('N8', 10, $$C'est révoltant.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Merci de le dire, vous savez, à force on finit par douter de soi.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
