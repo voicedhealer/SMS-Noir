@@ -450,11 +450,6 @@ from (values
 ('N11', 11, $$Qu'est-ce que vous voulez ?$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Que quelqu'un sache, c'est tout.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
 ('N11', 12, $$Je vous avais dit non.$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Je sais, c'est pour ça que je ne demande rien.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
--- N12 · pause après le message 0
-('N12', 10, $$Promettez-moi de ne pas entrer dans le bâtiment.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Je vous le promets, je regarde et je repars, c'est tout.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N12', 11, $$Envoyez-moi tout ce que vous voyez, même les détails.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "D'accord, je vous raconterai en direct, ça m'évitera de trop réfléchir.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N12', 12, $$Vous avez prévu quoi si ça tourne mal ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Courir jusqu'à ma voiture, c'est un plan, non ?", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
-
 -- N13 · pause après le message 0
 ('N13', 10, $$Peu importe, je suis là.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Merci, j'en avais besoin.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
 ('N13', 11, $$Vous auriez insisté avec n'importe qui ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Non, justement, et c'est peut-être ça qui devrait m'inquiéter.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),

@@ -246,11 +246,6 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 
 **[Léna]** Merci, vraiment. Vous ne pouvez pas savoir ce que ça change de ne pas être complètement seule ce soir.
 
-**MICRO-CHOIX :**
-- 🛡 « Promettez-moi de ne pas entrer dans le bâtiment. » → *« Je vous le promets, je regarde et je repars, c'est tout. »*
-- 🔍 « Envoyez-moi tout ce que vous voyez, même les détails. » → *« D'accord, je vous raconterai en direct, ça m'évitera de trop réfléchir. »*
-- 🧠 « Vous avez prévu quoi si ça tourne mal ? » → *« Courir jusqu'à ma voiture, c'est un plan, non ? »*
-
 → **N14**
 
 ---

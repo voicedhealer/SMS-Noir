@@ -237,7 +237,7 @@ select _chk(43, 'Aucun média sans URL', '',
 select _chk(44, 'Nombre total de messages', '65',
   (select count(*)::text from _n n join messages m on m.node_id = n.id));
 
-select _chk(45, 'Nombre total de choix', '96',
+select _chk(45, 'Nombre total de choix', '93',
   (select count(*)::text from _n n join choices ch on ch.node_id = n.id));
 
 select _chk(46, 'Répartition des choix (ignore/interaction/reply)', '0/7/26',
