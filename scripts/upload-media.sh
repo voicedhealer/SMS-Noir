@@ -47,7 +47,12 @@ MEDIAS=(
   photo-N16-plaque
   photo-N21-porte-cles
   audio-N17-reperage
+  lena-rentre-chez-elle
 )
+
+# .mp4 est ambigu (conteneur vidéo OU audio-only, cf. mime()) : ce nom précis
+# tranche pour vidéo — voir la garde en tête de mime().
+MEDIAS_VIDEO=(lena-rentre-chez-elle)
 
 # La musique d'intronisation n'est pas rattachée à un nœud : elle vit sur
 # l'histoire (stories.intro_music_url). Tout fichier de media/ dont le nom ne
@@ -79,7 +84,12 @@ trouver() {
   return 1
 }
 
-mime() {
+mime() {  # mime <fichier> [<base>]
+  # .mp4 est ambigu : conteneur audio-only (m4a-like) pour les vocaux
+  # existants, conteneur vidéo pour la transition N20→N9. L'extension seule ne
+  # tranche pas — on identifie par le nom de base, connu à l'appel.
+  local base="${2:-}"
+  case " ${MEDIAS_VIDEO[*]:-} " in *" $base "*) echo video/mp4; return;; esac
   case "${1##*.}" in
     jpg|jpeg) echo image/jpeg ;;
     png)      echo image/png ;;
@@ -139,7 +149,7 @@ for base in "${MEDIAS[@]}"; do
   fi
 
   objet="$base.${fichier##*.}"
-  type="$(mime "$fichier")"
+  type="$(mime "$fichier" "$base")"
 
   code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
     "$API_URL/storage/v1/object/$BUCKET/$objet" \
@@ -212,6 +222,14 @@ trouver_musique() {  # trouver_musique <motifs séparés par |>
     case "$nom" in *.mp3|*.m4a|*.aac|*.wav|*.mp4) ;; *) continue;; esac
     case " $_MUSIQUES_PRISES " in *" $nom "*) continue;; esac
     case "$nom" in *N17*|*audio-N*) continue;; esac
+    # Fichier source BRUT de la transition N20→N9, gardé sur disque comme
+    # référence (la version traitée, celle qu'on téléverse, est
+    # media/lena-rentre-chez-elle.mp4) : audio non coupé, filigrane visible —
+    # jamais un candidat pour quoi que ce soit. Sans cette exclusion il était
+    # ramassé par le repli musical (premier .mp4 non réclamé, ordre
+    # alphabétique) et écrasait la vraie musique de fin de chapitre. Constaté
+    # le 19 août 2026.
+    case "$nom" in "Léna rentre chez elle.mp4") continue;; esac
     case "$(echo "$nom" | tr 'A-Z' 'a-z')" in *reception*|*envoi*|*frappe*|*son-*) continue;; esac
     if [ -z "$motifs" ]; then echo "$f"; return; fi
     # Pas de sous-shell pour découper sur « | » : un `return` à l'intérieur de

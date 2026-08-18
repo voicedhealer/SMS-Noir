@@ -1,14 +1,15 @@
 # TODO.md
 
-## 🔴 Addendum transition N20-N9 — reste (Phases B et C)
+## 🔴 Addendum transition N20-N9 — reste (Phase C, et un témoin visuel dû sur la B)
 
-Phase A (contenu N20/N9, plus la déclinaison vouvoiement N21/N22) terminée, vérifiée et committée —
-voir MEMOIRE.md 2026-08-18/19. Restent :
+Phases A et B terminées, vérifiées côté back/tests — voir MEMOIRE.md 2026-08-18/19. Restent :
 
-- [ ] **Phase B** — écran de transition vidéo entre N20 et N9 (`media/lena-rentre-chez-elle.mp4`,
-      déjà traité : filigrane recadré, audio retiré, pas encore uploadé). Nouveau `content_type`,
-      nouvel écran Flutter, dépendance `video_player` à ajouter (absente de `pubspec.yaml`),
-      signature Storage, câblage des deux choix structurants du N20 vers l'écran puis vers N9.
+- [ ] **Témoin visuel de la Phase B, dû à Vivien.** Aucun outil d'automatisation de tap n'est
+      disponible sur cette machine (pas d'accès d'aide autorisé) : je n'ai pas pu dérouler la partie
+      jusqu'au N9 pour voir la vidéo jouer réellement sur device. Vérifié autrement (voir MEMOIRE) :
+      le bon message vidéo arrive en position 0 du N9 côté serveur, l'app démarre et tourne avec
+      `video_player` sans crash. La lecture elle-même — plein écran, bonne durée, enchaînement propre
+      sur le texte suivant — reste à confirmer en jouant.
 - [ ] **Phase C** — `PhotoViewer` (`app/lib/widgets/message_widgets.dart`) : l'image doit remplir
       l'écran (`BoxFit`) avant que `InteractiveViewer` applique le zoom, au lieu de son cadre à
       taille intrinsèque actuel.

@@ -186,7 +186,11 @@ class MediaPlaceholder extends StatelessWidget {
         ),
         child: Center(
           child: Icon(
-            type == ContentType.audio ? Icons.graphic_eq : Icons.photo_outlined,
+            switch (type) {
+              ContentType.audio => Icons.graphic_eq,
+              ContentType.video => Icons.videocam_outlined,
+              _ => Icons.photo_outlined,
+            },
             color: AppColors.texteTertiaire,
             size: 28,
           ),

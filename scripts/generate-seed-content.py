@@ -51,13 +51,20 @@ ORDRE = ['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N10', 'N11', 'N12',
 #: Délai d'entrée dans le nœud — le temps que Léna « met » à répondre.
 #: Repris de la V3.1 là où il portait une ellipse ou une hésitation voulue ;
 #: ailleurs, convention V3.1 : 3-8 s en conversation, 15-25 s pour une attente.
+#: N9 est absent : sa position 0 est la vidéo de transition (délai 0, fixe),
+#: pas un texte — voir DELAI_FORCE pour le délai qui la remplace en position 1.
 ENTREE = {
     'N1': 4, 'N2': 20, 'N3': 12, 'N4': 15, 'N5': 15, 'N6': 12, 'N7': 15,
     'N8': 10, 'N10': 12, 'N11': 20, 'N12': 8, 'N13': 22, 'N14': 8,
-    'N16': 18, 'N17': 20, 'N18': 10, 'N19': 25, 'N20': 60, 'N9': 15,
+    'N16': 18, 'N17': 20, 'N18': 10, 'N19': 25, 'N20': 60,
     'N21': 12, 'N22': 6,
 }
 SUITE = 5
+
+#: Délai forcé pour des positions irrégulières, en dérogation à ENTREE/SUITE.
+#: N9#1 (le texte qui suit la vidéo de transition, addendum §2) doit au moins
+#: couvrir sa durée (5,07 s) : le SUITE générique de 5 s la couperait court.
+DELAI_FORCE = {('N9', 1): 6}
 
 #: Séparateurs : le délai réel que l'ellipse masque.
 SEPARATEUR = {'jeudi — 22h47': 0, '23h02': 15, '23h18': 25, '23h58': 25,
@@ -221,6 +228,12 @@ def parser():
     noeuds['N22']['messages'].append(
         ('system', "Quelqu'un est entré chez Léna. Quelqu'un sait qu'elle cherche. "
                    "Et ce quelqu'un a désormais votre numéro."))
+
+    # La transition N20→N9 (addendum §2) : même famille que l'écran noir du
+    # N19, contenu dédié plutôt que parsé. Position 0 du N9, avant tout le
+    # reste — le texte incrusté (« Léna rentre chez elle. ») vit dans le
+    # fichier, rien à synchroniser côté client.
+    noeuds['N9']['messages'].insert(0, ('video', 'lena-rentre-chez-elle.mp4'))
     return noeuds
 
 
@@ -237,7 +250,9 @@ def parser():
 #: PAR variante, chacune avec sa propre condition — jamais `{}` sur aucune des
 #: deux, sinon les deux seraient toujours délivrées à la fois.
 VARIANTES = {
-    ('N9', 0): [
+    # Position 1, pas 0 : la position 0 est la vidéo de transition (addendum
+    # §2), insérée à la main devant tout le reste du N9 (voir parser()).
+    ('N9', 1): [
         ({'eq': {'refus': False}},
          "Je suis rentrée, je respire un peu mieux... Ça vous dérange si l'on "
          "se tutoie ? Après ce qu'on vient de vivre, le « vous » me paraît un "
@@ -301,12 +316,18 @@ def sql_messages(noeuds):
                 d, ty, ct, body = 0, 0, 'narration', texte
             elif kind == 'system':
                 d, ty, ct, body = 8, 0, 'system', texte
+            elif kind == 'video':
+                # Délai 0 : livrée instantanément, comme la narration. Sa
+                # durée à l'écran vient du délai du message SUIVANT (voir
+                # DELAI_FORCE), pas d'elle-même.
+                d, ty, ct, body = 0, 0, 'video', None
+                media = f'$${texte}$$'
             elif kind == 'media':
                 ct, fichier = MEDIA[texte]
                 d, ty, body = (ENTREE[code] if pos == 0 else SUITE), 3, None
                 media = f'$${fichier}$$'
             else:
-                d = ENTREE[code] if pos == 0 else SUITE
+                d = DELAI_FORCE.get((code, pos), ENTREE.get(code, SUITE) if pos == 0 else SUITE)
                 ty = d if (code, pos) in TYPING_LONG else 3
                 ct, body = 'text', texte
 

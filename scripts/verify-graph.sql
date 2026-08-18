@@ -227,19 +227,21 @@ select _chk(41, 'Positions des messages contiguës depuis 0', '',
               from _n n join messages m on m.node_id = n.id group by n.code
             ) t where mn <> 0 or mx <> nb - 1), ''));
 
--- Le contenu référence 4 médias. Qu'ils soient encore en placeholder ou déjà
--- téléversés ne regarde pas ce script : c'est leur PRÉSENCE qui est structurelle.
-select _chk(42, 'Le chapitre référence 4 médias', '4',
+-- Le contenu référence 5 médias (3 photos, 1 vocal, 1 vidéo de transition).
+-- Qu'ils soient encore en placeholder ou déjà téléversés ne regarde pas ce
+-- script : c'est leur PRÉSENCE qui est structurelle.
+select _chk(42, 'Le chapitre référence 5 médias', '5',
   (select count(*)::text from _n n join messages m on m.node_id = n.id
-   where m.content_type in ('image', 'audio')));
+   where m.content_type in ('image', 'audio', 'video')));
 
 select _chk(43, 'Aucun média sans URL', '',
   coalesce((select string_agg(n.code || '#' || m.position, ', ') from _n n join messages m on m.node_id = n.id
-            where m.content_type in ('image','audio') and m.media_url is null), ''));
+            where m.content_type in ('image','audio','video') and m.media_url is null), ''));
 
--- 68 lignes pour 65 positions distinctes : N9#0, N21#0, N21#2, N22#1 portent
--- chacune 2 variantes (refus true/false) — voir messages.conditions, LOGIQUE.md.
-select _chk(44, 'Nombre total de messages', '68',
+-- 69 lignes pour 66 positions distinctes : N9#1 (ex-N9#0, décalée par la vidéo
+-- de transition en position 0), N21#0, N21#2, N22#1 portent chacune 2
+-- variantes (refus true/false) — voir messages.conditions, LOGIQUE.md.
+select _chk(44, 'Nombre total de messages', '69',
   (select count(*)::text from _n n join messages m on m.node_id = n.id));
 
 select _chk(45, 'Nombre total de choix', '93',

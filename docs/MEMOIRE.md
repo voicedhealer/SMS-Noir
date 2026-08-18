@@ -4,6 +4,75 @@
 
 ---
 
+## 2026-08-19 — Addendum transition N20-N9, Phase B : écran de transition vidéo
+
+Phase A validée par Vivien (deux ajustements appliqués, committée — voir entrée du 18/08). Cette
+entrée couvre la Phase B : l'écran vidéo entre N20 et N9.
+
+### Choix d'architecture : un message, pas un nœud
+
+L'addendum §2 demandait un écran « même famille que l'écran noir narratif du N19 ». En lisant
+comment le N19 est réellement implémenté (`content_type = 'narration'`, un message dans le fil, pas
+une propriété de nœud — voir LOGIQUE.md § Écran noir narratif), la conséquence pratique est que la
+vidéo n'a besoin ni d'un nœud dédié, ni d'un re-câblage des choix structurants du N20 : elle est
+simplement la **position 0 du N9** (`content_type = 'video'`), et les deux choix du N20 continuent de
+pointer directement vers `N9` comme avant. `derouler()` ne distingue pas les `content_type` — rien à
+changer côté moteur, seulement la contrainte CHECK qui autorise la nouvelle valeur.
+
+Différence avec la narration : pas de `body` JSON à décoder et superposer — le texte incrusté
+(« Léna rentre chez elle. ») vit dans le fichier vidéo lui-même. Rien à synchroniser côté client.
+
+La durée à l'écran suit le même principe que la narration : c'est le `delay_seconds` du message
+SUIVANT (le texte de tutoiement, ex-N9#0 décalée en N9#1) qui la donne, pas un champ sur la vidéo
+elle-même. Fixé à 6 s pour couvrir les 5,07 s réelles du fichier avec une marge — `SUITE` (5 s, la
+valeur générique) l'aurait coupée court de 67 ms. `ENTREE['N9']` (l'ancien délai d'entrée, 15 s)
+devient mort et a été retiré : la position 0 n'est plus un texte qui en aurait besoin.
+
+### Différence côté client : pas de chrome de conversation
+
+L'écran noir du N19 GARDE l'en-tête (nom, présence) : c'est ce qui vend l'absence de Léna pendant le
+silence. La vidéo, elle, montre une scène — la garder aurait cassé l'effet plein écran demandé par
+l'addendum (« vidéo en fond plein écran »). `ConversationScreen` masque donc l'AppBar quand
+`videoEnCours != null`, en plus du swap de body déjà utilisé pour la narration.
+
+### Un bug trouvé et corrigé le jour même : `upload-media.sh` a failli écraser la musique de fin
+
+En ajoutant `media/lena-rentre-chez-elle.mp4` (la version traitée) au dossier `media/`, le fichier
+source BRUT gardé à côté (`media/Léna rentre chez elle.mp4` — filigrane visible, audio non coupé,
+défaut de continuité capillaire) s'est fait ramasser par le repli du script de téléversement
+(« le seul .mp4 encore non réclamé », `trouver_musique`) et écrasé la vraie musique de fin de
+chapitre (`Unmarked_Evidence.mp3`) sous le nom `fin-music.mp4`. Repéré en relisant la sortie du
+script, pas anticipé à l'écriture. **Corrigé** : exclusion explicite du fichier brut dans
+`trouver_musique()`, script relancé (`Unmarked_Evidence.mp3` reprend correctement `fin-music.mp3`),
+objet `fin-music.mp4` orphelin supprimé du bucket local. N'a touché QUE le stack local — le projet
+distant n'a jamais été lié ni sollicité cette session, donc rien à réparer côté hébergé.
+
+### Vérification : verte côté back, incomplète côté visuel
+
+`verify-graph.sql` 51/51 (5 médias au lieu de 4, 69 messages au lieu de 68) · `verify-fidelity.py`
+(114/114, inchangé — la vidéo n'ajoute aucun texte) · `simulate-playthrough.py` (les deux chemins
+vérifient explicitement que N9 s'ouvre sur la vidéo avant le texte de tutoiement/vouvoiement) ·
+`test-micro-choix.py` · `test-migration-peuplee.py` (en isolation) · `flutter test` 102/102 (100
+existants + 2 nouveaux sur `VideoTransitionScreen`, avec un média en `placeholder://` pour éviter
+toute lecture réseau réelle en test widget — même convention que PhotoBubble/AudioBubble).
+
+`video_player` ajouté à `pubspec.yaml` (2.11.1) ; `flutter analyze` propre ; l'app **démarre et
+tourne** sur simulateur iOS avec le nouveau plugin natif (pod résolu, aucun crash au lancement, testé
+jusqu'au N1). **Non vérifié visuellement à l'écran N9 lui-même** : aucun outil d'automatisation de
+tap n'est disponible sur cette machine (même limite déjà notée dans le journal du prompt 2 — accès
+d'aide non autorisé), et dérouler les ~20 nœuds jusqu'au N9 à la main dépasse le raisonnable pour
+cette session. Le mécanisme est vérifié bout en bout côté serveur (le bon message vidéo, avec le bon
+`media_url`, arrive bien en position 0 du N9, sur les deux branches `refus`) et côté rendu isolé
+(widget test : fond noir, aucune interaction) — seule la lecture vidéo RÉELLE sur device n'a pas
+d'témoin visuel dans cette session. À confirmer par Vivien en jouant la partie jusqu'au N9.
+
+### Prochaine étape
+
+Validation de Vivien sur la Phase B (notamment la lecture vidéo réelle, que je n'ai pas pu observer)
+→ **Phase C** (visionneuse photo plein écran, `PhotoViewer`).
+
+---
+
 ## 2026-08-18 — Addendum transition N20-N9 : **Phase A terminée, en attente de validation**
 
 Suite au premier test complet de la V3.2 sur appareil (`docs/prompts/addendum-transition-n20-n9.md`).

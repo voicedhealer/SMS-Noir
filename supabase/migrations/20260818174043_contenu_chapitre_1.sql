@@ -357,10 +357,11 @@ from (values
 ('N20', 1, 'text', $$C'est bon, je suis dans ma voiture, il ne m'a pas vue... enfin je crois, je vois une ombre, c'est quoi ! ... oula c'était juste un animal et la lune, il faut que je redescende en émotion car je deviens parano.$$, null, 5, 3, true, null, $${}$$),
 
 -- N9
-('N9', 0, 'text', $$Je suis rentrée, je respire un peu mieux... Ça vous dérange si l'on se tutoie ? Après ce qu'on vient de vivre, le « vous » me paraît un peu ridicule, qu'en penses-tu ?$$, null, 15, 3, false, null, $${"eq": {"refus": false}}$$),
-('N9', 0, 'text', $$Je suis rentrée, je respire un peu mieux... Ça ne vous dérange pas si je continue à vous vouvoyer, je crois que j'en ai besoin ce soir.$$, null, 15, 3, false, null, $${"eq": {"refus": true}}$$),
-('N9', 1, 'text', $$Et merci pour cette présence, même à distance, ça me donne de la force, ce dont j'avais grand besoin.$$, null, 5, 3, false, null, $${}$$),
-('N9', 2, 'text', $$Dis... je ne sais rien de toi, même pas ton prénom...$$, null, 5, 3, false, null, $${}$$),
+('N9', 0, 'video', null, $$lena-rentre-chez-elle.mp4$$, 0, 0, false, null, $${}$$),
+('N9', 1, 'text', $$Je suis rentrée, je respire un peu mieux... Ça vous dérange si l'on se tutoie ? Après ce qu'on vient de vivre, le « vous » me paraît un peu ridicule, qu'en penses-tu ?$$, null, 6, 3, false, null, $${"eq": {"refus": false}}$$),
+('N9', 1, 'text', $$Je suis rentrée, je respire un peu mieux... Ça ne vous dérange pas si je continue à vous vouvoyer, je crois que j'en ai besoin ce soir.$$, null, 6, 3, false, null, $${"eq": {"refus": true}}$$),
+('N9', 2, 'text', $$Et merci pour cette présence, même à distance, ça me donne de la force, ce dont j'avais grand besoin.$$, null, 5, 3, false, null, $${}$$),
+('N9', 3, 'text', $$Dis... je ne sais rien de toi, même pas ton prénom...$$, null, 5, 3, false, null, $${}$$),
 
 -- N21
 ('N21', 0, 'text', $$Je t'ai pas dit, mais je me suis approchée de l'entrepôt, je sais c'était risqué, c'est pour ça que je ne te l'ai pas dit, je ne voulais pas que tu t'inquiètes pour moi. Donc avant qu'il sorte j'ai pris une photo par une fenêtre, un peu floue et mal prise, j'étais accroupie, mais je pense avoir trouvé des preuves...$$, null, 12, 3, false, null, $${"eq": {"refus": false}}$$),

@@ -401,11 +401,15 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 - A. « Rentre chez toi, on fait le point demain. » → N9
 - B. « Il faut porter ça à la police, maintenant. » → N9 *(lucidite +1)*
 
-*(Phase B — pas encore câblé : écran de transition vidéo entre N20 et N9, Léna rentre chez elle. Voir addendum transition N20-N9 §2 — content_type dédié, pas de bouton, musique en silence. Les deux choix ci-dessus pointeront vers l'écran de transition, qui enchaînera lui-même sur N9.)*
+*(Les deux choix ci-dessus mènent directement à N9 — pas de nœud de transition séparé : l'écran vidéo ci-dessous est la position 0 du N9, voir §2 de l'addendum.)*
 
 ---
 
 ## N9 — 🤖 MOMENT IA : LA DÉCOMPRESSION
+
+### 🎥 ÉCRAN DE TRANSITION VIDÉO
+
+*(Plein écran, muette, ~5 s : Léna rentre chez elle, vue de dos, entre dans un hall d'immeuble la nuit. Texte incrusté DANS la vidéo elle-même [« Léna rentre chez elle. »] — aucune superposition côté app, rien à synchroniser. Aucune interaction, aucun bouton skip, musique en silence [aucun segment narratif déclenché]. Enchaîne automatiquement sur la suite : c'est le délai du message suivant qui donne sa durée à l'écran, même mécanisme que l'écran noir du N19. `content_type = 'video'`, media `lena-rentre-chez-elle.mp4`, déclarée à la main comme le system du N22 — voir generate-seed-content.py.)*
 
 **[Léna]** Je suis rentrée, je respire un peu mieux... Ça vous dérange si l'on se tutoie ? Après ce qu'on vient de vivre, le « vous » me paraît un peu ridicule, qu'en penses-tu ?
 

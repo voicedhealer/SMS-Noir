@@ -63,7 +63,9 @@ Il n'y a **pas** de table `players` : le schéma référence directement `auth.u
 (le `players` du diagramme d'ensemble est une commodité de lecture).
 
 Types de nœuds (`nodes.kind`) : `scripted` · `ai_moment` (N9) · `chapter_end` (N22).
-Types de messages (`messages.content_type`) : `text` · `image` · `audio` · `system` · `separator`.
+Types de messages (`messages.content_type`) : `text` · `image` · `audio` · `system` · `separator` ·
+`contact_card` · `narration` · `video`. *(Reste de ce document daté du 14/08 — non tenu à jour phase
+par phase depuis ; cette ligne est corrigée en passant, pas le reste.)*
 Types de choix (`choices.kind`) : `reply` · `ignore` · `interaction`.
 
 Variables de partie, portées par `player_progress.variables` (JSONB) :

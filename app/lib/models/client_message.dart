@@ -32,6 +32,13 @@ enum ContentType {
   /// délai du message suivant qui la donne, donc les deux ne peuvent pas se
   /// désynchroniser. Voir docs/LOGIQUE.md § Écran noir narratif.
   narration,
+
+  /// Transition vidéo plein écran (addendum transition N20-N9 §2). Même
+  /// mécanisme que `narration` — jamais une bulle, la durée à l'écran vient du
+  /// délai du message suivant — mais `media_url` porte le fichier au lieu d'un
+  /// `body` : le texte incrusté vit dans la vidéo elle-même, rien à afficher
+  /// par-dessus côté client.
+  video,
 }
 
 class ClientMessage {
@@ -125,6 +132,7 @@ class ClientMessage {
         'system' => ContentType.system,
         'contact_card' => ContentType.contactCard,
         'narration' => ContentType.narration,
+        'video' => ContentType.video,
         // Un type inconnu (chapitre futur) se dégrade en texte plutôt que de
         // faire tomber tout le fil.
         _ => ContentType.text,

@@ -383,6 +383,31 @@ Trois règles de mise en scène :
 - **La narration ne laisse aucune trace dans le fil.** En remontant la
   conversation, on ne la relit pas : c'était un moment, pas un message.
 
+## La transition vidéo (`content_type = 'video'`)
+
+Même famille que l'écran noir, fond vidéo plutôt que noir pur : Léna rentre chez
+elle entre le N20 et le N9 (addendum transition N20-N9 §2). Même principes —
+un message dans le fil, pas une propriété de nœud ; aucune sortie, aucun
+bouton ; la durée à l'écran vient du `delay_seconds` du message SUIVANT, pas
+d'elle-même — avec deux différences :
+
+- **Pas de `body`, un `media_url`.** Le texte incrusté (« Léna rentre chez
+  elle. ») vit DANS le fichier vidéo, pas en JSON à décoder et superposer :
+  rien à synchroniser côté client, contrairement aux lignes de la narration.
+- **Pas de nœud de transition séparé.** La vidéo est simplement la position 0
+  du N9 : les choix structurants du N20 continuent de pointer directement vers
+  `N9`, sans re-câblage. Le mécanisme de `derouler()` ne distingue pas les
+  `content_type` — il les écrit tous de la même façon — donc rien à changer
+  côté moteur pour ce nouveau type, seulement la contrainte CHECK qui
+  l'autorise (migration `20260818174041_video_transition.sql`).
+
+Côté client, l'en-tête de conversation (nom du contact, présence) est masqué
+pendant la vidéo — contrairement à l'écran noir, qui le garde pour vendre
+l'absence de Léna. Cette vidéo montre une scène, elle ne mime pas un silence :
+le chrome de messagerie n'a rien à y faire. Voir `VideoTransitionScreen`
+(`app/lib/screens/video_transition_screen.dart`) et
+`ConversationState.videoEnCours`.
+
 ## Les pauses en cours de nœud (`after_position`)
 
 Un choix peut s'afficher **au milieu** d'un nœud, après un message donné. Le

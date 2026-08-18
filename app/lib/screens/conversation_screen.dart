@@ -15,6 +15,7 @@ import '../widgets/message_widgets.dart';
 import 'chapter_end_screen.dart';
 import 'consent_screen.dart';
 import 'narration_screen.dart';
+import 'video_transition_screen.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
   const ConversationScreen({super.key});
@@ -178,8 +179,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       });
     }
 
+    // La vidéo de transition est un plan, pas un écran de messagerie : à la
+    // différence du noir narratif (qui garde l'en-tête pour vendre l'absence
+    // de Léna), elle occupe tout l'écran, sans aucun chrome de conversation.
+    final videoEnCours = async.value?.videoEnCours;
+
     return Scaffold(
-      appBar: _EnTete(etat: async.value),
+      appBar: videoEnCours != null ? null : _EnTete(etat: async.value),
       body: async.when(
         loading: () => const Center(
           child: SizedBox(
@@ -209,6 +215,12 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           if (narration.isNotEmpty) {
             return NarrationScreen(
                 lignes: narration, musique: etat.intro?.musiqueNarration);
+          }
+          // Même principe, fond vidéo plutôt que noir pur — addendum
+          // transition N20-N9 §2.
+          final video = etat.videoEnCours;
+          if (video != null) {
+            return VideoTransitionScreen(message: video);
           }
           final vu = etat.vu;
 
@@ -425,6 +437,9 @@ class _Element extends ConsumerWidget {
       // haut. Elle ne laisse aucune trace une fois Léna revenue — c'est un
       // moment, pas un message qu'on relit en remontant.
       ContentType.narration => const SizedBox.shrink(),
+      // Même principe que la narration : la vidéo de transition est affichée
+      // en plein écran, plus haut, et ne laisse aucune trace dans le fil.
+      ContentType.video => const SizedBox.shrink(),
       // Un `system` n'est jamais une bulle : il a déjà changé la présence.
       ContentType.system => const SizedBox.shrink(),
       ContentType.image => PhotoBubble(

@@ -82,6 +82,15 @@ class ConversationState {
     return NarrationScreen.decoder(dernier.body);
   }
 
+  /// Le dernier message délivré est la vidéo de transition N20→N9, si elle
+  /// tient encore l'écran. Même logique que [narrationEnCours] : c'est le
+  /// message SUIVANT qui referme l'écran, rien à synchroniser explicitement.
+  ClientMessage? get videoEnCours {
+    if (fil.isEmpty) return null;
+    final dernier = fil.last;
+    return dernier.contentType == ContentType.video ? dernier : null;
+  }
+
   /// Le fil réunit-il plusieurs interlocuteurs ?
   ///
   /// Faux tant que le chapitre 3 n'existe pas — c'est là que Léna, Karim et le

@@ -268,11 +268,18 @@ def parcours_allie():
     r = p.choisir('Il faut porter ça à la police')  # lucidite 1 -> N9
     verifier('Moment IA atteint', p.noeud['code'], 'N9')
     verifier('ai_moment_pending', p.etat['ai_moment_pending'], True)
-    # refus = false ici : N9 doit ouvrir sur la demande de tutoiement, pas sur
-    # la variante qui maintient le vouvoiement (messages.conditions, addendum
-    # transition N20-N9 §1). new_messages[0] est l'écho du choix du joueur lui-
-    # même — la première réplique de Léna est le premier message 'contact'.
-    ouverture_n9 = next(m['body'] for m in r['new_messages'] if m['sender'] == 'contact')
+    # N9#0 est la vidéo de transition (addendum §2) : premier message 'contact'
+    # du lot, avant même la réplique de Léna.
+    verifier('N9 ouvre sur la vidéo de transition',
+             any(m['sender'] == 'contact' and m.get('content_type') == 'video'
+                 and m['media_url'] == 'lena-rentre-chez-elle.mp4'
+                 for m in r['new_messages']), True)
+    # refus = false ici : N9 doit ensuite ouvrir sur la demande de tutoiement,
+    # pas sur la variante qui maintient le vouvoiement (messages.conditions,
+    # addendum §1). new_messages[0] est l'écho du choix du joueur lui-même, et
+    # la vidéo n'a pas de corps texte — on cherche le premier texte de Léna.
+    ouverture_n9 = next(m['body'] for m in r['new_messages']
+                         if m['sender'] == 'contact' and m['body'] is not None)
     verifier('N9 ouvre sur la demande de tutoiement (refus=false)',
              ouverture_n9.startswith('Je suis rentrée, je respire un peu mieux... Ça vous dérange si l\'on se tutoie'),
              True)
@@ -349,7 +356,9 @@ def parcours_refus():
     p.choisir("D'accord mais restez loin")     # -> N19 -> N20
     r = p.choisir('Il faut porter ça à la police')  # lucidite 4 -> N9
     # refus = true ici : N9 doit garder le vouvoiement, pas demander à tutoyer.
-    ouverture_n9 = next(m['body'] for m in r['new_messages'] if m['sender'] == 'contact')
+    # La vidéo de transition (N9#0) n'a pas de corps texte, quel que soit refus.
+    ouverture_n9 = next(m['body'] for m in r['new_messages']
+                         if m['sender'] == 'contact' and m['body'] is not None)
     verifier('N9 maintient le vouvoiement (refus=true)',
              ouverture_n9.startswith('Je suis rentrée, je respire un peu mieux... Ça ne vous dérange pas si je continue à vous vouvoyer'),
              True)
