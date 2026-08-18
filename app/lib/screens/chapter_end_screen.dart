@@ -6,6 +6,7 @@ import '../models/game_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/typewriter.dart';
 import '../services/musique_narrative.dart';
+import '../config/env.dart';
 
 /// Écran de fin de chapitre.
 ///
@@ -70,7 +71,10 @@ class _ChapterEndScreenState extends State<ChapterEndScreen> {
     // temps de fiction. C'est une attente réelle, pas une heure d'histoire.
     _tic = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
     final url = widget.musique;
-    if (url != null) unawaited(MusiqueNarrative.instance.demarrer(url));
+    // Même chemin relatif que l'intro et le N19 : préfixage obligatoire.
+    if (url != null) {
+      unawaited(MusiqueNarrative.instance.demarrer('${Env.supabaseUrl}$url'));
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) setState(() => _visible = true);
     });

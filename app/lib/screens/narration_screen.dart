@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../config/env.dart';
 import '../services/musique_narrative.dart';
 import '../theme/tokens.dart';
 import '../widgets/typewriter.dart';
@@ -61,7 +62,13 @@ class _NarrationScreenState extends State<NarrationScreen> {
   void initState() {
     super.initState();
     final url = widget.musique;
-    if (url != null) unawaited(MusiqueNarrative.instance.demarrer(url));
+    // Le serveur renvoie un chemin RELATIF signé, comme pour les photos et
+    // l'intro : c'est le client qui préfixe avec sa propre base. Oublié ici,
+    // le lecteur recevait un chemin sans hôte et échouait en silence — aucune
+    // erreur visible, juste aucun son.
+    if (url != null) {
+      unawaited(MusiqueNarrative.instance.demarrer('${Env.supabaseUrl}$url'));
+    }
     for (var i = 0; i < widget.lignes.length; i++) {
       final ligne = widget.lignes[i];
       if (ligne.a == 0) {
