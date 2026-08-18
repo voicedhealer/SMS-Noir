@@ -25,7 +25,9 @@ class ConversationScreen extends ConsumerStatefulWidget {
 
 class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   final _scroll = ScrollController();
+  final _focusChamp = FocusNode();
   bool _finMontree = false;
+  Timer? _revelationClavier;
 
   /// Distance au bas du fil en dessous de laquelle une nouvelle livraison peut
   /// encore faire défiler automatiquement. Au-delà, le joueur a délibérément
@@ -60,9 +62,33 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         (_) => ref.read(conversationProvider.notifier).marquerLu());
   }
 
+  /// Le clavier anime son ouverture sur ~250 ms côté système, et la liste
+  /// elle-même ajuste son `maxScrollExtent` sur plusieurs frames pendant
+  /// qu'elle défile — une lazy list ne stabilise pas sa mesure en un seul pas.
+  /// Une seule révélation viserait une cible déjà dépassée. On réessaie donc
+  /// à intervalles courts, tant que le champ garde le focus, borné pour ne
+  /// jamais tourner indéfiniment.
+  void _revelerPourClavier() {
+    _revelationClavier?.cancel();
+    var tentatives = 0;
+    // Bornée à 2 s : largement au-dessus des ~300-400 ms d'une vraie
+    // animation de clavier, avec de la marge pour le temps que la mesure
+    // elle-même prenne à se stabiliser après un relayout de cette taille.
+    _revelationClavier = Timer.periodic(const Duration(milliseconds: 50), (t) {
+      tentatives++;
+      if (!mounted || !_focusChamp.hasFocus || tentatives > 40) {
+        t.cancel();
+        return;
+      }
+      _versLeBas();
+    });
+  }
+
   @override
   void dispose() {
+    _revelationClavier?.cancel();
     _minuteurChoix?.cancel();
+    _focusChamp.dispose();
     _scroll.dispose();
     super.dispose();
   }
@@ -185,32 +211,19 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 lignes: narration, musique: etat.intro?.musiqueNarration);
           }
           final vu = etat.vu;
-          return Column(
-          children: [
-            Expanded(
-              child: Listener(
-                // Toute action repousse l'affordance de continuation.
-                onPointerDown: (_) => ctrl.signalerActivite(),
-                child: ListView.builder(
-                  controller: _scroll,
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
-                  itemCount: etat.fil.length + (etat.typing != TypingState.aucun ? 1 : 0),
-                  itemBuilder: (context, i) {
-                    if (i == etat.fil.length) return const TypingIndicator();
-                    return _Element(
-                      message: etat.fil[i],
-                      suivant: i + 1 < etat.fil.length ? etat.fil[i + 1] : null,
-                      etat: etat,
-                      vu: vu,
-                    );
-                  },
-                ),
-              ),
-            ),
+
+          // Les choix vivent DANS la liste défilable, en dernière position —
+          // pas dans une zone fixe sous elle. Une zone fixe ne peut que
+          // déborder quand le clavier ouvre et grignote la moitié de l'écran :
+          // en release, un débordement de Column est clipé en silence, ce qui
+          // donnait l'impression que les choix disparaissaient sous la barre de
+          // titre. Une liste, elle, ne déborde jamais — elle défile.
+          final queue = <Widget>[
+            if (etat.typing != TypingState.aucun) const TypingIndicator(),
             if (!etat.enDeroule && etat.interactionsParlees.isNotEmpty)
               // « + » discret : les interactions que le joueur *dit* (relance
-              // du N8, insistance du N13). Jamais leur libellé en clair —
-              // il peut être l'indice lui-même.
+              // du N8, insistance du N13). Jamais leur libellé en clair — il
+              // peut être l'indice lui-même.
               DiscreetPlus(
                 choix: [
                   for (final c in etat.interactionsParlees) (id: c.id, label: c.label),
@@ -227,6 +240,30 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 onChoisir: ctrl.choisir,
                 verrouille: _choixVerrouilles,
               ),
+          ];
+
+          return Column(
+          children: [
+            Expanded(
+              child: Listener(
+                // Toute action repousse l'affordance de continuation.
+                onPointerDown: (_) => ctrl.signalerActivite(),
+                child: ListView.builder(
+                  controller: _scroll,
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
+                  itemCount: etat.fil.length + queue.length,
+                  itemBuilder: (context, i) {
+                    if (i >= etat.fil.length) return queue[i - etat.fil.length];
+                    return _Element(
+                      message: etat.fil[i],
+                      suivant: i + 1 < etat.fil.length ? etat.fil[i + 1] : null,
+                      etat: etat,
+                      vu: vu,
+                    );
+                  },
+                ),
+              ),
+            ),
             Composer(
               mode: etat.mode,
               // Le mode décide de ce que devient le texte — le champ, lui, est
@@ -234,6 +271,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               onEnvoyer: etat.mode == ComposerMode.aiInput
                   ? ctrl.envoyerAuMomentIA
                   : ctrl.envoyerTexte,
+              // Geste délibéré : le joueur a tapé pour écrire, le clavier
+              // s'apprête à recouvrir la moitié de l'écran. On révèle ce qui
+              // compte MÊME s'il était remonté relire — contrairement à une
+              // livraison spontanée, ce n'est pas lui voler sa position, c'est
+              // répondre à son geste.
+              onFocusRecu: _revelerPourClavier,
+              focusNode: _focusChamp,
             ),
           ],
         );

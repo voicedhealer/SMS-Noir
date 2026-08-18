@@ -24,12 +24,31 @@ enum ComposerMode {
 /// subir. Aucun feedback ne trahit jamais leur inutilité — pas d'erreur, pas de
 /// grisage, pas de « Léna ne peut pas répondre maintenant ».
 class Composer extends StatefulWidget {
-  const Composer({super.key, required this.mode, required this.onEnvoyer});
+  const Composer({
+    super.key,
+    required this.mode,
+    required this.onEnvoyer,
+    this.onFocusRecu,
+    this.focusNode,
+  });
 
   final ComposerMode mode;
 
   /// Le texte saisi. C'est l'appelant qui décide quoi en faire selon le mode.
   final void Function(String texte) onEnvoyer;
+
+  /// Le champ vient de recevoir le focus — le clavier est en train de s'ouvrir.
+  ///
+  /// Sert à révéler ce qui compte avant que le clavier ne le recouvre : un
+  /// geste DÉLIBÉRÉ du joueur (il a tapé pour écrire), pas une livraison
+  /// spontanée — donc ça peut faire défiler même s'il était remonté relire.
+  final VoidCallback? onFocusRecu;
+
+  /// Fourni par l'appelant quand il a besoin de connaître l'état du focus au-
+  /// delà du seul instant où il est gagné — ici, pour continuer à ajuster le
+  /// défilement pendant que le clavier finit son animation d'ouverture.
+  /// Sinon, `Composer` gère le sien en interne, comme avant.
+  final FocusNode? focusNode;
 
   @override
   State<Composer> createState() => _ComposerState();
@@ -37,22 +56,31 @@ class Composer extends StatefulWidget {
 
 class _ComposerState extends State<Composer> {
   final _controleur = TextEditingController();
-  final _focus = FocusNode();
+  late final FocusNode _focus;
+  late final bool _focusEstNotre;
   var _vide = true;
 
   @override
   void initState() {
     super.initState();
+    _focusEstNotre = widget.focusNode == null;
+    _focus = widget.focusNode ?? FocusNode();
     _controleur.addListener(() {
       final vide = _controleur.text.trim().isEmpty;
       if (vide != _vide) setState(() => _vide = vide);
+    });
+    _focus.addListener(() {
+      if (_focus.hasFocus) widget.onFocusRecu?.call();
     });
   }
 
   @override
   void dispose() {
     _controleur.dispose();
-    _focus.dispose();
+    // On ne détruit que le FocusNode qu'on a créé nous-mêmes : celui fourni
+    // par l'appelant lui appartient, et sa durée de vie n'a pas de raison de
+    // suivre celle de ce widget en particulier.
+    if (_focusEstNotre) _focus.dispose();
     super.dispose();
   }
 

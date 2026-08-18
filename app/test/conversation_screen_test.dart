@@ -838,10 +838,14 @@ void main() {
       expect(positionAvant, lessThan(scroll.maxScrollExtent - 120),
           reason: 'le remontage doit avoir vraiment éloigné le joueur du bas');
 
-      // Le composer et la zone de choix vivent HORS de la liste défilable :
-      // le tap fonctionne quelle que soit la position de lecture.
+      // La zone de choix vit maintenant DANS la liste défilable, en dernière
+      // position — c'est le point même de cette fonctionnalité (voir la
+      // fonctionnalité "clavier ne masque jamais les choix"). Remonté loin du
+      // bas, « Réponse A » n'est donc plus construit par la liste lazy : on
+      // déclenche le choix directement sur le contrôleur, sans dépendre de ce
+      // qui est rendu à l'écran à cet instant.
       await tester.pump(const Duration(seconds: 2));
-      await tester.tap(find.text('Réponse A'));
+      conteneur.read(conversationProvider.notifier).choisir('a');
       await tester.pumpAndSettle();
 
       final etat = conteneur.read(conversationProvider).value!;
@@ -880,6 +884,108 @@ void main() {
       await tester.tap(find.text('Réponse A'));
       await tester.pumpAndSettle();
       expect(find.text('Réponse de Léna'), findsOneWidget);
+    });
+  });
+
+  group('Le clavier ne masque jamais les choix', () {
+    // Reproduit le nœud le plus chargé du chapitre 1 (N8) : trois réponses
+    // structurantes aux libellés longs, plus deux interactions cachées. C'est
+    // sur un bloc comme celui-ci, combiné à un clavier qui mange la moitié de
+    // l'écran, que le débordement se produisait.
+    Map<String, dynamic> etatCharge() => {
+          'story': {'slug': 's', 'title': 'T'},
+          'conversations': [conversation()],
+          'history': [message(seq: 1, body: 'Un message de contexte, pour la lecture.')],
+          'node': noeud(choix: [
+            {
+              'id': 'a',
+              'position': 0,
+              'label': 'N\'y allez pas seule, retournez voir la police avec ça',
+              'kind': 'reply',
+            },
+            {
+              'id': 'b',
+              'position': 1,
+              'label': 'D\'accord, je garde mon téléphone à côté de moi ce soir',
+              'kind': 'reply',
+            },
+            {
+              'id': 'c',
+              'position': 2,
+              'label': 'Pourquoi moi ? Vous ne me connaissez pas, et pourtant',
+              'kind': 'reply',
+            },
+            {'id': 'i1', 'position': 50, 'label': 'C\'est qui, ce type ?', 'kind': 'interaction'},
+            {'id': 'i2', 'position': 51, 'label': 'Pourquoi cet entrepôt ?', 'kind': 'interaction'},
+          ]),
+          'chapter_end': null,
+          'ai_moment_pending': false,
+        };
+
+    /// Simule un clavier ouvert : ~40 % d'un écran de téléphone ordinaire.
+    Future<void> ouvrirClavier(WidgetTester tester) async {
+      tester.view.viewInsets = const FakeViewPadding(bottom: 320);
+      addTearDown(() => tester.view.resetViewInsets());
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('aucun débordement quand le clavier ouvre sur un bloc chargé',
+        (tester) async {
+      await monter(tester, getState: etatCharge());
+      await ouvrirClavier(tester);
+
+      // Un RenderFlex qui déborde lève une FlutterError capturée par le test —
+      // en particulier en debug, où le résultat serait les hachures
+      // jaune-noir. `takeException()` la remonte explicitement au lieu de
+      // laisser le test réussir malgré une erreur déjà survenue.
+      expect(tester.takeException(), isNull);
+
+      // Le champ reste joignable : c'est lui qui doit rester fixe, quoi qu'il
+      // arrive au reste.
+      expect(find.byType(TextField), findsOneWidget);
+    });
+
+    testWidgets('taper le champ révèle les choix même remonté dans le fil',
+        (tester) async {
+      await monter(
+        tester,
+        getState: {
+          ...etatCharge(),
+          'history': [
+            for (var i = 1; i <= 40; i++) message(seq: i, body: 'Message $i'),
+          ],
+        },
+      );
+
+      final liste =
+          find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable));
+      final scroll = tester.state<ScrollableState>(liste).position;
+      await tester.drag(liste, const Offset(0, 800));
+      await tester.pumpAndSettle();
+      final positionRemontee = scroll.pixels;
+      expect(positionRemontee, lessThan(scroll.maxScrollExtent - 120),
+          reason: 'point de départ : bien remonté, loin du bas');
+
+      // Taper le champ est un geste délibéré : contrairement à une livraison
+      // spontanée, il a le droit de ramener le joueur en bas pour voir ce
+      // qu'il peut répondre.
+      await tester.tap(find.byType(TextField));
+      await ouvrirClavier(tester);
+      for (var i = 0; i < 40; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      await tester.pumpAndSettle();
+
+      // Pas une égalité pixel-parfait avec `maxScrollExtent` : sur une liste
+      // dont les derniers éléments (les choix) sont bien plus hauts que les
+      // messages courts qui précèdent, Flutter ESTIME l'extent des enfants pas
+      // encore construits avant de les avoir vraiment mesurés — cette
+      // estimation évolue au fil du layout, y compris dans le simulateur de
+      // test, d'une façon qui n'a rien à voir avec le comportement qu'on
+      // vérifie ici. Ce qui compte pour le joueur : avoir été ramené
+      // largement vers le bas, pas atteindre une valeur théorique au pixel.
+      expect(scroll.pixels, greaterThan(positionRemontee + 500),
+          reason: 'le tap sur le champ a nettement révélé le bas du fil, où vivent les choix');
     });
   });
 }

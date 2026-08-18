@@ -700,6 +700,26 @@ La politique est **embarquée et pas liée** : lisible hors ligne, impossible à
 page morte, versionnée avec le code qu'elle décrit. C'est aussi ce qui lève le blocage
 `PRIVACY_URL` — l'écran de consentement du moment IA a enfin quelque chose à montrer.
 
+## Le clavier ne masque jamais les choix
+
+Les choix (structurants, micro-choix, interactions cachées) vivent **dans la
+liste défilable**, en dernière position — pas dans une zone fixe sous elle.
+
+Une zone fixe ne peut que déborder quand le clavier ouvre et mange la moitié
+de l'écran : sur un bloc chargé (plusieurs réponses + interactions), la somme
+de leurs hauteurs pouvait dépasser l'espace restant une fois le clavier
+ouvert. En release, un débordement de `Column` est **clipé en silence** — pas
+de hachures jaune-noir, juste du contenu qui disparaît sous la barre de titre.
+Une liste, elle, ne déborde jamais : elle défile.
+
+Seul le champ de saisie reste fixe en bas — c'est la seule chose qui doit
+toujours être joignable, quoi qu'il arrive au reste.
+
+Taper le champ est un geste **délibéré** : contrairement à une livraison
+spontanée, il a le droit de ramener le joueur en bas pour voir ce qu'il peut
+répondre, même s'il était remonté relire. Ce n'est pas lui voler sa position,
+c'est répondre à son geste.
+
 ## Le silence avant les choix
 
 Les choix apparaissent dès l'affichage du dernier message, mais ne répondent pas au tap pendant
