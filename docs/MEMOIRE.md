@@ -4,6 +4,97 @@
 
 ---
 
+## 2026-08-18 — Addendum transition N20-N9 : **Phase A terminée, en attente de validation**
+
+Suite au premier test complet de la V3.2 sur appareil (`docs/prompts/addendum-transition-n20-n9.md`).
+Découpage en 3 phases (validé par Vivien) : **A** contenu N20/N9, **B** écran de transition vidéo,
+**C** correctif visionneuse photo. Cette entrée couvre la Phase A.
+
+### Le média fourni ne correspondait pas à sa description — trois écarts, tranchés un par un
+
+`lena-rentre-chez-elle.mp4` annoncé « ~8s » : en réalité **5,07 s** (`ffprobe`). Piste audio AAC
+présente alors que l'addendum la croyait déjà coupée : retirée à la source (`-an`), pas comptée sur
+un mute côté lecteur. Deux défauts non mentionnés par l'addendum, remontés puis tranchés par Vivien :
+filigrane « CapCut AI » en haut à gauche → **recadré** (`crop=2560:1290:0:150`, sécurité vérifiée sur
+5 frames : la tête du sujet ne descend jamais sous 250 px de la zone coupée) ; la couleur des cheveux
+change 3 fois en 5 s (artefact de génération IA) → **gardé tel quel**, décision explicite de Vivien
+après explication du risque pour l'illusion « indiscernable d'une vraie messagerie ». Fichier traité :
+`media/lena-rentre-chez-elle.mp4`. Pas encore uploadé (Storage = Phase B).
+
+### Le contenu : tutoiement déplacé du N20 au N9
+
+Le N20 redevient sobre (retour + état de choc, vouvoiement). Tutoiement, remerciement et demande de
+prénom se déplacent à l'ouverture du N9. Mécanisme neuf : **`messages.conditions`** (migration
+`20260818174042_message_conditions.sql`), même format et même évaluateur que `choices.conditions` —
+voir LOGIQUE.md § `messages.conditions`. N9#0 porte deux variantes (tutoiement demandé si
+`refus=false`, vouvoiement maintenu si `refus=true`), vérifiées explicitement par
+`simulate-playthrough.py` (les deux chemins, pas seulement l'un des deux).
+
+Deux pièges pendant l'implémentation, tous deux corrigés dans la foulée :
+- La contrainte `unique (node_id, position)` sur `messages` empêchait deux variantes à la même
+  position — retirée dans la même migration, avec commentaire expliquant pourquoi l'exclusivité
+  mutuelle n'est pas vérifiable en SQL déclaratif (elle dépend des variables runtime).
+- Le doc avait d'abord noté les choix structurants du N20 comme `→ *(transition)* → N9` en
+  anticipant la Phase B — mais l'écran de transition n'existe pas encore, donc le générateur ne
+  savait pas résoudre la cible. Remis en `→ N9` direct ; la Phase B repointera ces deux choix vers
+  l'écran de transition quand il existera.
+
+### Deux défauts pré-existants trouvés en passant — arbitrage de Vivien
+
+Confirmé en comparant contre l'état du dernier commit (`git stash` puis rejeu), donc antérieurs à
+l'addendum :
+- `test-ai-moment.py` : sur le chemin « allié » (protéger constant), la confiance atteint déjà 9
+  avant le N9, et le bonus « sincère » (+2, serveur) se heurte au plafond global de 10 (`engine.ts`,
+  `confiance: { min: 0, max: 10 }`). **Ce n'est pas un bug, le plafond fait son travail** — le test
+  supposait à tort un delta fixe. **Corrigé** : `apres_gain()` calcule `min(avant + gain, plafond)`,
+  les deux assertions du parcours nominal court visent désormais la saturation plutôt qu'un +2 sec.
+  Le plafond lui-même n'a pas bougé.
+- `test-migration-peuplee.py` attendait `63` micro-choix ; le contenu réel (confirmé par
+  `verify-graph.sql` #45/#46, qui lui est à jour : 93 choix − 33 hors micro = 60) en compte 60 depuis
+  un ajustement d'une phase antérieure jamais répercuté ici. **Corrigé** (chiffre stale, pas un
+  désaccord de fond) : `63` → `60`.
+
+Repéré en le relançant, sans rapport avec la Phase A : le test de quota de `test-ai-moment.py`
+compare le jour calculé côté Python (`date.today()`, horloge locale) au jour calculé côté Edge
+Function (`new Date().toISOString()`, horloge Docker en UTC). Juste après minuit heure locale (CEST,
+donc encore la veille en UTC), les deux jours divergent et le test échoue faussement. Rien à corriger
+dans le contenu ni le moteur — se résorbe de lui-même une fois passé minuit UTC. Pas dans le
+périmètre des deux ajustements demandés.
+
+### N21/N22 : le mécanisme messages.conditions étendu à leur tour
+
+Signalé en fin de Phase A comme « hors périmètre », **requalifié par Vivien en conséquence directe**
+du mécanisme qu'on vient de construire : avant l'addendum, l'incohérence tutoiement/N21-N22 sur
+`refus=true` passait inaperçue parce que le N20 (vouvoiement) précédait de loin ; maintenant que le
+N9 conditionne explicitement la bascule, laisser N21/N22 tutoyer envers un joueur qui a refusé casse
+la continuité pile après le nœud qui vient de la poser. Traité avec le même mécanisme que N9#0, sans
+réécriture de fond — pure déclinaison grammaticale tu → vous sur les trois répliques concernées :
+N21#0 (« Je t'ai pas dit... »), N21#2 (« Tu vois le trousseau... »), N22#1 (« Je t'explique... »).
+Volontairement limité aux `messages` : les micro-choix de N21/N22 (`choices.inline_response`)
+restent en tutoiement, le mécanisme réutilisé ne couvre pas `choices`. Voir LOGIQUE.md
+§ `messages.conditions`.
+
+### Suite de vérification, complète et verte (Phase A, version finale)
+
+`verify-graph.sql` 51/51 (68 messages au lieu de 65 : N9#0, N21#0, N21#2, N22#1 portent chacune 2
+variantes) · `verify-fidelity.py` (114/114) · `simulate-playthrough.py` (chemins allié et refus,
+variantes N9, N21 et N22 toutes vérifiées explicitement sur les deux chemins, pas seulement
+supposées correctes) · `test-micro-choix.py` · `test-migration-peuplee.py` (en isolation après
+`db reset` — le compteur de consentements est sensible à l'ordre d'exécution des scripts sur une
+même base, à ne jamais lancer après une autre suite sans reset entre les deux) · `flutter test`
+(100/100). Prompt système IA (N9) relu : suppose déjà le prénom demandé à l'ouverture du N9 et
+l'heure « une heure du matin » — cohérent avec la nouvelle structure sans modification.
+
+`probe-lena.py` (vrai modèle) non relancé : rien dans la Phase A ne touche au prompt système ou au
+comportement conversationnel, seul le contenu scripté change.
+
+### Prochaine étape
+
+Phase A validée par Vivien, committée → **Phase B** (écran de transition vidéo) puis **Phase C**
+(visionneuse photo plein écran).
+
+---
+
 ## 2026-08-16 (2) — PROMPT 3, Phase 0 (audit du moment IA) : **TERMINÉE, en attente de validation**
 
 ### L'existant est en place

@@ -1,5 +1,26 @@
 # TODO.md
 
+## 🔴 Addendum transition N20-N9 — reste (Phases B et C)
+
+Phase A (contenu N20/N9, plus la déclinaison vouvoiement N21/N22) terminée, vérifiée et committée —
+voir MEMOIRE.md 2026-08-18/19. Restent :
+
+- [ ] **Phase B** — écran de transition vidéo entre N20 et N9 (`media/lena-rentre-chez-elle.mp4`,
+      déjà traité : filigrane recadré, audio retiré, pas encore uploadé). Nouveau `content_type`,
+      nouvel écran Flutter, dépendance `video_player` à ajouter (absente de `pubspec.yaml`),
+      signature Storage, câblage des deux choix structurants du N20 vers l'écran puis vers N9.
+- [ ] **Phase C** — `PhotoViewer` (`app/lib/widgets/message_widgets.dart`) : l'image doit remplir
+      l'écran (`BoxFit`) avant que `InteractiveViewer` applique le zoom, au lieu de son cadre à
+      taille intrinsèque actuel.
+
+## 🟡 Flakiness connue, sans rapport avec le contenu — `test-ai-moment.py` § quota
+
+Le test de quota compare `date.today()` (Python, horloge locale) au jour calculé par `ai-chat`
+(`new Date().toISOString()`, horloge Docker en UTC). Juste après minuit heure locale (CEST), les
+deux jours divergent brièvement et le test échoue à tort. Se résorbe seul après minuit UTC ; à
+regarder seulement si ça devient gênant en CI (comparer sur un jour calculé côté serveur plutôt que
+recalculé côté test).
+
 ## ❓ À trancher — longueur des répliques de Léna
 
 Le prompt dit « une à deux phrases », et lui demande par ailleurs des phrases

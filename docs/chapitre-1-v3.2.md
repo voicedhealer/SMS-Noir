@@ -397,23 +397,28 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 - 🔍 « Il vous a vue ou pas, dites-moi la vérité. » → *« Je ne sais pas, il a regardé dans ma direction et il s'est arrêté, et c'est ça le pire, ne pas savoir. »*
 - 🧠 « Vous êtes vraiment en sécurité là ? » → *« Il me semble que oui, j'ai les portes verrouillées, j'ai appuyé genre 10 fois sur le bouton pour être sûre, mon moteur est allumé, et je suis pratiquement prête à partir, mon état émotionnel lui c'est autre chose. »*
 
-**[Léna]** On peut se tutoyer ? Après ce qu'on vient de vivre, le « vous » me paraît un peu ridicule, qu'en penses-tu ?
-
-**[Léna]** Et merci pour cette présence, même à distance, ça me donne de la force, ce dont j'avais grand besoin.
-
-*(→ tutoiement à partir d'ici, sauf si `refus = true`)*
-
 **CHOIX STRUCTURANT :**
 - A. « Rentre chez toi, on fait le point demain. » → N9
 - B. « Il faut porter ça à la police, maintenant. » → N9 *(lucidite +1)*
+
+*(Phase B — pas encore câblé : écran de transition vidéo entre N20 et N9, Léna rentre chez elle. Voir addendum transition N20-N9 §2 — content_type dédié, pas de bouton, musique en silence. Les deux choix ci-dessus pointeront vers l'écran de transition, qui enchaînera lui-même sur N9.)*
 
 ---
 
 ## N9 — 🤖 MOMENT IA : LA DÉCOMPRESSION
 
-**[Léna]** Je tremble encore, je me sens bête, tout ce cinéma pour un sac dans un coffre, sans avoir de preuve, encore et encore.
+**[Léna]** Je suis rentrée, je respire un peu mieux... Ça vous dérange si l'on se tutoie ? Après ce qu'on vient de vivre, le « vous » me paraît un peu ridicule, qu'en penses-tu ?
 
-**[Léna]** Dis... ça fait deux heures que tu me suis dans cette galère et je ne sais rien de toi, même pas ton prénom. Tu me le dis ? J'ai besoin de penser à autre chose 5 minutes, et de mettre un nom sur mon ange gardien.
+⚠️ **Le glissement vouvoiement → tutoiement dans cette phrase est volontaire** (« Ça vous dérange » puis « qu'en penses-tu »). Ne pas l'harmoniser, ne pas le « corriger » — c'est le moment même de la bascule, elle hésite en le disant. Le tutoiement s'applique pleinement à partir de la phrase suivante et pour tout le reste du chapitre.
+
+*(Variante si `refus = true` — remplace la ligne ci-dessus, elle n'a pas gagné ce droit :)*
+> Je suis rentrée, je respire un peu mieux... Ça ne vous dérange pas si je continue à vous vouvoyer, je crois que j'en ai besoin ce soir.
+
+**[Léna]** Et merci pour cette présence, même à distance, ça me donne de la force, ce dont j'avais grand besoin.
+
+**[Léna]** Dis... je ne sais rien de toi, même pas ton prénom...
+
+*(→ tutoiement à partir d'ici, sauf si `refus = true`, où le vouvoiement tient tout le chapitre — bible §2)*
 
 *(Saisie libre. Le prénom est demandé explicitement et stocké en `detail_perso` — catégorie `prenom` de la liste d'autorisation. Léna l'utilise dans ses réponses suivantes, et le réutilisera à l'ouverture du chapitre 2. Elle tutoie, sauf si `refus = true`. 2-4 échanges, puis raccrochage vers N21.)*
 
@@ -423,6 +428,9 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 
 **[Léna]** Je t'ai pas dit, mais je me suis approchée de l'entrepôt, je sais c'était risqué, c'est pour ça que je ne te l'ai pas dit, je ne voulais pas que tu t'inquiètes pour moi. Donc avant qu'il sorte j'ai pris une photo par une fenêtre, un peu floue et mal prise, j'étais accroupie, mais je pense avoir trouvé des preuves...
 
+*(Variante si `refus = true` — remplace la ligne ci-dessus, le vouvoiement tient tout le chapitre, bible §2 :)*
+> Je ne vous ai pas dit, mais je me suis approchée de l'entrepôt, je sais c'était risqué, c'est pour ça que je ne vous l'ai pas dit, je ne voulais pas que vous vous inquiétiez pour moi. Donc avant qu'il sorte j'ai pris une photo par une fenêtre, un peu floue et mal prise, j'étais accroupie, mais je pense avoir trouvé des preuves...
+
 **[Léna]** 📷 *[photo de l'intérieur de l'entrepôt]*
 
 **MICRO-CHOIX :**
@@ -431,6 +439,9 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 - 🧠 « Qu'est-ce que je suis censé voir ? » → *« Le mur, à droite, au-dessus de l'établi. »*
 
 **[Léna]** Tu vois le trousseau accroché au mur ? Zoome sur le porte-clés.
+
+*(Variante si `refus = true` :)*
+> Vous voyez le trousseau accroché au mur ? Zoomez sur le porte-clés.
 
 🔍 **INTERACTION CACHÉE — zoom :** silhouettes gravées nettes, téléphone rose fissuré visible au fond. *(indices + TELEPHONE)*
 
@@ -448,6 +459,9 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 - 🧠 « ...Ben ça alors ! » → *« Ouais. Attends, c'est pas fini. »*
 
 **[Léna]** Je t'explique, il n'en existe que deux au monde, je les avais fait graver pour nous deux, un pour elle et un pour moi, lors d'un voyage où on était en vacances. Ça symbolisait notre amitié, nous quoi !
+
+*(Variante si `refus = true` :)*
+> Je vous explique, il n'en existe que deux au monde, je les avais fait graver pour nous deux, un pour elle et un pour moi, lors d'un voyage où on était en vacances. Ça symbolisait notre amitié, nous quoi !
 
 **[Léna]** Et le mien a disparu de mon appartement il y a trois semaines, impossible de mettre la main dessus, et là...
 

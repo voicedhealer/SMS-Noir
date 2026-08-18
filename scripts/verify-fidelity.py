@@ -69,6 +69,22 @@ def repliques_du_chapitre() -> set[str]:
     # Ancienne forme, conservée pour les chapitres qui l'utiliseraient encore.
     for m in re.finditer(r'\*\*\[Léna\]\*\*\s*«\s*(.+?)\s*»', source):
         trouvees.add(m.group(1).strip())
+
+    # Variante conditionnelle d'une réplique (ex. refus=true), en citation :
+    # *(Variante si `refus = true` — …)* suivi de « > texte ». D'autres blocs du
+    # document utilisent aussi la citation Markdown (script TTS, notes de tête/
+    # pied de fichier, segments de narration N19/N22 — déjà couverts par leur
+    # propre format) : on ne capture QUE le bloc qui suit immédiatement un
+    # marqueur « Variante si », pas toute citation du document.
+    lignes = source.split('\n')
+    for i, ligne in enumerate(lignes):
+        if 'Variante si' not in ligne:
+            continue
+        for suite in lignes[i + 1:]:
+            m = re.match(r'^>\s*(.+)$', suite)
+            if not m:
+                break
+            trouvees.add(nettoyer(m.group(1).strip()))
     return trouvees
 
 

@@ -218,9 +218,12 @@ select _chk(40, 'Règle de rythme ch.1 : aucun délai > 90 s', '',
   coalesce((select string_agg(n.code || '#' || m.position || '=' || m.delay_seconds || 's', ', ')
             from _n n join messages m on m.node_id = n.id where m.delay_seconds > 90), ''));
 
+-- Une position peut porter plusieurs variantes (conditions mutuellement
+-- exclusives, ex. N9#0) depuis l'ajout de messages.conditions : on compte les
+-- positions DISTINCTES, pas les lignes, sinon toute variante fausse ce contrôle.
 select _chk(41, 'Positions des messages contiguës depuis 0', '',
   coalesce((select string_agg(code, ', ' order by code) from (
-              select n.code, count(*) nb, max(m.position) mx, min(m.position) mn
+              select n.code, count(distinct m.position) nb, max(m.position) mx, min(m.position) mn
               from _n n join messages m on m.node_id = n.id group by n.code
             ) t where mn <> 0 or mx <> nb - 1), ''));
 
@@ -234,7 +237,9 @@ select _chk(43, 'Aucun média sans URL', '',
   coalesce((select string_agg(n.code || '#' || m.position, ', ') from _n n join messages m on m.node_id = n.id
             where m.content_type in ('image','audio') and m.media_url is null), ''));
 
-select _chk(44, 'Nombre total de messages', '65',
+-- 68 lignes pour 65 positions distinctes : N9#0, N21#0, N21#2, N22#1 portent
+-- chacune 2 variantes (refus true/false) — voir messages.conditions, LOGIQUE.md.
+select _chk(44, 'Nombre total de messages', '68',
   (select count(*)::text from _n n join messages m on m.node_id = n.id));
 
 select _chk(45, 'Nombre total de choix', '93',

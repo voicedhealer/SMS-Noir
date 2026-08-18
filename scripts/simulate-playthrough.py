@@ -265,15 +265,34 @@ def parcours_allie():
     p.choisir("Zoomer sur l'autocollant")     # AUTOCOLLANT puis enchaîne N19 -> N20
     verifier('Enchaînement après interaction N16 → N20', p.noeud['code'], 'N20')
 
-    p.choisir('Il faut porter ça à la police')  # lucidite 1 -> N9
+    r = p.choisir('Il faut porter ça à la police')  # lucidite 1 -> N9
     verifier('Moment IA atteint', p.noeud['code'], 'N9')
     verifier('ai_moment_pending', p.etat['ai_moment_pending'], True)
+    # refus = false ici : N9 doit ouvrir sur la demande de tutoiement, pas sur
+    # la variante qui maintient le vouvoiement (messages.conditions, addendum
+    # transition N20-N9 §1). new_messages[0] est l'écho du choix du joueur lui-
+    # même — la première réplique de Léna est le premier message 'contact'.
+    ouverture_n9 = next(m['body'] for m in r['new_messages'] if m['sender'] == 'contact')
+    verifier('N9 ouvre sur la demande de tutoiement (refus=false)',
+             ouverture_n9.startswith('Je suis rentrée, je respire un peu mieux... Ça vous dérange si l\'on se tutoie'),
+             True)
 
-    p.continuer()                              # fallback N9 -> N21
+    r = p.continuer()                           # fallback N9 -> N21
     verifier('Fallback du moment IA → N21', p.noeud['code'], 'N21')
+    # refus = false ici : N21 tutoie, comme le reste du chapitre depuis le N9
+    # (messages.conditions, même mécanisme que N9#0 — addendum §N21/N22).
+    ouverture_n21 = next(m['body'] for m in r['new_messages'] if m['sender'] == 'contact')
+    verifier('N21 tutoie (refus=false)',
+             ouverture_n21.startswith("Je t'ai pas dit"), True)
 
-    p.choisir('Zoomer sur la photo')          # TELEPHONE puis N22
+    r = p.choisir('Zoomer sur la photo')      # TELEPHONE puis N22
     verifier('Fin de chapitre atteinte', p.noeud['code'], 'N22')
+    # `choisir` franchit les pauses après coup : new_messages couvre aussi la
+    # suite du N21 et le micro-choix du N22, donc on cherche la réplique dans
+    # le lot plutôt que de supposer sa position.
+    verifier('N22 tutoie (refus=false)',
+             any(m['sender'] == 'contact' and m['body'].startswith("Je t'explique")
+                 for m in r['new_messages']), True)
 
     etat = variables_en_base(p.email)
     v = etat['variables']
@@ -328,9 +347,22 @@ def parcours_refus():
 
     # Ce gain porterait la confiance à 7. refus = true -> il doit être écrêté à 6.
     p.choisir("D'accord mais restez loin")     # -> N19 -> N20
-    p.choisir('Il faut porter ça à la police')  # lucidite 4 -> N9
-    p.continuer()                              # fallback -> N21
-    p.choisir('Zoomer sur la photo')           # TELEPHONE -> N22
+    r = p.choisir('Il faut porter ça à la police')  # lucidite 4 -> N9
+    # refus = true ici : N9 doit garder le vouvoiement, pas demander à tutoyer.
+    ouverture_n9 = next(m['body'] for m in r['new_messages'] if m['sender'] == 'contact')
+    verifier('N9 maintient le vouvoiement (refus=true)',
+             ouverture_n9.startswith('Je suis rentrée, je respire un peu mieux... Ça ne vous dérange pas si je continue à vous vouvoyer'),
+             True)
+    r = p.continuer()                           # fallback -> N21
+    # refus = true : N21 vouvoie, comme le reste du chapitre (messages.conditions).
+    ouverture_n21 = next(m['body'] for m in r['new_messages'] if m['sender'] == 'contact')
+    verifier('N21 vouvoie (refus=true)',
+             ouverture_n21.startswith('Je ne vous ai pas dit'), True)
+
+    r = p.choisir('Zoomer sur la photo')       # TELEPHONE -> N22
+    verifier('N22 vouvoie (refus=true)',
+             any(m['sender'] == 'contact' and m['body'].startswith('Je vous explique')
+                 for m in r['new_messages']), True)
 
     etat = variables_en_base(p.email)
     v = etat['variables']

@@ -228,6 +228,64 @@ def parser():
 # Écriture du SQL
 # ---------------------------------------------------------------------------
 
+#: Variantes conditionnelles d'une réplique scriptée — irrégulier par nature,
+#: donc déclaré à la main comme MEDIA et INTERACTIONS, pas parsé depuis le
+#: document. Le document ne porte que la variante par défaut (parsée
+#: normalement) ; celle-ci fournit le remplacement ET sa condition.
+#:
+#: (nœud, position) -> [(condition, texte), ...]. Le générateur émet une ligne
+#: PAR variante, chacune avec sa propre condition — jamais `{}` sur aucune des
+#: deux, sinon les deux seraient toujours délivrées à la fois.
+VARIANTES = {
+    ('N9', 0): [
+        ({'eq': {'refus': False}},
+         "Je suis rentrée, je respire un peu mieux... Ça vous dérange si l'on "
+         "se tutoie ? Après ce qu'on vient de vivre, le « vous » me paraît un "
+         "peu ridicule, qu'en penses-tu ?"),
+        ({'eq': {'refus': True}},
+         "Je suis rentrée, je respire un peu mieux... Ça ne vous dérange pas "
+         "si je continue à vous vouvoyer, je crois que j'en ai besoin ce soir."),
+    ],
+    # N21/N22 sont écrits en tutoiement (bascule actée au N9). Sur refus=true,
+    # le vouvoiement tient tout le chapitre (bible §2) : simple déclinaison
+    # grammaticale des répliques qui portent un « tu », pas une réécriture.
+    # Les micro-choix (labels et inline_response, table choices) restent hors
+    # champ — ce mécanisme ne couvre que messages.conditions.
+    ('N21', 0): [
+        ({'eq': {'refus': False}},
+         "Je t'ai pas dit, mais je me suis approchée de l'entrepôt, je sais "
+         "c'était risqué, c'est pour ça que je ne te l'ai pas dit, je ne "
+         "voulais pas que tu t'inquiètes pour moi. Donc avant qu'il sorte "
+         "j'ai pris une photo par une fenêtre, un peu floue et mal prise, "
+         "j'étais accroupie, mais je pense avoir trouvé des preuves..."),
+        ({'eq': {'refus': True}},
+         "Je ne vous ai pas dit, mais je me suis approchée de l'entrepôt, je "
+         "sais c'était risqué, c'est pour ça que je ne vous l'ai pas dit, je "
+         "ne voulais pas que vous vous inquiétiez pour moi. Donc avant qu'il "
+         "sorte j'ai pris une photo par une fenêtre, un peu floue et mal "
+         "prise, j'étais accroupie, mais je pense avoir trouvé des preuves..."),
+    ],
+    ('N21', 2): [
+        ({'eq': {'refus': False}},
+         "Tu vois le trousseau accroché au mur ? Zoome sur le porte-clés."),
+        ({'eq': {'refus': True}},
+         "Vous voyez le trousseau accroché au mur ? Zoomez sur le porte-clés."),
+    ],
+    ('N22', 1): [
+        ({'eq': {'refus': False}},
+         "Je t'explique, il n'en existe que deux au monde, je les avais fait "
+         "graver pour nous deux, un pour elle et un pour moi, lors d'un "
+         "voyage où on était en vacances. Ça symbolisait notre amitié, nous "
+         "quoi !"),
+        ({'eq': {'refus': True}},
+         "Je vous explique, il n'en existe que deux au monde, je les avais "
+         "fait graver pour nous deux, un pour elle et un pour moi, lors d'un "
+         "voyage où on était en vacances. Ça symbolisait notre amitié, nous "
+         "quoi !"),
+    ],
+}
+
+
 def sql_messages(noeuds):
     lignes, premier = [], True
     for code in ORDRE:
@@ -251,12 +309,20 @@ def sql_messages(noeuds):
                 d = ENTREE[code] if pos == 0 else SUITE
                 ty = d if (code, pos) in TYPING_LONG else 3
                 ct, body = 'text', texte
-            b = f'$${dollars(body)}$$' if body is not None else f'null{cast}'
-            push = 'true' if (code, pos) in PUSH else 'false'
-            ptxt = PUSH_TEXTE.get((code, pos))
-            p = f'$${ptxt}$$' if ptxt else f'null{cast}'
-            lignes.append(f"('{code}', {pos}, '{ct}', {b}, {media}, {d}, {ty}, {push}, {p}),")
-            premier = False
+
+            variantes = VARIANTES.get((code, pos))
+            textes = [t for _, t in variantes] if variantes else [body]
+            conds = [c for c, _ in variantes] if variantes else [{}]
+
+            for texte_variante, cond in zip(textes, conds):
+                b = f'$${dollars(texte_variante)}$$' if texte_variante is not None else f'null{cast}'
+                push = 'true' if (code, pos) in PUSH else 'false'
+                ptxt = PUSH_TEXTE.get((code, pos))
+                p = f'$${ptxt}$$' if ptxt else f'null{cast}'
+                cj = json.dumps(cond, ensure_ascii=False)
+                lignes.append(
+                    f"('{code}', {pos}, '{ct}', {b}, {media}, {d}, {ty}, {push}, {p}, $${cj}$$),")
+                premier = False
     lignes[-1] = lignes[-1][:-1]
     return '\n'.join(lignes) + '\n'
 
@@ -424,7 +490,7 @@ if __name__ == '__main__':
     seed = source.read_text()
     seed = remplacer(
         seed, 'insert into messages', 'from (values\n',
-        '\n) as v(node, pos, ctype, body, media, delay, typing, push, push_text)',
+        '\n) as v(node, pos, ctype, body, media, delay, typing, push, push_text, conditions)',
         sql_messages(noeuds))
     seed = remplacer(
         seed, 'insert into choices (node_id, position, label, kind, next_node_id',

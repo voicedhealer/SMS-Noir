@@ -720,8 +720,43 @@ sont en **ET**.
 ```
 
 Opérateurs prévus : `eq`, `gte`, `lte`, `contains`, `not_contains`, `count_gte`.
-Le chapitre 1 n'utilise en pratique que `not_contains` (interactions à usage unique) ; les autres
-sont posés maintenant pour les seuils de fins de la bible §6, pour ne pas avoir à migrer plus tard.
+Le chapitre 1 n'utilise en pratique que `not_contains` (interactions à usage unique) et `eq`
+(variantes de réplique scriptée, voir ci-dessous) ; les autres sont posés maintenant pour les
+seuils de fins de la bible §6, pour ne pas avoir à migrer plus tard.
+
+### `messages.conditions` : des variantes sur une réplique scriptée
+
+Jusqu'à l'addendum transition N20-N9, un message d'un nœud était **toujours** délivré : seul
+`choices.conditions` existait. L'ouverture du N9 a besoin d'une réplique différente selon `refus`
+(tutoiement demandé, ou vouvoiement maintenu) — et le vouvoiement/tutoiement n'est **pas** une
+variable du moteur, c'est du texte écrit tel quel, sans branche serveur. `messages.conditions`
+comble ce trou avec le même format et le même évaluateur que `choices.conditions` :
+
+```jsonc
+// N9#0 — deux lignes, une seule position
+{ "eq": { "refus": false } }   // « Ça vous dérange si l'on se tutoie ? »
+{ "eq": { "refus": true } }    // « Ça ne vous dérange pas si je continue à vous vouvoyer... »
+```
+
+Deux conséquences sur le schéma :
+
+- **`position` n'est plus unique par nœud** — deux variantes d'une même réplique partagent la
+  même position (`unique (node_id, position)` a été retiré). L'exclusivité mutuelle des conditions
+  à une position donnée n'est pas vérifiable en contrainte SQL déclarative (elle dépend des
+  valeurs runtime des variables) ; elle est garantie côté contenu
+  (`generate-seed-content.py`, dict `VARIANTES`) et vérifiée par `verify-graph.sql`.
+- **`position` reste un repère de curseur, jamais un index de tableau.** Un message dont la
+  condition échoue est simplement absent du lot renvoyé au joueur ; les positions des messages
+  suivants ne bougent pas. `ecrireMessagesDuNoeud` calcule `finPosition` sur la dernière position
+  du nœud AVANT filtrage, pour la même raison.
+
+**Étendu à N21#0, N21#2 et N22#1** dans la foulée : ces répliques tutoient, mais la bible §2 dit que
+le vouvoiement tient tout le chapitre si `refus = true`. Avant l'addendum N20-N9, l'incohérence
+passait inaperçue (le N20, loin en amont, ne conditionnait rien) ; une fois le N9 conditionnel, la
+laisser tomber au premier nœud suivant aurait cassé la continuité pour cette branche. Simple
+déclinaison grammaticale tu → vous, pas une réécriture — et volontairement limitée aux `messages` :
+les micro-choix de N21/N22 (`choices.inline_response`) restent en tutoiement, hors du mécanisme
+`messages.conditions`.
 
 ## Format JSONB `inline_response`
 

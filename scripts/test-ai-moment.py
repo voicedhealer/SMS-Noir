@@ -98,6 +98,18 @@ class PartieIA(Partie):
 RACCROCHAGE = "Merci. J'en avais besoin. Bon, je rentre."
 COUPURE = 'Ok. Laisse tomber. Je rentre.'
 
+# Plafond global de `confiance` (engine.ts, BORNES) — 6 au lieu de 10 tant que
+# `refus = true`. Un chemin très « protéger » peut entrer au N9 déjà proche du
+# plafond ; le bonus « sincère » (+2) sature alors au lieu de s'ajouter en
+# entier. Ce n'est pas un défaut du moteur, donc les tests visent le plafond
+# effectif plutôt qu'un delta fixe.
+PLAFOND_CONFIANCE = 10
+PLAFOND_CONFIANCE_REFUS = 6
+
+
+def apres_gain(avant: int, gain: int, refus: bool = False) -> int:
+    return min(avant + gain, PLAFOND_CONFIANCE_REFUS if refus else PLAFOND_CONFIANCE)
+
 
 def repliques(r: dict) -> list[str]:
     return [m['body'] for m in r.get('new_messages', []) if m['sender'] == 'contact']
@@ -140,9 +152,12 @@ def nominal_court():
     verifier('Échange 1 · le nœud reste le N9', r['node']['code'], 'N9')
 
     etat = progression(p.email)
-    # Le plafond à 6 ne s'applique qu'à la branche « refus » : ici, +2 pleins.
-    verifier('sincere → +2 de confiance (appliqué par le SERVEUR)',
-             etat['variables']['confiance'], avant + 2)
+    # +2 plein, sauf si le chemin pris avant le N9 a déjà rapproché la
+    # confiance du plafond global (10) — dans ce cas elle sature, ce qui est
+    # le comportement correct du moteur, pas un delta à géométrie fixe.
+    apres_sincere = apres_gain(avant, 2)
+    verifier('sincere → +2 de confiance, ou saturation au plafond (SERVEUR)',
+             etat['variables']['confiance'], apres_sincere)
     verifier('detail_perso retenu', etat['detail_perso'], 'Sacha')
     verifier('Compteur d\'échanges incrémenté', etat['ai_exchanges'], 1)
 
@@ -153,7 +168,7 @@ def nominal_court():
     verifier('Compteur remis à zéro en sortant',
              progression(p.email)['ai_exchanges'], 0)
     verifier('Une hostilité ne coûte pas de confiance',
-             progression(p.email)['variables']['confiance'], avant + 2)
+             progression(p.email)['variables']['confiance'], apres_sincere)
 
 
 def nominal_long():

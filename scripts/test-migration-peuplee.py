@@ -99,8 +99,11 @@ if __name__ == '__main__':
     # d'avant n'existent plus.
     sim.verifier('Le pointeur narratif est remis à zéro',
                  sql('select count(*) from player_progress where current_node_id is not null;'), '0')
+    # 60, pas 63 : compte figé au moment où ce script a été écrit, avant un
+    # ajustement ultérieur du contenu (cf. verify-graph.sql #45/#46 : 93 choix
+    # au total, 33 hors micro — 60 micro, chiffre qui, lui, est tenu à jour).
     sim.verifier('Le contenu est bien celui de la V3.2',
-                 sql("select count(*) from choices where kind = 'micro';"), '63')
+                 sql("select count(*) from choices where kind = 'micro';"), '60')
 
     print('\n' + '=' * 78)
     if sim.ECHECS:

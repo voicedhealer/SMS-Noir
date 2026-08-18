@@ -367,7 +367,7 @@ async function derouler(
     // attendent le joueur au milieu du nœud.
     const pause = await prochainePause(db, noeud.id, vars, curseur)
     const lot = await ecrireMessagesDuNoeud(
-      db, progression.id, noeud.id, curseur, pause ?? Number.MAX_SAFE_INTEGER)
+      db, progression.id, noeud.id, vars, curseur, pause ?? Number.MAX_SAFE_INTEGER)
     messages.push(...lot.messages)
 
     if (pause !== null) {
@@ -446,18 +446,22 @@ export function poursuivreDansNoeud(
  * l'appelant en a besoin pour poser le curseur derrière la fin du nœud.
  */
 async function ecrireMessagesDuNoeud(
-  db: SupabaseClient, progressId: string, nodeId: string,
+  db: SupabaseClient, progressId: string, nodeId: string, vars: Variables,
   depuis = 0, jusqua = Number.MAX_SAFE_INTEGER,
 ): Promise<{ messages: MessageEcrit[]; finPosition: number }> {
   const { data, error } = await db
     .from('messages')
-    .select('position, contact_id, content_type, body, media_url, delay_seconds, typing_seconds, push_notification, push_text, phantom_typing_at, haptic_at')
+    .select('position, contact_id, content_type, body, media_url, delay_seconds, typing_seconds, push_notification, push_text, phantom_typing_at, haptic_at, conditions')
     .eq('node_id', nodeId).order('position')
   if (error) throw new ErreurMoteur(500, 'erreur_base', error.message)
 
   const tous = data ?? []
+  // La DERNIÈRE position du nœud, condition ou pas : c'est un repère de
+  // curseur, pas un index — un message qui ne passe pas sa condition ne doit
+  // pas raccourcir la portée du nœud pour autant.
   const finPosition = tous.length ? Number(tous[tous.length - 1].position) : depuis - 1
-  const tranche = tous.filter((m) => m.position >= depuis && m.position <= jusqua)
+  const tranche = tous.filter((m) =>
+    m.position >= depuis && m.position <= jusqua && evaluerConditions(vars, m.conditions))
 
   const messages = await ecrire(db, progressId, tranche.map((m) => ({
     contact_id: m.contact_id,
