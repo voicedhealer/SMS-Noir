@@ -988,4 +988,116 @@ void main() {
           reason: 'le tap sur le champ a nettement révélé le bas du fil, où vivent les choix');
     });
   });
+
+  group('L\'heure des bulles photo et audio suit la règle du texte', () {
+    // Régression : l'addendum sur les horodatages (heure sous la bulle, un
+    // seul par groupe) n'avait été appliqué qu'aux bulles de texte — la photo
+    // et le vocal gardaient l'heure incrustée dans le média, telle qu'avant la
+    // refonte. Les deux widgets passaient par un chemin de rendu séparé du
+    // texte, et la correction de l'un n'avait pas traversé vers l'autre.
+    //
+    // L'horloge de fiction ne démarre qu'après un séparateur ancré
+    // (`FictionClock.horaires`) : sans lui, `heure` reste nulle pour tout le
+    // monde, et un test qui l'omettrait passerait pour la mauvaise raison. Un
+    // séparateur ouvre donc chacun de ces scénarios.
+    Map<String, dynamic> separateur() => message(seq: 0, body: 'jeudi — 22h47', type: 'separator');
+
+    testWidgets('une photo seule affiche son heure en dessous, jamais dedans',
+        (tester) async {
+      await monter(tester, getState: {
+        'story': {'slug': 's', 'title': 'T'},
+        'conversations': [conversation()],
+        'history': [
+          separateur(),
+          message(seq: 1, type: 'image', media: 'placeholder://photo', body: null, delay: 0),
+        ],
+        'node': noeud(),
+        'chapter_end': null,
+        'ai_moment_pending': false,
+      });
+
+      expect(find.byType(MessageFooter), findsOneWidget,
+          reason: 'le pied de groupe existe pour une bulle photo, comme pour le texte');
+      // Sous la bulle, dans le pied — pas ailleurs.
+      expect(
+          find.descendant(of: find.byType(MessageFooter), matching: find.text('22h47')),
+          findsOneWidget);
+
+      // Aucun horodatage en surimpression : la vignette ne contient plus de
+      // Positioned portant l'heure au-dessus de l'image.
+      final photo = find.byType(PhotoBubble);
+      expect(find.descendant(of: photo, matching: find.byType(Positioned)), findsNothing,
+          reason: 'plus de surimpression sur la vignette');
+      expect(find.descendant(of: photo, matching: find.text('22h47')), findsNothing,
+          reason: 'l\'heure n\'est plus DANS le widget de la photo');
+    });
+
+    testWidgets('un vocal seul affiche son heure en dessous, jamais à côté de la durée',
+        (tester) async {
+      await monter(tester, getState: {
+        'story': {'slug': 's', 'title': 'T'},
+        'conversations': [conversation()],
+        'history': [
+          separateur(),
+          message(seq: 1, type: 'audio', media: 'placeholder://vocal', body: null, delay: 0),
+        ],
+        'node': noeud(),
+        'chapter_end': null,
+        'ai_moment_pending': false,
+      });
+
+      expect(find.byType(MessageFooter), findsOneWidget,
+          reason: 'le pied de groupe existe pour une bulle audio, comme pour le texte');
+      expect(
+          find.descendant(of: find.byType(MessageFooter), matching: find.text('22h47')),
+          findsOneWidget);
+      expect(find.descendant(of: find.byType(AudioBubble), matching: find.text('22h47')),
+          findsNothing,
+          reason: 'l\'heure n\'est plus à côté de la durée, DANS le lecteur');
+    });
+
+    testWidgets('groupe mixte texte + photo du même émetteur : une seule heure, sous la photo',
+        (tester) async {
+      await monter(tester, getState: {
+        'story': {'slug': 's', 'title': 'T'},
+        'conversations': [conversation()],
+        'history': [
+          separateur(),
+          message(seq: 1, body: 'Regardez ça.', delay: 0),
+          message(seq: 2, type: 'image', media: 'placeholder://photo', body: null, delay: 0),
+        ],
+        'node': noeud(),
+        'chapter_end': null,
+        'ai_moment_pending': false,
+      });
+
+      // Même émetteur, même minute de fiction (les deux à délai nul) : un
+      // seul pied pour les deux bulles, exactement comme un groupe tout-texte.
+      expect(find.byType(MessageFooter), findsOneWidget,
+          reason: 'texte et photo du même émetteur, même minute : un seul groupe');
+    });
+
+    testWidgets('une photo puis un texte de Léna change de minute : deux pieds',
+        (tester) async {
+      await monter(tester, getState: {
+        'story': {'slug': 's', 'title': 'T'},
+        'conversations': [conversation()],
+        'history': [
+          separateur(),
+          message(seq: 1, type: 'image', media: 'placeholder://photo', body: null, delay: 0),
+          // delay > 0 fait avancer l'horloge de fiction : nouvelle minute,
+          // donc nouveau groupe même si l'émetteur ne change pas.
+          message(seq: 2, body: 'Vous voyez ?', delay: 90),
+        ],
+        'node': noeud(),
+        'chapter_end': null,
+        'ai_moment_pending': false,
+      });
+
+      expect(find.byType(MessageFooter), findsNWidgets(2),
+          reason: 'la minute a changé entre les deux : deux groupes, deux pieds');
+      expect(find.text('22h47'), findsOneWidget, reason: 'pied de la photo');
+      expect(find.text('22h48'), findsOneWidget, reason: 'pied du texte, une minute plus tard');
+    });
+  });
 }

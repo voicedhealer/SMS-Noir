@@ -396,17 +396,30 @@ class _Element extends ConsumerWidget {
     final heure = minutes == null ? null : FictionClock.formater(minutes);
 
     // Un groupe = même émetteur, même minute de FICTION, sans rien entre les
-    // deux. La minute compte autant que l'émetteur : grouper sur le seul
+    // deux — et ça vaut pour les trois types de bulle (texte, photo, audio) à
+    // égalité. La minute compte autant que l'émetteur : grouper sur le seul
     // émetteur ferait disparaître un changement d'heure au milieu d'une série,
     // et l'heure de fiction est la seule horloge que le joueur ait.
+    //
+    // `estBulle` isole les VRAIES bulles des interruptions structurelles
+    // (séparateur, système, carte de contact) : ces dernières cassent
+    // toujours un groupe, une bulle ne le casse que si l'émetteur ou la
+    // minute changent.
+    bool estBulle(ContentType t) =>
+        t == ContentType.text || t == ContentType.image || t == ContentType.audio;
+
     final s = suivant;
     final finDeGroupe = s == null ||
         s.sender != message.sender ||
-        s.contentType != ContentType.text ||
-        message.contentType != ContentType.text ||
+        !estBulle(message.contentType) ||
+        !estBulle(s.contentType) ||
         etat.heures[s.seq] != minutes;
 
-    return switch (message.contentType) {
+    // Le contenu propre à chaque type — sans heure ni pied : c'est le même
+    // pied, plus bas, qui les porte pour les trois, exactement comme pour le
+    // texte. Une heure incrustée DANS l'image avait survécu à la refonte qui
+    // l'avait sortie des bulles de texte ; ça ne doit plus se reproduire.
+    final contenu = switch (message.contentType) {
       ContentType.separator => SeparatorPill(libelle: message.body ?? ''),
       // Jamais dans le fil : la narration est affichée en plein écran, plus
       // haut. Elle ne laisse aucune trace une fois Léna revenue — c'est un
@@ -416,7 +429,6 @@ class _Element extends ConsumerWidget {
       ContentType.system => const SizedBox.shrink(),
       ContentType.image => PhotoBubble(
           message: message,
-          heure: heure,
           onOuvrir: () {
             final ctrl = ref.read(conversationProvider.notifier);
             ctrl.signalerActivite();
@@ -435,7 +447,6 @@ class _Element extends ConsumerWidget {
         ),
       ContentType.audio => AudioBubble(
           message: message,
-          heure: heure,
           // La réécoute est l'interaction, pas un confort de lecture.
           onReecoute: (etat.interactionParGeste && message.seq == etat.dernierMedia?.seq)
               ? ref.read(conversationProvider.notifier).declencherInteraction
@@ -449,26 +460,31 @@ class _Element extends ConsumerWidget {
           onEnregistrer: () =>
               ref.read(conversationProvider.notifier).enregistrerContact(),
         ),
-      ContentType.text => Padding(
-          padding: EdgeInsets.only(
-              bottom: finDeGroupe ? AppSpacing.interGroupes : AppSpacing.interBulles),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              MessageBubble(message: message),
-              // Heure, « Vu. » et coche : sous le DERNIER du groupe seulement.
-              if (finDeGroupe)
-                MessageFooter(
-                  duJoueur: message.sender == MessageSender.player,
-                  heure: heure,
-                  // Nul en tête-à-tête. Le mécanisme attend le groupe du ch. 3.
-                  nom: etat.contact != null && etat.estGroupe ? etat.nomDe(message) : null,
-                  vu: message.seq == vu,
-                  nonDelivre: message.isLocalDecorative,
-                ),
-            ],
-          ),
-        ),
+      ContentType.text => MessageBubble(message: message),
     };
+
+    if (!estBulle(message.contentType)) return contenu;
+
+    return Padding(
+      padding: EdgeInsets.only(
+          bottom: finDeGroupe ? AppSpacing.interGroupes : AppSpacing.interBulles),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          contenu,
+          // Heure, nom, « Vu. » et coche : sous le DERNIER élément du groupe
+          // seulement, quel que soit son type.
+          if (finDeGroupe)
+            MessageFooter(
+              duJoueur: message.sender == MessageSender.player,
+              heure: heure,
+              // Nul en tête-à-tête. Le mécanisme attend le groupe du ch. 3.
+              nom: etat.contact != null && etat.estGroupe ? etat.nomDe(message) : null,
+              vu: message.seq == vu,
+              nonDelivre: message.isLocalDecorative,
+            ),
+        ],
+      ),
+    );
   }
 }

@@ -200,13 +200,9 @@ class PhotoBubble extends StatelessWidget {
     super.key,
     required this.message,
     required this.onOuvrir,
-    this.heure,
   });
   final ClientMessage message;
   final VoidCallback onOuvrir;
-
-  /// Heure **de fiction**, en surimpression sur la vignette.
-  final String? heure;
 
   @override
   Widget build(BuildContext context) {
@@ -216,11 +212,14 @@ class PhotoBubble extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.l, vertical: AppSpacing.interBulles / 2),
+        // L'heure vivait ici, en surimpression sur la vignette — la même
+        // incohérence que celle déjà corrigée pour les bulles de texte, restée
+        // sur les médias parce qu'ils passent par un widget séparé. Elle vit
+        // maintenant dans le pied de groupe commun, posé par `_Element` : la
+        // photo n'a plus besoin d'un `Stack` pour elle seule.
         child: GestureDetector(
           onTap: onOuvrir,
-          child: Stack(
-            children: [
-              ClipRRect(
+          child: ClipRRect(
             borderRadius: BorderRadius.circular(AppSpacing.rayonBulle),
             child: ConstrainedBox(
               // Une capture d'écran est en portrait : sans plafond, la vignette
@@ -245,29 +244,6 @@ class PhotoBubble extends StatelessWidget {
                       ),
               ),
             ),
-          ),
-              // Surimpression, comme dans une vraie messagerie : un léger voile
-              // sombre garantit la lisibilité quelle que soit la photo — et les
-              // nôtres sont volontairement très sombres.
-              if (heure != null)
-                Positioned(
-                  right: AppSpacing.s,
-                  bottom: AppSpacing.s,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.s, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      borderRadius: BorderRadius.circular(AppSpacing.s),
-                    ),
-                    child: Text(
-                      heure!,
-                      style: AppText.horodatage
-                          .copyWith(color: Colors.white.withValues(alpha: 0.85)),
-                    ),
-                  ),
-                ),
-            ],
           ),
         ),
       ),
@@ -337,14 +313,11 @@ class PhotoViewer extends StatelessWidget {
 /// La **réécoute** — toute lecture à partir de la deuxième — est l'interaction
 /// cachée du N17. Ce n'est pas un confort de lecture.
 class AudioBubble extends StatefulWidget {
-  const AudioBubble({super.key, required this.message, this.onReecoute, this.heure});
+  const AudioBubble({super.key, required this.message, this.onReecoute});
   final ClientMessage message;
 
   /// Appelé à partir de la DEUXIÈME lecture.
   final VoidCallback? onReecoute;
-
-  /// Heure **de fiction**, à côté de la durée.
-  final String? heure;
 
   @override
   State<AudioBubble> createState() => _AudioBubbleState();
@@ -371,6 +344,11 @@ class _AudioBubbleState extends State<AudioBubble> {
   }
 
   Future<void> _preparer() async {
+    // `isPlaceholderMedia` d'abord : `Env.supabaseUrl` lève si aucune base
+    // n'est configurée, et l'argument d'un appel s'évalue avant d'entrer dans
+    // `urlAbsolue` — un média pas encore produit n'a pas besoin d'une base
+    // pour être reconnu comme tel.
+    if (widget.message.isPlaceholderMedia) return;
     final url = widget.message.urlAbsolue(Env.supabaseUrl);
     if (url == null) return; // média pas encore produit
     try {
@@ -462,20 +440,13 @@ class _AudioBubbleState extends State<AudioBubble> {
               ),
             ),
             const SizedBox(width: AppSpacing.m),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _mmss(_enLecture || _position > Duration.zero ? _position : _duree),
-                  style: AppText.horodatage.copyWith(color: AppColors.texteSecondaire),
-                ),
-                if (widget.heure != null)
-                  Text(
-                    widget.heure!,
-                    style: AppText.horodatage.copyWith(color: AppColors.texteTertiaire),
-                  ),
-              ],
+            // La durée reste ici, à côté du lecteur : c'est une propriété du
+            // vocal, pas du fil. L'heure, elle, vit dans le pied de groupe
+            // commun posé par `_Element` — plus à côté de la durée, où elle
+            // avait survécu à la refonte qui l'avait sortie des autres bulles.
+            Text(
+              _mmss(_enLecture || _position > Duration.zero ? _position : _duree),
+              style: AppText.horodatage.copyWith(color: AppColors.texteSecondaire),
             ),
           ],
         ),

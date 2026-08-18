@@ -87,6 +87,14 @@ signalerait « application » en une fraction de seconde.
   son texte — « Disparu comment ? » occupait deux fois la place nécessaire, avec un
   vide en dessous. Dehors, la bulle épouse ses mots.
 
+  **La règle vaut à égalité pour les trois types de bulle** — texte, photo, vocal.
+  Une incrustation avait survécu sur les médias : l'heure restait en surimpression
+  dans le coin de la vignette, et à côté de la durée du vocal, exactement comme avant
+  la refonte — parce que photo et audio passent par un widget séparé du texte, et la
+  correction de l'un n'avait pas traversé vers l'autre. `PhotoBubble` et `AudioBubble`
+  ne connaissent plus d'heure du tout : c'est `_Element`, dans l'écran de conversation,
+  qui pose le même `MessageFooter` sous les trois.
+
 - **Une seule heure par groupe**, sous le dernier message. Un groupe = **même
   émetteur et même minute de fiction**, sans rien entre les deux. La minute compte
   autant que l'émetteur : grouper sur le seul émetteur ferait disparaître un
