@@ -15,6 +15,9 @@ jamais à l'œil sur device en conditions réelles.
       posés à la place du rendu à taille intrinsèque — non exerçables en test widget
       (`Image.network` a besoin d'une base non disponible en test). À confirmer en zoomant une vraie
       photo (N10, N16 ou N21) sur device.
+- [ ] **Carte d'entrée + consentement avant l'intro** (2026-08-19, voir MEMOIRE.md) : le nouvel
+      enchaînement carte d'entrée → consentement → intronisation n'a pas été vu tourner sur device,
+      même limite d'automatisation. Couvert côté logique (serveur + tests widget), pas à l'œil.
 
 ## 🟡 Flakiness connue, sans rapport avec le contenu — `test-ai-moment.py` § quota
 

@@ -4,6 +4,60 @@
 
 ---
 
+## 2026-08-19 (3) — Deux précisions : ligne de contexte du N9, consentement avant l'intro
+
+Deux corrections de Vivien sur des points antérieurs (prompt 3 / UI), traitées ensemble.
+
+### 1. Ligne de contexte de la saisie libre : dans le fil, pas sous le champ
+
+Nouveau widget `ContexteSaisieLibre` (`widgets/message_widgets.dart`) : « Léna attend une vraie
+réponse... », gris, centré, plus petit que le texte normal — posé dans la liste défilable du fil
+(`conversation_screen.dart`), sous la dernière bulle et avant la zone de choix. Jamais sous le champ
+de saisie lui-même, qui ne doit jamais changer d'aspect selon le mode. Affichée quand
+`mode == aiInput`, hors déroulé, hors typing — disparaît dès que Léna « écrit » ou que le joueur
+envoie, réapparaît avant chaque tour suivant.
+
+### 2. Consentement IA : déplacé avant l'intronisation, carte d'entrée minimale
+
+Jusqu'ici demandé à la première saisie libre du N9 (`ConsentScreen` inline, déclenché par
+`consent_required` côté `ai-chat`). Déplacé en amont : une carte d'entrée minimale (titre, accroche
+si l'histoire en porte une, « Toucher pour entrer ») précède désormais tout, y compris le premier
+panneau de l'intronisation — c'est elle qui porte le consentement, une fois pour toutes.
+
+**Changement serveur non trivial** : `ai-chat` exigeait d'être *au* nœud `ai_moment` pour traiter
+`{consent}` (`noeud.kind !== 'ai_moment'` levait `pas_un_moment_ia`). La carte d'entrée appelle ce
+même endpoint alors que le joueur est encore au nœud d'entrée (N1) — il a fallu déplacer la branche
+consentement AVANT cette garde, et simplifier `enregistrerConsentement` pour qu'elle n'exige plus un
+nœud précis. Un seul point d'attention gardé : refuser alors qu'un `ai_moment` attend réellement une
+réponse (chemin de repli, plus l'usage normal depuis la carte) raccroche toujours immédiatement,
+comme avant — refuser depuis la carte d'entrée, elle, ne referme rien puisque rien n'est encore
+engagé. Sans cette distinction, `test-ai-moment.py` (le test de consentement déjà existant, en
+place avant cette session) aurait cassé : première tentative de refonte trop uniforme, corrigée
+avant de committer.
+
+`get-state` expose maintenant `story.tagline` et `ai_consent_decided` (`ai_consent_at` posé OU
+`ai_consent_refuse` vrai) — c'est ce booléen serveur, jamais un drapeau local, qui fait réafficher
+la carte d'entrée. Nouveau `screens/entry_card_screen.dart`, portée volontairement minimale : la
+vraie bibliothèque (plusieurs histoires) l'absorbera plus tard, pas de raison de la construire
+maintenant pour une seule histoire.
+
+### Vérification
+
+Serveur : `test-ai-moment.py` (le test de consentement existant, inchangé dans ses attentes, plus un
+nouveau `consentement_amont()` couvrant l'appel depuis le nœud d'entrée — accepté et refusé, et le
+refus qui tient jusqu'au N9) · `verify-graph.sql` 51/51 · `verify-fidelity.py` 114/114 ·
+`simulate-playthrough.py` · `test-micro-choix.py` · `test-migration-peuplee.py` (en isolation).
+Client : `flutter analyze` propre, `flutter test` 109/109 (108 + nouveaux tests sur la carte
+d'entrée et la ligne de contexte, y compris sa disparition pendant l'attente réseau).
+
+### Prochaine étape
+
+Validation de Vivien. Comme pour les Phases B/C de l'addendum transition, la carte d'entrée et
+l'écran de consentement n'ont pas été vus tourner sur device — mêmes limites d'automatisation de
+tap sur cette machine.
+
+---
+
 ## 2026-08-19 (2) — Addendum transition N20-N9, Phase C : visionneuse photo plein écran
 
 Dernière phase de l'addendum (§3.1). Bug confirmé en lisant `PhotoViewer`

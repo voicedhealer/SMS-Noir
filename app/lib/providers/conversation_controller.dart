@@ -42,6 +42,9 @@ class ConversationState {
     this.intro,
     this.consentementRequis = false,
     this.erreur,
+    this.storyTitle = '',
+    this.storyTagline,
+    this.consentDecide = false,
   });
 
   final List<ClientMessage> fil;
@@ -49,6 +52,17 @@ class ConversationState {
   final List<Conversation> conversations;
   final ChapterEnd? chapterEnd;
   final TypingState typing;
+
+  final String storyTitle;
+
+  /// Accroche affichée sur la carte d'entrée. Null si l'histoire n'en porte pas.
+  final String? storyTagline;
+
+  /// Le joueur a déjà répondu (accepté ou refusé) au consentement IA, demandé
+  /// depuis la carte d'entrée — avant l'intronisation, une fois pour toutes.
+  /// `false` tant qu'aucune décision n'existe en base : c'est ce qui fait
+  /// réafficher la carte d'entrée, jamais un état local qui ne prouverait rien.
+  final bool consentDecide;
 
   /// Libellé de présence, tel que le serveur l'a envoyé. Null = en ligne.
   final String? presence;
@@ -186,6 +200,9 @@ class ConversationState {
     bool? consentementRequis,
     String? erreur,
     bool viderErreur = false,
+    String? storyTitle,
+    String? storyTagline,
+    bool? consentDecide,
   }) =>
       ConversationState(
         fil: fil ?? this.fil,
@@ -202,6 +219,9 @@ class ConversationState {
         intro: viderIntro ? null : (intro ?? this.intro),
         consentementRequis: consentementRequis ?? this.consentementRequis,
         erreur: viderErreur ? null : (erreur ?? this.erreur),
+        storyTitle: storyTitle ?? this.storyTitle,
+        storyTagline: storyTagline ?? this.storyTagline,
+        consentDecide: consentDecide ?? this.consentDecide,
       );
 }
 
@@ -218,6 +238,11 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   bool _verrouille = false;
   bool _termine = false;
   IntroSequence? _intro;
+  String _storyTitle = '';
+  String? _storyTagline;
+
+  /// Voir `ConversationState.consentDecide`.
+  bool _consentDecide = false;
 
   /// Messages du nœud d'entrée, mis de côté le temps de l'intro.
   List<ClientMessage> _aJouerApresIntro = const [];
@@ -339,6 +364,9 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     _node = etat.node;
     _conversations = etat.conversations;
     _chapterEnd = etat.chapterEnd;
+    _storyTitle = etat.storyTitle;
+    _storyTagline = etat.storyTagline;
+    _consentDecide = etat.aiConsentDecided;
 
     // Intro : jouée une seule fois, avant tout le reste.
     _intro = (!etat.intro.estVide && !_store.introVue) ? etat.intro : null;
@@ -433,6 +461,9 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         consentementRequis: _consentementRequis,
         nonLus: _nonLus,
         intro: _intro,
+        storyTitle: _storyTitle,
+        storyTagline: _storyTagline,
+        consentDecide: _consentDecide,
       );
 
   /// Le mode se déduit entièrement du contrat : le client ne connaît pas le graphe.
@@ -623,8 +654,11 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     }
   }
 
-  /// Réponse à l'écran de consentement. Un refus ne pénalise pas : le serveur
-  /// fait raccrocher Léna et l'histoire repart.
+  /// Réponse au consentement — depuis la carte d'entrée (avant l'intro,
+  /// le chemin normal) ou depuis l'écran de consentement inline (repli, si
+  /// jamais atteint sans être passé par la carte). Un refus ne pénalise pas :
+  /// s'il est donné en pleine saisie libre, le serveur fait raccrocher Léna et
+  /// l'histoire repart ; depuis la carte d'entrée, rien n'est encore engagé.
   Future<void> repondreConsentement(bool accepte) async {
     _consentementRequis = false;
     final aRejouer = _messageEnAttente;
@@ -633,6 +667,9 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     _publier();
     try {
       final tour = await _api.aiChat(consent: accepte);
+      // La décision est écrite en base dès que l'appel réussit, qu'elle soit
+      // positive ou négative : c'est elle qui referme la carte d'entrée.
+      _consentDecide = true;
       await _appliquerTourIA(tour);
       if (accepte && aRejouer != null) {
         _attenteIA = false;

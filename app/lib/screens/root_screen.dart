@@ -3,13 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/conversation_controller.dart';
 import '../theme/tokens.dart';
+import 'consent_screen.dart';
 import 'conversation_list_screen.dart';
 import 'conversation_screen.dart';
+import 'entry_card_screen.dart';
 import 'intro_screen.dart';
 
 /// Aiguillage d'entrée.
 ///
-/// La séquence d'intronisation précède **tout**, y compris la liste des
+/// La carte d'entrée (titre, accroche, consentement IA) précède **tout**, y
+/// compris l'intronisation : tant qu'aucune décision de consentement n'existe
+/// en base, le joueur n'a même pas encore vu le titre de l'histoire. Puis la
+/// séquence d'intronisation précède le reste, y compris la liste des
 /// conversations. Une fois jouée, on bascule directement dans la conversation :
 /// un message vient d'arriver, on ne fait pas passer le joueur par une liste
 /// pour le lui dire. La liste reste dessous dans la pile — c'est là qu'il
@@ -24,10 +29,32 @@ class RootScreen extends ConsumerStatefulWidget {
 class _RootScreenState extends ConsumerState<RootScreen> {
   bool _introJouee = false;
 
+  /// La carte d'entrée a été tapée cette session : on peut montrer le
+  /// consentement. Purement local — c'est `consentDecide` (état serveur) qui
+  /// referme réellement la carte, pas ce drapeau.
+  bool _entreeFaite = false;
+
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(conversationProvider);
-    final intro = async.value?.intro;
+    final etat = async.value;
+
+    // Carte d'entrée + consentement IA, avant même l'intronisation — demandé
+    // une fois pour toutes, pas à la première saisie libre du N9.
+    if (etat != null && !etat.consentDecide) {
+      if (!_entreeFaite) {
+        return EntryCardScreen(
+          titre: etat.storyTitle,
+          accroche: etat.storyTagline,
+          onEntrer: () => setState(() => _entreeFaite = true),
+        );
+      }
+      return ConsentScreen(
+        onReponse: ref.read(conversationProvider.notifier).repondreConsentement,
+      );
+    }
+
+    final intro = etat?.intro;
 
     if (intro != null) {
       _introJouee = true;

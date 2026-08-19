@@ -232,6 +232,15 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           // titre. Une liste, elle, ne déborde jamais — elle défile.
           final queue = <Widget>[
             if (etat.typing != TypingState.aucun) const TypingIndicator(),
+            // Ligne de contexte du moment IA : sous la dernière bulle, avant
+            // la zone de choix — jamais sous le champ de saisie (`Composer`
+            // ne change jamais d'aspect selon le mode). Masquée pendant un
+            // déroulé ou le typing, comme le reste de cette zone : elle
+            // annonce que c'est au joueur d'écrire, pas qu'une réponse arrive.
+            if (!etat.enDeroule &&
+                etat.mode == ComposerMode.aiInput &&
+                etat.typing == TypingState.aucun)
+              const ContexteSaisieLibre(),
             if (!etat.enDeroule && etat.interactionsParlees.isNotEmpty)
               // « + » discret : les interactions que le joueur *dit* (relance
               // du N8, insistance du N13). Jamais leur libellé en clair — il

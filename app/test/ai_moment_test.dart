@@ -114,6 +114,22 @@ void main() {
     expect(find.text('Message'), findsOneWidget);
   });
 
+  testWidgets(
+      'sur un moment IA, la ligne de contexte apparaît dans le fil, jamais dans le champ',
+      (tester) async {
+    await monter(tester, [_etatN9()]);
+    expect(find.byType(ContexteSaisieLibre), findsOneWidget);
+    expect(find.text('Léna attend une vraie réponse...'), findsOneWidget);
+    // Toujours pas de libellé dans le champ lui-même.
+    expect(find.text('Message'), findsOneWidget);
+
+    final composer = find.byType(Composer);
+    final contexte = find.byType(ContexteSaisieLibre);
+    // Sous la dernière bulle, avant le champ de saisie : dans le fil défilable,
+    // pas dans le composer ni sous lui.
+    expect(tester.getTopLeft(contexte).dy, lessThan(tester.getTopLeft(composer).dy));
+  });
+
   testWidgets('le consentement est demandé à la première saisie, puis le message rejoué',
       (tester) async {
     final recus = await monter(tester, [
@@ -204,6 +220,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(TypingIndicator), findsNothing);
+    expect(find.byType(ContexteSaisieLibre), findsOneWidget,
+        reason: 'c\'est au joueur d\'écrire, avant qu\'il ne le fasse');
     await ecrire(tester, 'salut');
     await tester.pump();
 
@@ -211,6 +229,8 @@ void main() {
         reason: 'elle « écrit » pendant tout l\'appel');
     expect(find.text('salut'), findsOneWidget,
         reason: 'et le message du joueur s\'affiche sans attendre le serveur');
+    expect(find.byType(ContexteSaisieLibre), findsNothing,
+        reason: 'elle répond, ce n\'est plus au joueur d\'écrire');
 
     debloquer.complete(_json({
       'new_messages': [_msg(3, 'contact', 'Salut.', delay: 0)],
@@ -223,6 +243,8 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 5));
     expect(find.byType(TypingIndicator), findsNothing);
     expect(find.text('Salut.'), findsOneWidget);
+    expect(find.byType(ContexteSaisieLibre), findsOneWidget,
+        reason: 'c\'est de nouveau au joueur d\'écrire, pour le tour suivant');
   });
 
   testWidgets('une panne du serveur ne laisse pas le joueur coincé', (tester) async {

@@ -159,7 +159,7 @@ export interface SoundPack {
 }
 
 export interface GetStateResponse {
-  story: { slug: string; title: string }
+  story: { slug: string; title: string; tagline: string | null }
   /** Sons de message. Le client décide quand les jouer, jamais le serveur. */
   sounds: SoundPack
   /** Panneaux d'intronisation. `panels` vide = pas d'intro pour cette histoire. */
@@ -178,6 +178,13 @@ export interface GetStateResponse {
   chapter_end: ChapterEndState | null
   /** Le nœud courant est un ai_moment : la saisie libre est ouverte (prompt 3). */
   ai_moment_pending: boolean
+  /**
+   * Le joueur a déjà répondu (accepté ou refusé) au consentement IA — carte
+   * d'entrée, avant l'intronisation. `false` tant qu'aucune décision n'existe
+   * en base : c'est ce qui fait réafficher la carte d'entrée, jamais un état
+   * local qui ne prouverait rien.
+   */
+  ai_consent_decided: boolean
 }
 
 export interface AdvanceResponse {

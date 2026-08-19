@@ -231,6 +231,48 @@ def consentement():
     verifier('Refusé : rien n\'a été envoyé au modèle', usage(q.email)['exchanges'], 0)
 
 
+def consentement_amont():
+    """Carte d'entrée : le consentement se demande AVANT tout ai_moment.
+
+    ai-chat doit accepter {consent} alors que le joueur est encore au nœud
+    d'entrée (N1) -- pas seulement au N9. Refuser à ce stade ne doit PAS
+    déclencher le raccrochage forcé (rien n'est ouvert à refermer) ; le refus
+    doit néanmoins tenir jusqu'au N9, où il fait raccrocher normalement dès
+    le premier message envoyé.
+    """
+    titre('CONSENTEMENT EN AMONT — carte d\'entrée, avant tout ai_moment')
+    p = Partie('ia-amont@test.local', 'amont')
+    verifier('Au nœud d\'entrée, pas encore au N9', p.noeud['code'], 'N1')
+
+    r = http(f'{API}/functions/v1/ai-chat', {'consent': True}, p.token)
+    verifier('Accepté en amont : pas de moment IA en cours', r['ai_moment_pending'], False)
+    verifier('Accepté en amont : aucun message produit', r['new_messages'], [])
+    verifier('Accepté en amont : le nœud reste N1', r['node']['code'], 'N1')
+    verifier('Consentement horodaté', progression(p.email)['ai_consent_at'] is not None, True)
+
+    q = Partie('ia-amont-refus@test.local', 'amont-refus')
+    r = http(f'{API}/functions/v1/ai-chat', {'consent': False}, q.token)
+    verifier('Refusé en amont : pas de raccrochage forcé (rien à refermer)',
+             r['node']['code'], 'N1')
+    verifier('Refusé en amont : aucun message produit', r['new_messages'], [])
+    verifier('Refus mémorisé en amont', progression(q.email)['ai_consent_refuse'], True)
+
+    # Le refus tient : en atteignant le N9 plus tard, elle raccroche au
+    # premier message envoyé -- sans qu'on ait eu à redemander.
+    q.choisir('Bonsoir, qui')
+    q.choisir("Quelqu'un qui a reçu")
+    q.choisir("D'accord, je garde mon")
+    q.choisir('Prenez la plaque')
+    q.choisir("Zoomer sur l'auto")
+    q.choisir('Il faut porter')
+    verifier('Refus tenu : entre au N9 malgré tout', q.noeud['code'], 'N9')
+    r = http(f'{API}/functions/v1/ai-chat', {'message': directive('Ça va ?', 'sincere')}, q.token)
+    verifier('Refus tenu jusqu\'au N9 : elle raccroche directement',
+             raccroche(r, RACCROCHAGE), True)
+    verifier('Refus tenu jusqu\'au N9 : histoire repartie au fallback',
+             r['node']['code'], 'N21')
+
+
 # ---------------------------------------------------------------------------
 # 3 — Modes dégradés
 # ---------------------------------------------------------------------------
@@ -399,6 +441,7 @@ if __name__ == '__main__':
     nominal_court()
     nominal_long()
     consentement()
+    consentement_amont()
     modes_degrades()
     hors_cadre()
     detail_perso()

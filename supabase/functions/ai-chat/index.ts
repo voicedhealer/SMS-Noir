@@ -54,6 +54,19 @@ Deno.serve(servir(async (req) => {
 
   const histoire = await chargerHistoire(db)
   const { progression } = await chargerOuCreerProgression(db, userId, histoire.id)
+
+  // --- Consentement ---------------------------------------------------------
+  // Indépendant du nœud courant : demandé depuis la carte d'entrée, AVANT
+  // l'intronisation, pas seulement à la première saisie libre du N9. Doit
+  // donc pouvoir s'enregistrer alors que le joueur est encore au nœud
+  // d'entrée (N1) — avant tout `ai_moment`. Le repli ci-dessous
+  // (`!progression.ai_consent_at` -> `consent_required`) reste en place pour
+  // une progression antérieure à cette carte, mais ne devrait plus se
+  // déclencher en usage normal.
+  if (corps.consent !== undefined) {
+    return json(await enregistrerConsentement(db, progression, histoire.id, corps.consent))
+  }
+
   if (!progression.current_node_id) {
     throw new ErreurMoteur(409, 'progression_corrompue', 'Aucun nœud courant')
   }
@@ -63,10 +76,6 @@ Deno.serve(servir(async (req) => {
     throw new ErreurMoteur(409, 'pas_un_moment_ia', 'Le nœud courant n\'attend pas de saisie libre')
   }
 
-  // --- Consentement -------------------------------------------------------
-  if (corps.consent !== undefined) {
-    return json(await enregistrerConsentement(db, progression, histoire.id, corps.consent, noeud))
-  }
   if (progression.ai_consent_refuse) {
     // Il a dit non : on ne redemande pas, et il n'est pas pénalisé.
     return json(await raccrocher(db, progression, histoire.id, noeud, RACCROCHAGE))
@@ -285,13 +294,24 @@ async function raccrocher(
   }
 }
 
+/**
+ * Écrit la décision et rend la main.
+ *
+ * Le nœud courant n'est plus forcément un ai_moment : le consentement se
+ * demande maintenant depuis la carte d'entrée, AVANT l'intronisation — le
+ * joueur n'a alors encore rien commencé (nœud d'entrée). Mais le chemin de
+ * repli existe toujours (progression antérieure à cette carte, ou saisie
+ * directement au N9) : refuser alors qu'un moment IA attend une réponse
+ * raccroche immédiatement, comme n'importe quelle sortie de cadre du moment —
+ * il n'y a qu'à la carte d'entrée que « refuser » ne referme rien, puisque
+ * rien n'est encore ouvert.
+ */
 async function enregistrerConsentement(
   // deno-lint-ignore no-explicit-any
   db: any,
   progression: Progression,
   storyId: string,
   accepte: boolean,
-  noeud: { id: string; ai_fallback_node_id: string | null },
 ) {
   await db.from('player_progress').update(
     accepte
@@ -299,18 +319,22 @@ async function enregistrerConsentement(
       : { ai_consent_refuse: true },
   ).eq('id', progression.id)
 
-  if (accepte) {
-    return {
-      new_messages: [],
-      node: await etatNoeud(db, progression.current_node_id, progression.variables, progression.node_gate),
-      conversations: await conversations(db, progression.id, storyId, progression.variables),
-      chapter_end: null,
-      ai_moment_pending: true,
-      exchanges_left: 4,
-    }
+  const noeud = progression.current_node_id
+    ? await chargerNoeud(db, progression.current_node_id)
+    : null
+
+  if (!accepte && noeud?.kind === 'ai_moment') {
+    return raccrocher(db, progression, storyId, noeud, RACCROCHAGE)
   }
-  // Refus : l'histoire continue, sans pénalité.
-  return raccrocher(db, progression, storyId, noeud, RACCROCHAGE)
+
+  return {
+    new_messages: [],
+    node: await etatNoeud(db, progression.current_node_id, progression.variables, progression.node_gate),
+    conversations: await conversations(db, progression.id, storyId, progression.variables),
+    chapter_end: null,
+    ai_moment_pending: noeud?.kind === 'ai_moment',
+    exchanges_left: noeud?.kind === 'ai_moment' ? (noeud.ai_max_exchanges ?? 4) : 0,
+  }
 }
 
 // deno-lint-ignore no-explicit-any

@@ -39,7 +39,7 @@ Deno.serve(servir(async (req) => {
     : null
 
   const reponse: GetStateResponse = {
-    story: { slug: histoire.slug, title: histoire.title },
+    story: { slug: histoire.slug, title: histoire.title, tagline: histoire.tagline ?? null },
     intro: {
       panels: (histoire.intro_panels ?? []) as { lines: string[] }[],
       music_url: await signerObjet(db, histoire.intro_music_url),
@@ -60,6 +60,9 @@ Deno.serve(servir(async (req) => {
     chapter_end: await etatFinDeChapitre(db, progression, noeud?.code ?? null, noeud?.kind ?? null),
     // Le nœud courant est le moment IA : la saisie libre s'ouvre (exécution au prompt 3).
     ai_moment_pending: noeud?.kind === 'ai_moment',
+    // Carte d'entrée (avant l'intronisation) : tant que ni l'un ni l'autre
+    // n'est vrai, aucune décision n'a été prise, en base.
+    ai_consent_decided: Boolean(progression.ai_consent_at) || progression.ai_consent_refuse === true,
   }
 
   return json(reponse)

@@ -8,7 +8,9 @@ import 'package:http/testing.dart';
 import 'package:numero_inconnu/providers/conversation_controller.dart';
 import 'package:numero_inconnu/providers/session_providers.dart';
 import 'package:numero_inconnu/screens/chapter_end_screen.dart';
+import 'package:numero_inconnu/screens/consent_screen.dart';
 import 'package:numero_inconnu/screens/conversation_screen.dart';
+import 'package:numero_inconnu/screens/entry_card_screen.dart';
 import 'package:numero_inconnu/screens/intro_screen.dart';
 import 'package:numero_inconnu/screens/root_screen.dart';
 import 'package:numero_inconnu/services/engine_api.dart';
@@ -71,6 +73,7 @@ Future<void> monter(
   WidgetTester tester, {
   required Map<String, dynamic> getState,
   Map<String, dynamic>? advance,
+  Map<String, dynamic>? aiChat,
   Map<String, Object> prefs = const {},
   bool racine = false,
 }) async {
@@ -81,7 +84,11 @@ Future<void> monter(
     baseUrl: 'http://test.local',
     apiKey: 'k',
     httpClient: MockClient((requete) async {
-      final corps = requete.url.path.endsWith('advance') ? advance! : getState;
+      final corps = requete.url.path.endsWith('advance')
+          ? advance!
+          : requete.url.path.endsWith('ai-chat')
+              ? aiChat!
+              : getState;
       return http.Response.bytes(utf8.encode(jsonEncode(corps)), 200);
     }),
   );
@@ -100,6 +107,87 @@ Future<void> monter(
 }
 
 void main() {
+  group('Carte d\'entrée', () {
+    Map<String, dynamic> etatSansConsentement() => {
+          'story': {'slug': 's', 'title': 'Numéro Inconnu', 'tagline': '22h47. Un SMS...'},
+          'intro': {'panels': const [], 'music_url': null},
+          'new_messages': const [],
+          'conversations': [conversation()],
+          'history': const [],
+          'node': noeud(),
+          'chapter_end': null,
+          'ai_moment_pending': false,
+          'ai_consent_decided': false,
+        };
+
+    testWidgets('précède tout, avec le titre et l\'accroche', (tester) async {
+      await monter(tester, getState: etatSansConsentement(), racine: true);
+      expect(find.byType(EntryCardScreen), findsOneWidget);
+      expect(find.text('Numéro Inconnu'), findsOneWidget);
+      expect(find.text('22h47. Un SMS...'), findsOneWidget);
+      expect(find.byType(ConsentScreen), findsNothing);
+    });
+
+    testWidgets('un tap ouvre le consentement, pas encore l\'intro', (tester) async {
+      await monter(tester, getState: etatSansConsentement(), racine: true);
+      await tester.tap(find.byType(EntryCardScreen));
+      await tester.pumpAndSettle();
+      expect(find.byType(ConsentScreen), findsOneWidget);
+      expect(find.byType(IntroScreen), findsNothing);
+    });
+
+    testWidgets('accepté : la carte se referme, l\'histoire continue', (tester) async {
+      await monter(
+        tester,
+        getState: etatSansConsentement(),
+        aiChat: {
+          'new_messages': const [],
+          'node': noeud(),
+          'conversations': [conversation()],
+          'chapter_end': null,
+          'ai_moment_pending': false,
+          'exchanges_left': 0,
+        },
+        racine: true,
+      );
+      await tester.tap(find.byType(EntryCardScreen));
+      await tester.pumpAndSettle();
+
+      // Case à cocher, puis « Continuer ».
+      await tester.tap(find.byIcon(Icons.check_box_outline_blank));
+      await tester.pump();
+      await tester.tap(find.text('Continuer'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ConsentScreen), findsNothing);
+      expect(find.byType(EntryCardScreen), findsNothing);
+    });
+
+    testWidgets('refusé : la carte se referme aussi, sans pénalité', (tester) async {
+      await monter(
+        tester,
+        getState: etatSansConsentement(),
+        aiChat: {
+          'new_messages': const [],
+          'node': noeud(),
+          'conversations': [conversation()],
+          'chapter_end': null,
+          'ai_moment_pending': false,
+          'exchanges_left': 0,
+        },
+        racine: true,
+      );
+      await tester.tap(find.byType(EntryCardScreen));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Refuser'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ConsentScreen), findsNothing);
+      expect(find.byType(EntryCardScreen), findsNothing);
+    });
+  });
+
   group('Séquence d\'intronisation', () {
     final intro = {
       'panels': [
@@ -121,6 +209,9 @@ void main() {
           'node': noeud(),
           'chapter_end': null,
           'ai_moment_pending': false,
+          // Ces tests portent sur l'intro, pas sur la carte d'entrée qui la
+          // précède désormais : consentement déjà tranché pour ne pas la voir.
+          'ai_consent_decided': true,
         };
 
     testWidgets('elle précède la conversation et date l\'histoire', (tester) async {
@@ -151,6 +242,7 @@ void main() {
         'node': noeud(),
         'chapter_end': null,
         'ai_moment_pending': false,
+        'ai_consent_decided': true,
       });
 
       expect(find.byType(IntroScreen), findsOneWidget);
@@ -244,6 +336,7 @@ void main() {
         ]),
         'chapter_end': null,
         'ai_moment_pending': false,
+        'ai_consent_decided': true,
       });
 
       await tester.tap(find.byType(IntroScreen)); // skip debug

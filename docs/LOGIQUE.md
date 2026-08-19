@@ -128,7 +128,8 @@ l'état normal d'un nœud « en pause sur interaction ».
 4. **Ne jamais corriger une incohérence narrative** (bible §7) : elles alimentent `lucidite`.
    Le moteur les transporte telles quelles.
 5. **`detail_perso` est une donnée personnelle** (bible §9, RGPD) : un seul élément anodin,
-   consentement à la première saisie libre, effacement en cascade.
+   consentement demandé depuis la carte d'entrée (avant l'intronisation, une fois pour toutes —
+   voir § Le moment IA), effacement en cascade.
 6. **Idempotence** : rejouer `advance` avec le même `choice_id` depuis le même nœud ne doit pas
    appliquer les `effects` deux fois (voir § Interactions à usage unique).
 
@@ -493,6 +494,26 @@ tourner indéfiniment.
 
 Effets : `sincere` → confiance +2 · `evasif` → −1 · `hostile` → coupure sans gain. Le plafond
 `confiance ≤ 6 si refus` s'applique comme partout, puisque tout passe par le même chemin d'écriture.
+
+### Consentement : demandé une fois, depuis la carte d'entrée
+
+Demandé **avant l'intronisation**, pas à la première saisie libre du N9 — le joueur n'a pas encore
+touché à l'histoire que la décision est déjà prise. Écrit une seule fois
+(`player_progress.ai_consent_at` / `ai_consent_refuse`), jamais redemandé.
+
+`ai-chat` accepte `{consent}` **indépendamment du nœud courant** : ce n'est plus réservé à un
+`ai_moment`, puisque la carte d'entrée l'appelle alors que le joueur est encore au nœud d'entrée
+(N1). Refuser à ce stade n'a rien à refermer — l'histoire continue normalement. Refuser en étant
+réellement à un `ai_moment` (chemin de repli seulement — voir plus bas) raccroche immédiatement,
+comme n'importe quelle sortie de cadre.
+
+`get-state` expose `ai_consent_decided` (`ai_consent_at` posé OU `ai_consent_refuse` vrai) :
+c'est ce booléen, jamais un état local, qui fait réafficher la carte d'entrée. Un indicateur
+purement client ne prouverait rien et disparaîtrait sans trace (RGPD, bible §9).
+
+**Chemin de repli, toujours en place** : `!ai_consent_at` à l'entrée d'un vrai message de saisie
+libre renvoie encore `{consent_required: true}`, pour une progression antérieure à la carte
+d'entrée ou un client qui l'aurait contournée. Ne devrait plus se déclencher en usage normal.
 
 ### Sortie de cadre : en couches
 

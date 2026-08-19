@@ -256,6 +256,7 @@ class GameState {
   const GameState({
     required this.storySlug,
     required this.storyTitle,
+    required this.storyTagline,
     required this.intro,
     required this.sounds,
     required this.newMessages,
@@ -264,10 +265,15 @@ class GameState {
     required this.node,
     required this.chapterEnd,
     required this.aiMomentPending,
+    required this.aiConsentDecided,
   });
 
   final String storySlug;
   final String storyTitle;
+
+  /// Accroche de l'histoire (« 22h47. Un SMS... »), affichée sur la carte
+  /// d'entrée. Null si l'histoire n'en porte pas.
+  final String? storyTagline;
   final IntroSequence intro;
   final SoundPack sounds;
 
@@ -284,11 +290,18 @@ class GameState {
   final ChapterEnd? chapterEnd;
   final bool aiMomentPending;
 
+  /// Le joueur a déjà répondu (accepté ou refusé) au consentement IA —
+  /// carte d'entrée, avant l'intronisation. `false` tant qu'aucune décision
+  /// n'existe en base : c'est ce qui fait réafficher la carte d'entrée,
+  /// jamais un état local qui ne prouverait rien.
+  final bool aiConsentDecided;
+
   factory GameState.fromJson(Map<String, dynamic> json) {
     final story = json['story'] as Map<String, dynamic>? ?? const {};
     return GameState(
       storySlug: story['slug'] as String? ?? '',
       storyTitle: story['title'] as String? ?? '',
+      storyTagline: story['tagline'] as String?,
       intro: IntroSequence.fromJson(json['intro'] as Map<String, dynamic>?),
       sounds: SoundPack.fromJson(json['sounds'] as Map<String, dynamic>?),
       newMessages: (json['new_messages'] as List<dynamic>? ?? const [])
@@ -307,6 +320,7 @@ class GameState {
           ? null
           : ChapterEnd.fromJson(json['chapter_end'] as Map<String, dynamic>),
       aiMomentPending: json['ai_moment_pending'] as bool? ?? false,
+      aiConsentDecided: json['ai_consent_decided'] as bool? ?? false,
     );
   }
 }

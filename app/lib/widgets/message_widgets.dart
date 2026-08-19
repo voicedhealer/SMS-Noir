@@ -147,6 +147,29 @@ class ReadReceiptMarker extends StatelessWidget {
       );
 }
 
+/// Ligne de contexte avant la saisie libre du moment IA (N9).
+///
+/// Dans le flux de la conversation, sous la dernière bulle et avant la zone
+/// de choix — jamais sous le champ de saisie lui-même, qui ne doit jamais
+/// changer d'aspect selon le mode (voir `Composer`). Gris, plus petit que le
+/// texte normal, centré : une ligne de narration discrète qui cadre
+/// l'attente, pas une consigne ni un indice.
+class ContexteSaisieLibre extends StatelessWidget {
+  const ContexteSaisieLibre({super.key, this.texte = 'Léna attend une vraie réponse...'});
+  final String texte;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xxl, vertical: AppSpacing.m),
+        child: Text(
+          texte,
+          textAlign: TextAlign.center,
+          style: AppText.horodatage.copyWith(color: AppColors.texteTertiaire),
+        ),
+      );
+}
+
 /// Ellipse narrative. Le libellé vient du serveur et s'affiche **tel quel**.
 class SeparatorPill extends StatelessWidget {
   const SeparatorPill({super.key, required this.libelle});

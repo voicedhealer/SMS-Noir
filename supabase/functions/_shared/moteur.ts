@@ -117,7 +117,7 @@ const CHAMPS_CHOIX =
 export async function chargerHistoire(db: SupabaseClient) {
   const { data, error } = await db
     .from('stories')
-    .select('id, slug, title, intro_panels, intro_music_url, '
+    .select('id, slug, title, tagline, intro_panels, intro_music_url, '
       + 'narration_music_url, chapter_end_music_url, '
       + 'sound_received_url, sound_sent_url, sound_typing_url')
     .eq('slug', STORY_SLUG).single()
