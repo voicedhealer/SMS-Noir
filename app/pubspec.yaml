@@ -52,6 +52,26 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+# Icône de l'app, générée pour iOS et Android via `flutter_launcher_icons`.
+# Source : assets/icon/icon.png — dérivée de assets/icon/icon-source-original.jpeg
+# (opaque, aucun canal alpha) en retirant ~230 px de marge sur chaque bord : le
+# fichier d'origine portait un mockup (carré arrondi + ombre légère) déjà
+# incrusté dans les pixels, invisible à l'échelle mais net une fois généré en
+# icône réelle — d'où le recadrage. Marge restante ~11-15 % de chaque côté,
+# dans la zone de sécurité des icônes adaptatives Android (66 % centraux),
+# elle-même resserrée par l'inset de 16 % que flutter_launcher_icons applique
+# déjà au premier plan adaptatif.
+#
+# Régénérer : cd app && dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icon/icon.png"
+  remove_alpha_ios: true
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
