@@ -409,6 +409,32 @@ le chrome de messagerie n'a rien à y faire. Voir `VideoTransitionScreen`
 (`app/lib/screens/video_transition_screen.dart`) et
 `ConversationState.videoEnCours`.
 
+## L'aparté (`nodes.aparte`)
+
+Une ligne de contexte discrète, posée sous la dernière bulle et avant la zone de choix — décrite
+côté design dans DESIGN.md § L'aparté. Aujourd'hui utilisée pour un seul cas (N9, saisie libre :
+« Léna attend une vraie réponse... »), mais le mécanisme est générique : n'importe quel nœud pourra
+en porter un.
+
+**Une colonne sur `nodes`, pas un message.** Contrairement à la narration ou à la vidéo, l'aparté
+n'est pas une chose qui ARRIVE dans le fil à une position donnée : c'est une propriété du nœud,
+valable tant que le joueur y est et peut agir. Un message ne conviendrait pas — il faudrait le
+rejouer à chaque tour de saisie libre, avec une position à inventer à chaque fois pour un contenu
+qui ne change pas. `nodes.aparte` (texte, nullable) est lu une fois avec le reste du nœud.
+`NULL` = ce nœud n'en porte pas, comportement par défaut de tous les nœuds sauf ceux qui en
+déclarent un explicitement (migration `20260818174040_node_aparte.sql`).
+
+**Le serveur transmet, il ne décide pas de l'afficher.** `etatNoeud()` renvoie `aparte` telle
+quelle (`noeud.aparte ?? null`) dans le nœud courant, exposée par `get-state` et `advance` via
+`ClientNode.aparte`. C'est tout : le serveur ne sait pas si le joueur est en train de lire un
+déroulé ou si Léna « écrit », cet état n'existe que côté client.
+
+**Le client décide seul du moment.** `ConversationState.aparteEnCours` : `null` pendant un déroulé
+ou pendant que le contact « écrit », sinon `node?.aparte`. Concrètement, il disparaît dès l'envoi du
+joueur ou la réponse de Léna, et réapparaît avant le tour suivant si le nœud courant en porte
+toujours un — sans aller-retour serveur, uniquement en réagissant à l'état de lecture déjà connu du
+client. Voir le widget `Aparte` (`app/lib/widgets/message_widgets.dart`).
+
 ## Les pauses en cours de nœud (`after_position`)
 
 Un choix peut s'afficher **au milieu** d'un nœud, après un message donné. Le

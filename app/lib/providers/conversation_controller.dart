@@ -44,6 +44,7 @@ class ConversationState {
     this.erreur,
     this.storyTitle = '',
     this.storyTagline,
+    this.storyCoverUrl,
     this.consentDecide = false,
   });
 
@@ -57,6 +58,10 @@ class ConversationState {
 
   /// Accroche affichée sur la carte d'entrée. Null si l'histoire n'en porte pas.
   final String? storyTagline;
+
+  /// Chemin signé relatif de l'image de couverture. Null si l'histoire n'en
+  /// porte pas encore.
+  final String? storyCoverUrl;
 
   /// Le joueur a déjà répondu (accepté ou refusé) au consentement IA, demandé
   /// depuis la carte d'entrée — avant l'intronisation, une fois pour toutes.
@@ -103,6 +108,19 @@ class ConversationState {
     if (fil.isEmpty) return null;
     final dernier = fil.last;
     return dernier.contentType == ContentType.video ? dernier : null;
+  }
+
+  /// Aparté du nœud courant, si c'est le moment de l'afficher — voir
+  /// docs/LOGIQUE.md § L'aparté. Générique, piloté par le contenu
+  /// (`nodes.aparte`) : pas réservé au moment IA, n'importe quel nœud futur
+  /// peut en porter un.
+  ///
+  /// Affiché seulement quand le joueur peut agir : ni pendant un déroulé, ni
+  /// pendant que le contact « écrit » — sinon l'aparté annoncerait une
+  /// attente déjà en train de se refermer.
+  String? get aparteEnCours {
+    if (enDeroule || typing != TypingState.aucun) return null;
+    return node?.aparte;
   }
 
   /// Le fil réunit-il plusieurs interlocuteurs ?
@@ -202,6 +220,7 @@ class ConversationState {
     bool viderErreur = false,
     String? storyTitle,
     String? storyTagline,
+    String? storyCoverUrl,
     bool? consentDecide,
   }) =>
       ConversationState(
@@ -221,6 +240,7 @@ class ConversationState {
         erreur: viderErreur ? null : (erreur ?? this.erreur),
         storyTitle: storyTitle ?? this.storyTitle,
         storyTagline: storyTagline ?? this.storyTagline,
+        storyCoverUrl: storyCoverUrl ?? this.storyCoverUrl,
         consentDecide: consentDecide ?? this.consentDecide,
       );
 }
@@ -240,6 +260,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   IntroSequence? _intro;
   String _storyTitle = '';
   String? _storyTagline;
+  String? _storyCoverUrl;
 
   /// Voir `ConversationState.consentDecide`.
   bool _consentDecide = false;
@@ -366,6 +387,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     _chapterEnd = etat.chapterEnd;
     _storyTitle = etat.storyTitle;
     _storyTagline = etat.storyTagline;
+    _storyCoverUrl = etat.storyCoverUrl;
     _consentDecide = etat.aiConsentDecided;
 
     // Intro : jouée une seule fois, avant tout le reste.
@@ -463,6 +485,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         intro: _intro,
         storyTitle: _storyTitle,
         storyTagline: _storyTagline,
+        storyCoverUrl: _storyCoverUrl,
         consentDecide: _consentDecide,
       );
 

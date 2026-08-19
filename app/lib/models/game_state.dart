@@ -93,6 +93,7 @@ class StoryNode {
     required this.choices,
     required this.awaitingInteraction,
     required this.canContinue,
+    this.aparte,
   });
 
   /// Label narratif (« N19 »). Sert au débogage et aux tests, **jamais** à
@@ -107,6 +108,11 @@ class StoryNode {
 
   /// `advance {continue:true}` est recevable sur ce nœud.
   final bool canContinue;
+
+  /// Ligne de contexte discrète, générique — voir docs/LOGIQUE.md § L'aparté.
+  /// Null = ce nœud n'en porte pas. C'est `ConversationState.aparteEnCours`
+  /// qui décide QUAND l'afficher, pas ce champ brut.
+  final String? aparte;
 
   /// Les seuls choix qui deviennent des boutons.
   List<ClientChoice> get replies =>
@@ -129,6 +135,7 @@ class StoryNode {
             .toList(),
         awaitingInteraction: json['awaiting_interaction'] as bool? ?? false,
         canContinue: json['can_continue'] as bool? ?? false,
+        aparte: json['aparte'] as String?,
       );
 }
 
@@ -257,6 +264,7 @@ class GameState {
     required this.storySlug,
     required this.storyTitle,
     required this.storyTagline,
+    required this.storyCoverUrl,
     required this.intro,
     required this.sounds,
     required this.newMessages,
@@ -274,6 +282,10 @@ class GameState {
   /// Accroche de l'histoire (« 22h47. Un SMS... »), affichée sur la carte
   /// d'entrée. Null si l'histoire n'en porte pas.
   final String? storyTagline;
+
+  /// Chemin signé relatif de l'image de couverture de l'écran d'entrée. Null
+  /// si l'histoire n'en porte pas encore (le cartouche de repli s'applique).
+  final String? storyCoverUrl;
   final IntroSequence intro;
   final SoundPack sounds;
 
@@ -302,6 +314,7 @@ class GameState {
       storySlug: story['slug'] as String? ?? '',
       storyTitle: story['title'] as String? ?? '',
       storyTagline: story['tagline'] as String?,
+      storyCoverUrl: story['cover_url'] as String?,
       intro: IntroSequence.fromJson(json['intro'] as Map<String, dynamic>?),
       sounds: SoundPack.fromJson(json['sounds'] as Map<String, dynamic>?),
       newMessages: (json['new_messages'] as List<dynamic>? ?? const [])

@@ -426,6 +426,8 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 
 *(Saisie libre. Le prénom est demandé explicitement et stocké en `detail_perso` — catégorie `prenom` de la liste d'autorisation. Léna l'utilise dans ses réponses suivantes, et le réutilisera à l'ouverture du chapitre 2. Elle tutoie, sauf si `refus = true`. 2-4 échanges, puis raccrochage vers N21.)*
 
+*(Aparté — « Léna attend une vraie réponse... », affiché avant chaque tour de saisie libre. Mécanisme générique, pas propre au N9 : voir `nodes.aparte` dans docs/LOGIQUE.md § L'aparté.)*
+
 ---
 
 ## N21 — LA PHOTO

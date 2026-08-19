@@ -41,20 +41,27 @@ Map<String, dynamic> _conv() => {
       'revealed': true,
     };
 
-Map<String, dynamic> _noeud(String code, String kind, {bool peutContinuer = true}) => {
+Map<String, dynamic> _noeud(String code, String kind,
+        {bool peutContinuer = true, String? aparte}) =>
+    {
       'code': code,
       'kind': kind,
       'choices': const [],
       'awaiting_interaction': false,
       'can_continue': peutContinuer,
+      'aparte': aparte,
     };
+
+/// L'aparté réel du N9 (`nodes.aparte` en base) — générique, pas propre au
+/// moment IA, mais c'est le seul nœud du chapitre 1 qui s'en sert.
+const _aparteN9 = 'Léna attend une vraie réponse...';
 
 /// État initial : on est sur le N9, la saisie libre est ouverte.
 Map<String, dynamic> _etatN9() => {
       'story': {'slug': 's', 'title': 'T'},
       'conversations': [_conv()],
       'history': [_msg(1, 'contact', 'Je tremble encore. C\'est con, hein.')],
-      'node': _noeud('N9', 'ai_moment'),
+      'node': _noeud('N9', 'ai_moment', aparte: _aparteN9),
       'chapter_end': null,
       'ai_moment_pending': true,
     };
@@ -118,13 +125,13 @@ void main() {
       'sur un moment IA, la ligne de contexte apparaît dans le fil, jamais dans le champ',
       (tester) async {
     await monter(tester, [_etatN9()]);
-    expect(find.byType(ContexteSaisieLibre), findsOneWidget);
-    expect(find.text('Léna attend une vraie réponse...'), findsOneWidget);
+    expect(find.byType(Aparte), findsOneWidget);
+    expect(find.text(_aparteN9), findsOneWidget);
     // Toujours pas de libellé dans le champ lui-même.
     expect(find.text('Message'), findsOneWidget);
 
     final composer = find.byType(Composer);
-    final contexte = find.byType(ContexteSaisieLibre);
+    final contexte = find.byType(Aparte);
     // Sous la dernière bulle, avant le champ de saisie : dans le fil défilable,
     // pas dans le composer ni sous lui.
     expect(tester.getTopLeft(contexte).dy, lessThan(tester.getTopLeft(composer).dy));
@@ -140,7 +147,7 @@ void main() {
           _msg(2, 'player', 'Moi c\'est Sacha.'),
           _msg(3, 'contact', 'Sacha. Moi c\'est Léna.', delay: 2, typing: 2),
         ],
-        'node': _noeud('N9', 'ai_moment'),
+        'node': _noeud('N9', 'ai_moment', aparte: _aparteN9),
         'conversations': [_conv()],
         'chapter_end': null,
         'ai_moment_pending': true,
@@ -220,7 +227,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(TypingIndicator), findsNothing);
-    expect(find.byType(ContexteSaisieLibre), findsOneWidget,
+    expect(find.byType(Aparte), findsOneWidget,
         reason: 'c\'est au joueur d\'écrire, avant qu\'il ne le fasse');
     await ecrire(tester, 'salut');
     await tester.pump();
@@ -229,12 +236,12 @@ void main() {
         reason: 'elle « écrit » pendant tout l\'appel');
     expect(find.text('salut'), findsOneWidget,
         reason: 'et le message du joueur s\'affiche sans attendre le serveur');
-    expect(find.byType(ContexteSaisieLibre), findsNothing,
+    expect(find.byType(Aparte), findsNothing,
         reason: 'elle répond, ce n\'est plus au joueur d\'écrire');
 
     debloquer.complete(_json({
       'new_messages': [_msg(3, 'contact', 'Salut.', delay: 0)],
-      'node': _noeud('N9', 'ai_moment'),
+      'node': _noeud('N9', 'ai_moment', aparte: _aparteN9),
       'conversations': [_conv()],
       'chapter_end': null,
       'ai_moment_pending': true,
@@ -243,7 +250,7 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 5));
     expect(find.byType(TypingIndicator), findsNothing);
     expect(find.text('Salut.'), findsOneWidget);
-    expect(find.byType(ContexteSaisieLibre), findsOneWidget,
+    expect(find.byType(Aparte), findsOneWidget,
         reason: 'c\'est de nouveau au joueur d\'écrire, pour le tour suivant');
   });
 

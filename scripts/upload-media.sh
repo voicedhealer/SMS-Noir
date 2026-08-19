@@ -168,6 +168,29 @@ for base in "${MEDIAS[@]}"; do
   printf "  ✅ %-28s → %s  (%s, %s)\n" "$base" "$objet" "$type" "$taille"
 done
 
+# --- Image de couverture (écran d'entrée) -----------------------------------
+# stories.cover_url, pas un message de nœud : posée directement, comme la
+# musique plus bas.
+if fichier="$(trouver cover-numero-inconnu)"; then
+  objet="cover-numero-inconnu.${fichier##*.}"
+  type="$(mime "$fichier")"
+  code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+    "$API_URL/storage/v1/object/$BUCKET/$objet" \
+    -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
+    -H "Content-Type: $type" -H "x-upsert: true" \
+    --data-binary "@$fichier")
+  if [ "$code" = "200" ] || [ "$code" = "201" ]; then
+    poser_story cover_url "$objet"
+    taille=$(du -h "$fichier" | cut -f1 | tr -d ' ')
+    printf "  ✅ %-28s → %s  (%s, %s)\n" "cover-numero-inconnu" "$objet" "$type" "$taille"
+  else
+    printf "  ❌ %-28s téléversement refusé (HTTP %s)\n" "cover-numero-inconnu" "$code"
+    exit 1
+  fi
+else
+  printf "  ⏳ %-28s absent de media/ — écran d'entrée sans image\n" "cover-numero-inconnu"
+fi
+
 # --- Sons de message --------------------------------------------------------
 # Repérés par mot-clé dans le nom : « reception » / « recu » et « envoi ».
 sonner() { # $1 = motif, $2 = colonne, $3 = libellé
@@ -284,9 +307,10 @@ if [ -n "$DISTANT" ]; then
     | python3 -c 'import json,sys
 for m in json.load(sys.stdin):
     print("  %s#%s  %-6s  %s" % (m["nodes"]["code"], m["position"], m["content_type"], m["media_url"]))'
-  rest GET "stories?slug=eq.numero-inconnu&select=intro_music_url,narration_music_url,chapter_end_music_url,sound_received_url,sound_sent_url,sound_typing_url" \
+  rest GET "stories?slug=eq.numero-inconnu&select=cover_url,intro_music_url,narration_music_url,chapter_end_music_url,sound_received_url,sound_sent_url,sound_typing_url" \
     | python3 -c 'import json,sys
 s = json.load(sys.stdin)[0]
+print("  couverture=%s" % (s["cover_url"] or "(aucune)"))
 print("  musique intro=%s  N19=%s  fin=%s" % (
       s["intro_music_url"] or "(aucune)", s["narration_music_url"] or "(aucune)",
       s["chapter_end_music_url"] or "(aucune)"))
@@ -298,6 +322,7 @@ else
   sql "select '  '||n.code||'#'||m.position||'  '||rpad(m.content_type,6)||'  '||m.media_url
        from messages m join nodes n on n.id = m.node_id
        where m.media_url is not null order by m.media_url;"
+  sql "select '  couverture='||coalesce(cover_url,'(aucune)') from stories where slug='numero-inconnu';"
   sql "select '  musique intro='||coalesce(intro_music_url,'(aucune)')
        ||'  N19='||coalesce(narration_music_url,'(aucune)')
        ||'  fin='||coalesce(chapter_end_music_url,'(aucune)')

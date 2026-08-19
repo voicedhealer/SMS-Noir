@@ -76,6 +76,7 @@ Future<void> monter(
   Map<String, dynamic>? aiChat,
   Map<String, Object> prefs = const {},
   bool racine = false,
+  void Function(Map<String, dynamic> corps)? surAiChat,
 }) async {
   SharedPreferences.setMockInitialValues(prefs);
 
@@ -84,11 +85,11 @@ Future<void> monter(
     baseUrl: 'http://test.local',
     apiKey: 'k',
     httpClient: MockClient((requete) async {
-      final corps = requete.url.path.endsWith('advance')
-          ? advance!
-          : requete.url.path.endsWith('ai-chat')
-              ? aiChat!
-              : getState;
+      if (requete.url.path.endsWith('ai-chat')) {
+        surAiChat?.call(jsonDecode(requete.body) as Map<String, dynamic>);
+        return http.Response.bytes(utf8.encode(jsonEncode(aiChat!)), 200);
+      }
+      final corps = requete.url.path.endsWith('advance') ? advance! : getState;
       return http.Response.bytes(utf8.encode(jsonEncode(corps)), 200);
     }),
   );
@@ -109,7 +110,10 @@ Future<void> monter(
 void main() {
   group('Carte d\'entrée', () {
     Map<String, dynamic> etatSansConsentement() => {
-          'story': {'slug': 's', 'title': 'Numéro Inconnu', 'tagline': '22h47. Un SMS...'},
+          'story': {
+            'slug': 's', 'title': 'Numéro Inconnu', 'tagline': '22h47. Un SMS...',
+            'cover_url': null,
+          },
           'intro': {'panels': const [], 'music_url': null},
           'new_messages': const [],
           'conversations': [conversation()],
@@ -120,70 +124,69 @@ void main() {
           'ai_consent_decided': false,
         };
 
-    testWidgets('précède tout, avec le titre et l\'accroche', (tester) async {
+    Map<String, dynamic> reponseAiChat() => {
+          'new_messages': const [],
+          'node': noeud(),
+          'conversations': [conversation()],
+          'chapter_end': null,
+          'ai_moment_pending': false,
+          'exchanges_left': 0,
+        };
+
+    testWidgets('précède tout, avec le titre, l\'accroche et le bouton', (tester) async {
       await monter(tester, getState: etatSansConsentement(), racine: true);
       expect(find.byType(EntryCardScreen), findsOneWidget);
       expect(find.text('Numéro Inconnu'), findsOneWidget);
       expect(find.text('22h47. Un SMS...'), findsOneWidget);
-      expect(find.byType(ConsentScreen), findsNothing);
-    });
-
-    testWidgets('un tap ouvre le consentement, pas encore l\'intro', (tester) async {
-      await monter(tester, getState: etatSansConsentement(), racine: true);
-      await tester.tap(find.byType(EntryCardScreen));
-      await tester.pumpAndSettle();
-      expect(find.byType(ConsentScreen), findsOneWidget);
+      expect(find.text('Entrer'), findsOneWidget);
+      expect(find.byType(ConsentScreen), findsNothing, reason: 'un seul écran, pas deux');
       expect(find.byType(IntroScreen), findsNothing);
     });
 
-    testWidgets('accepté : la carte se referme, l\'histoire continue', (tester) async {
-      await monter(
-        tester,
-        getState: etatSansConsentement(),
-        aiChat: {
-          'new_messages': const [],
-          'node': noeud(),
-          'conversations': [conversation()],
-          'chapter_end': null,
-          'ai_moment_pending': false,
-          'exchanges_left': 0,
-        },
-        racine: true,
-      );
-      await tester.tap(find.byType(EntryCardScreen));
-      await tester.pumpAndSettle();
-
-      // Case à cocher, puis « Continuer ».
-      await tester.tap(find.byIcon(Icons.check_box_outline_blank));
-      await tester.pump();
-      await tester.tap(find.text('Continuer'));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(ConsentScreen), findsNothing);
-      expect(find.byType(EntryCardScreen), findsNothing);
+    testWidgets('la case n\'est pas cochée par défaut (bible §9)', (tester) async {
+      await monter(tester, getState: etatSansConsentement(), racine: true);
+      expect(find.byIcon(Icons.check_box_outline_blank), findsOneWidget);
+      expect(find.byIcon(Icons.check_box), findsNothing);
     });
 
-    testWidgets('refusé : la carte se referme aussi, sans pénalité', (tester) async {
+    testWidgets('« Entrer » est toujours actif, même la case décochée', (tester) async {
+      Map<String, dynamic>? envoye;
       await monter(
         tester,
         getState: etatSansConsentement(),
-        aiChat: {
-          'new_messages': const [],
-          'node': noeud(),
-          'conversations': [conversation()],
-          'chapter_end': null,
-          'ai_moment_pending': false,
-          'exchanges_left': 0,
-        },
+        aiChat: reponseAiChat(),
         racine: true,
+        surAiChat: (corps) => envoye = corps,
       );
-      await tester.tap(find.byType(EntryCardScreen));
+
+      // Ni tap sur la case, ni changement d'état : directement « Entrer ».
+      await tester.tap(find.text('Entrer'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Refuser'));
-      await tester.pumpAndSettle();
-
+      expect(envoye, {'consent': false}, reason: 'décochée -> refus, mais l\'entrée n\'a pas attendu');
+      expect(find.byType(EntryCardScreen), findsNothing);
       expect(find.byType(ConsentScreen), findsNothing);
+    });
+
+    testWidgets('case cochée puis « Entrer » : le consentement accepté part au serveur',
+        (tester) async {
+      Map<String, dynamic>? envoye;
+      await monter(
+        tester,
+        getState: etatSansConsentement(),
+        aiChat: reponseAiChat(),
+        racine: true,
+        surAiChat: (corps) => envoye = corps,
+      );
+
+      await tester.tap(find.byIcon(Icons.check_box_outline_blank));
+      await tester.pump();
+      expect(find.byIcon(Icons.check_box), findsOneWidget);
+
+      await tester.tap(find.text('Entrer'));
+      await tester.pumpAndSettle();
+
+      expect(envoye, {'consent': true});
       expect(find.byType(EntryCardScreen), findsNothing);
     });
   });

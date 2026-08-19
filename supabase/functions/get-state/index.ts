@@ -39,7 +39,12 @@ Deno.serve(servir(async (req) => {
     : null
 
   const reponse: GetStateResponse = {
-    story: { slug: histoire.slug, title: histoire.title, tagline: histoire.tagline ?? null },
+    story: {
+      slug: histoire.slug,
+      title: histoire.title,
+      tagline: histoire.tagline ?? null,
+      cover_url: await signerObjet(db, histoire.cover_url),
+    },
     intro: {
       panels: (histoire.intro_panels ?? []) as { lines: string[] }[],
       music_url: await signerObjet(db, histoire.intro_music_url),

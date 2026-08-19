@@ -4,6 +4,125 @@
 
 ---
 
+## 2026-08-19 (5) — L'apparté généralisé : `ContexteSaisieLibre` devient `nodes.aparte`
+
+Correction de Vivien sur l'entrée (3) : la ligne de contexte du N9 avait été codée en dur pour le
+mode `aiInput` (`mode == ComposerMode.aiInput` dans `conversation_screen.dart`). Elle ne doit rien
+savoir du moment IA — n'importe quel nœud futur doit pouvoir en porter une, pour signaler un
+silence volontaire, préciser un changement de contexte mineur, etc.
+
+### Le même principe que l'écran noir narratif, appliqué différemment
+
+« Piloté par le contenu, pas en dur dans le code » — mais pas de la même façon que la narration.
+La narration est un **message** (elle arrive à une position, une fois). L'aparté est une
+**propriété du nœud** (`nodes.aparte`, texte nullable) : valable tant que le joueur y est, affichée
+avant chaque tour de saisie tant que le nœud courant en porte un. Un message aurait fallu le
+rejouer à chaque tour avec une position à inventer pour un contenu qui ne change pas — mauvais
+ajustement. Détail complet : LOGIQUE.md § L'aparté (nouvelle section, mécanisme serveur/client) et
+DESIGN.md § L'aparté (nouvelle section indépendante, plus un détail du § champ de saisie).
+
+### Fil des changements
+
+- Migration `20260818174040_node_aparte.sql` (datée avant le contenu du chapitre 1, qui la
+  consomme) : `alter table nodes add column aparte text`.
+- `moteur.ts` : `aparte` ajouté au select de nœud et à `etatNoeud()` — transmise telle quelle, sans
+  logique. Le commentaire en place est volontairement explicite : le serveur ne sait pas si le
+  joueur est en train de lire un déroulé ou si Léna « écrit », cet état est purement client.
+- `types.ts` (`ClientNode`) et `game_state.dart` (`StoryNode`) : champ ajouté des deux côtés.
+- Contenu du N9 (`20260818174043_contenu_chapitre_1.sql`, bloc `update nodes` écrit à la main) :
+  `aparte = 'Léna attend une vraie réponse...'` — vérifié que `generate-seed-content.py` ne touche
+  pas à ce bloc et que la valeur survit à une régénération.
+- `ContexteSaisieLibre` → `Aparte` (`widgets/message_widgets.dart`) : texte devient `required`, plus
+  de valeur par défaut codée en dur.
+- `ConversationState.aparteEnCours` (nouveau getter) remplace la condition sur le mode du composer
+  dans `conversation_screen.dart` — même logique d'affichage (hors déroulé, hors typing) mais lue
+  depuis `node?.aparte` plutôt qu'un cas particulier.
+
+### Gardiens mis à jour
+
+`test-ai-moment.py` : le test d'étanchéité sur les champs de `ClientNode` (liste exacte attendue)
+a cassé dès l'ajout d'`aparte` — corrigé en l'ajoutant à la liste, plus un test de valeur
+(« aparté transmis tel quel ») qui n'existait pas avant. Illustration directe de LOGIQUE.md
+§ Quand une règle change, ses gardiens aussi.
+
+### Vérification
+
+Serveur : `verify-graph.sql` 51/51, `verify-fidelity.py` 114/114, `simulate-playthrough.py`,
+`test-ai-moment.py` (dont le nouveau test de valeur sur `aparte`), `test-migration-peuplee.py`.
+Client : `flutter analyze` propre, `flutter test` (groupe `ai_moment_test.dart` mis à jour pour le
+renommage, mêmes assertions de disparition/réapparition qu'avant).
+
+### Prochaine étape
+
+Validation de Vivien. Rien de committé — la même règle que pour l'écran d'accueil (4) et l'icône
+adaptative encore en attente de vérification manuelle.
+
+---
+
+## 2026-08-19 (4) — Écran d'accueil complet, à partir de `docs/prompts/prompt-ajout-ecran-accueil.md`
+
+Reprend et remplace la carte d'entrée minimale de la veille (titre + accroche + tap) par la vraie
+« pochette » de l'histoire décrite dans le prompt : image de couverture, icône, titre, accroche,
+consentement IA inline, bouton — un seul écran, plus le duo carte-puis-`ConsentScreen`.
+
+### Ce qui change par rapport à la veille : consentement fusionné, pas séquentiel
+
+L'ancien flux : tap sur la carte → `ConsentScreen` (case obligatoire pour activer « Continuer »,
+ou « Refuser » séparé). Le nouveau, demandé par le prompt : case et bouton « Entrer » sur le MÊME
+écran, bouton **toujours actif** quel que soit l'état de la case — coché ou non, un tap envoie la
+valeur et referme l'écran en un geste. `ConsentScreen` (le composant) n'est pas supprimé : il reste
+le repli défensif de la première saisie libre du N9 (voir LOGIQUE.md § Consentement, inchangé), mais
+`RootScreen` ne le montre plus jamais dans le flux normal.
+
+### `stories.cover_url` : la colonne existait déjà, juste jamais branchée
+
+Trouvé en lisant le schéma initial — pas de migration nécessaire. Il manquait seulement : le select
+de `chargerHistoire`, l'exposition dans `get-state` (`signerObjet`, même mécanisme que la musique),
+et le téléversement — `upload-media.sh` étendu avec un bloc dédié (`poser_story cover_url`, même
+famille que le bloc musique, pas la boucle `MEDIAS` qui pose des `messages.media_url`).
+
+Image fournie (`image_perso_ecran_accueil_num_iconnu.png`, silhouettes line-art gris, fond
+**réellement transparent** — vérifié RGBA, alpha 0 aux coins, à la différence du fond blanc opaque
+de l'icône de l'app la veille) déplacée vers `media/cover-numero-inconnu.png`, le nom que le prompt
+attendait.
+
+### Icône de l'app réutilisée DANS l'écran, pas seulement comme icône système
+
+`assets/icon/icon.png` (déjà produite pour `flutter_launcher_icons`) ajoutée au bundle Flutter —
+un seul fichier déclaré, pas tout `assets/icon/` : les deux autres (source brute, foreground
+adaptatif) ne servent qu'à la génération d'icônes système, rien à faire dans l'app elle-même.
+
+### Un vrai piège Flutter : `MediaQuery.of` interdit dans `initState`
+
+Première version de l'animation d'entrée lisait `MediaQuery.of(context).disableAnimations` dans
+`initState()`, pour savoir s'il fallait jouer le fondu ou tout montrer directement. Ça compile,
+mais lève à l'exécution (« dependOnInheritedWidgetOfExactType... called before initState()
+completed ») — attrapé par les tests, pas par `flutter analyze`. Déplacé dans
+`didChangeDependencies()`, gardé par un drapeau pour ne s'exécuter qu'une fois même si la méthode
+est rappelée plus tard.
+
+### Vérification
+
+Serveur : `verify-graph.sql` 51/51, `verify-fidelity.py` 114/114, `simulate-playthrough.py`,
+`test-ai-moment.py` (consentement inchangé, y compris le test du chemin en amont de la veille).
+Client : `flutter analyze` propre, `flutter test` 114/114 (nouveau groupe « Carte d'entrée » réécrit
+pour le flux fusionné — plus de test sur un `ConsentScreen` intermédiaire, un nouveau test capture
+le corps envoyé à `ai-chat` pour prouver que la case décochée envoie bien `{consent: false}` sans
+jamais bloquer le bouton ; nouveau fichier `entry_card_screen_test.dart` pour l'animation, le
+réglage de réduction des animations, et l'absence d'image de couverture).
+
+**Premier smoke-test visuel réussi de la session** sur simulateur iOS : image, dégradé, icône,
+titre, accroche, case décochée, lien souligné, bouton — tout au rendez-vous, cohérent avec le
+mockup. Espace assez généreux entre l'accroche et la case de consentement sur cet écran (`Spacer()`
+non contraint) : à resserrer si Vivien le juge trop lâche à l'usage, pas corrigé d'initiative.
+
+### Prochaine étape
+
+Validation de Vivien, notamment sur l'équilibre visuel (espacement) que le smoke-test a permis de
+voir mais pas de juger à ma place.
+
+---
+
 ## 2026-08-19 (3) — Deux précisions : ligne de contexte du N9, consentement avant l'intro
 
 Deux corrections de Vivien sur des points antérieurs (prompt 3 / UI), traitées ensemble.

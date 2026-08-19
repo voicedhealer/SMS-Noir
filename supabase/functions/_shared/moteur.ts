@@ -71,6 +71,7 @@ interface NoeudBrut {
   ai_max_exchanges: number | null
   effects: Record<string, unknown>
   chapter_id: string
+  aparte: string | null
 }
 
 interface ChoixBrut {
@@ -101,7 +102,7 @@ export interface Progression {
 }
 
 const CHAMPS_NOEUD = 'id, code, kind, next_node_id, ai_fallback_node_id, '
-  + 'ai_system_prompt, ai_max_exchanges, effects, chapter_id'
+  + 'ai_system_prompt, ai_max_exchanges, effects, chapter_id, aparte'
 const CHAMPS_PROGRESSION = 'id, user_id, story_id, current_node_id, variables, '
   + 'chapter_unlocked_at, last_choice_id, last_choice_seq, ai_exchanges, '
   + 'ai_consent_at, ai_consent_refuse, node_cursor, node_gate'
@@ -117,7 +118,7 @@ const CHAMPS_CHOIX =
 export async function chargerHistoire(db: SupabaseClient) {
   const { data, error } = await db
     .from('stories')
-    .select('id, slug, title, tagline, intro_panels, intro_music_url, '
+    .select('id, slug, title, tagline, cover_url, intro_panels, intro_music_url, '
       + 'narration_music_url, chapter_end_music_url, '
       + 'sound_received_url, sound_sent_url, sound_typing_url')
     .eq('slug', STORY_SLUG).single()
@@ -537,6 +538,10 @@ export async function etatNoeud(
     awaiting_interaction: reponses.length === 0 && interactions.length > 0,
     can_continue: reponses.length === 0 && pauseCourante === null &&
       (noeud.kind === 'ai_moment' ? noeud.ai_fallback_node_id !== null : noeud.next_node_id !== null),
+    // Le CLIENT décide quand l'afficher (ni déroulé, ni typing) : le serveur
+    // ne connaît pas cet état de lecture, purement local aux timers du
+    // PlaybackEngine. Il transmet juste la valeur telle quelle.
+    aparte: noeud.aparte ?? null,
   }
 }
 

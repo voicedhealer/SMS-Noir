@@ -41,6 +41,7 @@ dependencies:
   just_audio: ^0.10.6
   audio_session: ^0.2.4
   video_player: ^2.10.0
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
@@ -97,6 +98,11 @@ flutter:
     # n'offre rien de court et neutre — c'est-à-dire Android. Un fichier fourni
     # par l'histoire les remplace toujours. Voir docs/DESIGN.md § Sons de message.
     - assets/sounds/
+    # Icône de l'app, réutilisée DANS l'écran d'entrée (petite, centrée) — pas
+    # seulement comme icône système. Un seul fichier, pas tout assets/icon/ :
+    # icon-source-original.jpeg et icon_foreground.png ne servent qu'à la
+    # génération des icônes système, rien à faire dans le bundle de l'app.
+    - assets/icon/icon.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

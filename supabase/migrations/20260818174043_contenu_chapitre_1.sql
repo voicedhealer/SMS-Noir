@@ -181,6 +181,9 @@ where n.chapter_id = c.id and n.code = v.src;
 update nodes n set
   ai_fallback_node_id = tgt.id,
   ai_max_exchanges    = 4,
+  -- Aparté générique (docs/LOGIQUE.md § L'aparté), pas un champ propre au
+  -- moment IA : ce nœud est juste le premier à s'en servir.
+  aparte              = $$Léna attend une vraie réponse...$$,
   ai_system_prompt    = $prompt$Tu es Léna, 28 ans. Tu écris des SMS à un inconnu qui a reçu ton message par erreur ce soir, et qui t'a accompagnée pendant les deux dernières heures.
 
 # Ta voix

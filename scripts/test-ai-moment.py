@@ -150,6 +150,11 @@ def nominal_court():
     verifier('Échange 1 · le moment continue', r['ai_moment_pending'], True)
     verifier('Échange 1 · échanges restants', r['exchanges_left'], 3)
     verifier('Échange 1 · le nœud reste le N9', r['node']['code'], 'N9')
+    # Générique (nodes.aparte, pas un champ propre au moment IA — voir
+    # LOGIQUE.md § L'aparté) : le serveur transmet la valeur telle quelle,
+    # c'est le client qui décide quand l'afficher.
+    verifier('Échange 1 · aparté transmis tel quel',
+             r['node']['aparte'], 'Léna attend une vraie réponse...')
 
     etat = progression(p.email)
     # +2 plein, sauf si le chemin pris avant le N9 a déjà rapproché la
@@ -415,7 +420,7 @@ def etancheite():
         verifier(f'« {mot} » absent de la réponse', mot in brut, False)
 
     verifier('Le nœud n\'expose que ce qu\'il faut', sorted(r['node'].keys()),
-             ['awaiting_interaction', 'can_continue', 'choices', 'code', 'kind'])
+             ['aparte', 'awaiting_interaction', 'can_continue', 'choices', 'code', 'kind'])
 
     # Le joueur ne peut pas écrire directement dans player_messages.
     try:

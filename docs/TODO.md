@@ -15,9 +15,15 @@ jamais à l'œil sur device en conditions réelles.
       posés à la place du rendu à taille intrinsèque — non exerçables en test widget
       (`Image.network` a besoin d'une base non disponible en test). À confirmer en zoomant une vraie
       photo (N10, N16 ou N21) sur device.
-- [ ] **Carte d'entrée + consentement avant l'intro** (2026-08-19, voir MEMOIRE.md) : le nouvel
-      enchaînement carte d'entrée → consentement → intronisation n'a pas été vu tourner sur device,
-      même limite d'automatisation. Couvert côté logique (serveur + tests widget), pas à l'œil.
+- [x] **Carte d'entrée + consentement avant l'intro** — confirmé sur simulateur iOS le 19/08
+      (voir MEMOIRE.md) : image, dégradé, icône, titre, accroche, case, lien, bouton, tout au
+      rendez-vous. Reste un réglage d'équilibre visuel, pas un bug — voir plus bas.
+
+## 🟡 Écran d'accueil — réglage d'équilibre visuel, pas fonctionnel
+
+Vu sur simulateur (2026-08-19) : l'espace entre l'accroche et la case de consentement est assez
+généreux (`Spacer()` non contraint dans `EntryCardScreen`). Fonctionnellement correct, juste
+peut-être trop lâche à l'usage — à trancher par Vivien, pas resserré d'initiative sans son avis.
 
 ## 🟡 Flakiness connue, sans rapport avec le contenu — `test-ai-moment.py` § quota
 

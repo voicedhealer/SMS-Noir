@@ -147,15 +147,18 @@ class ReadReceiptMarker extends StatelessWidget {
       );
 }
 
-/// Ligne de contexte avant la saisie libre du moment IA (N9).
+/// L'aparté — ligne de contexte discrète, générique. Voir docs/LOGIQUE.md §
+/// L'aparté et docs/DESIGN.md § L'aparté pour le mécanisme complet
+/// (`nodes.aparte`, piloté par le contenu, pas codé en dur pour un nœud).
 ///
 /// Dans le flux de la conversation, sous la dernière bulle et avant la zone
 /// de choix — jamais sous le champ de saisie lui-même, qui ne doit jamais
 /// changer d'aspect selon le mode (voir `Composer`). Gris, plus petit que le
-/// texte normal, centré : une ligne de narration discrète qui cadre
-/// l'attente, pas une consigne ni un indice.
-class ContexteSaisieLibre extends StatelessWidget {
-  const ContexteSaisieLibre({super.key, this.texte = 'Léna attend une vraie réponse...'});
+/// texte normal, centré : une ligne de narration discrète qui cadre un
+/// moment (silence volontaire, changement de contexte mineur, attente d'une
+/// vraie réponse...), jamais une consigne ni un indice.
+class Aparte extends StatelessWidget {
+  const Aparte({super.key, required this.texte});
   final String texte;
 
   @override

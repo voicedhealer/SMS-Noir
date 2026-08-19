@@ -134,6 +134,13 @@ export interface ClientNode {
    * est indisponible.
    */
   can_continue: boolean
+  /**
+   * Ligne de contexte discrète, générique (pas réservée aux ai_moment) — voir
+   * docs/LOGIQUE.md § L'aparté. Le client décide QUAND l'afficher (ni
+   * déroulé, ni typing) ; le serveur ne fait que transmettre le texte, ou
+   * null si ce nœud n'en porte pas.
+   */
+  aparte: string | null
 }
 
 export interface ChapterEndState {
@@ -159,7 +166,7 @@ export interface SoundPack {
 }
 
 export interface GetStateResponse {
-  story: { slug: string; title: string; tagline: string | null }
+  story: { slug: string; title: string; tagline: string | null; cover_url: string | null }
   /** Sons de message. Le client décide quand les jouer, jamais le serveur. */
   sounds: SoundPack
   /** Panneaux d'intronisation. `panels` vide = pas d'intro pour cette histoire. */

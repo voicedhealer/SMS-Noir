@@ -74,6 +74,12 @@ class AppText {
       TextStyle(fontSize: 26, fontWeight: FontWeight.w300, height: 1.3, letterSpacing: 0.2);
   static const compteARebours =
       TextStyle(fontSize: 32, fontWeight: FontWeight.w200, letterSpacing: 2);
+
+  /// Écran d'entrée : titre de l'histoire, sous l'icône.
+  static const titreAccueil = TextStyle(fontSize: 23, fontWeight: FontWeight.w500, height: 1.25);
+
+  /// Écran d'entrée : accroche, sous le titre.
+  static const accrocheAccueil = TextStyle(fontSize: 13.5, height: 1.4);
 }
 
 /// Échelle d'espacement, base 4.

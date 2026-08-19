@@ -394,42 +394,6 @@ Le texte part vraiment vers `ai-chat`. Trois différences invisibles pour le jou
 - **Une panne ne fige rien** : le typing s'arrête, le champ reste utilisable, et le serveur a de
   toute façon fait raccrocher Léna.
 
-### La ligne de contexte avant la saisie libre
-
-Avant que le joueur écrive — pas de bulle, pas de typing, pas de déroulé en cours — une ligne
-discrète apparaît **dans le flux de la conversation**, sous la dernière bulle et avant la zone de
-choix : gris, plus petit que le texte normal, centrée. « Léna attend une vraie réponse... » Une
-ligne de narration qui cadre l'attente, jamais dans le champ de saisie lui-même — le champ ne
-change jamais d'aspect selon le mode (voir plus haut). Elle disparaît dès que Léna « écrit » ou que
-le joueur envoie, et réapparaît avant chaque tour suivant.
-
-### La carte d'entrée, puis l'écran de consentement
-
-Affiché **une seule fois**, depuis la carte d'entrée — **avant l'intronisation**, pas à la première
-saisie libre du N9. Le joueur n'a pas encore vu le titre de l'histoire que la décision est déjà
-prise : plus simple à comprendre hors contexte (pas de moment IA en cours à interrompre pour poser
-la question), et ça évite d'interrompre l'échange avec Léna la première fois qu'il compte vraiment.
-
-La carte d'entrée elle-même est minimale — titre, accroche si l'histoire en porte une, « Toucher
-pour entrer » — portée provisoire en attendant la vraie bibliothèque (plusieurs histoires à
-parcourir) : une seule histoire ne mérite pas une liste. Un tap ouvre directement l'écran de
-consentement, plein écran, sobre, dans le ton de l'app. Il dit trois choses : le texte est traité
-par une IA et peut être conservé, un seul élément anodin est retenu, et refuser ne fait rien perdre.
-Case à cocher obligatoire — un consentement ne se donne pas par inadvertance — et un « Refuser »
-qui n'est pas caché.
-
-**Un refus n'est pas une impasse** : rien n'est encore engagé à ce stade, donc rien à refermer —
-l'intronisation suit normalement. Le refus tient jusqu'au N9 : Léna y raccroche directement au
-premier message envoyé, sans qu'on ait besoin de redemander.
-
-L'écran de consentement lui-même reste utilisable en repli à la première saisie libre — une
-progression antérieure à la carte d'entrée, ou un client qui l'aurait contournée — mais ne devrait
-plus s'y déclencher en usage normal. Voir LOGIQUE.md § Consentement.
-
-⚠️ **Le lien vers la politique de confidentialité manque encore** (`PRIVACY_URL`). Tant qu'il est
-absent, le lien n'est pas affiché — mieux vaut rien qu'une URL morte — mais **l'app ne peut pas
-sortir dans cet état** : le RGPD impose de pouvoir consulter le traitement auquel on consent.
-
 ### ⚠️ Les trois modes doivent être visuellement identiques
 
 Si le champ change d'apparence quand l'IA écoute vraiment, le joueur comprend instantanément quels
@@ -464,6 +428,74 @@ révélerait qu'une interaction existe ici.
 affordance très discrète apparaît. Toute action du joueur (scroll, tap sur un média, ouverture du
 zoom) **remet le compteur à zéro** — et la fenêtre passe à **30 s** si le nœud contient un média
 non encore ouvert, puisque dans 3 cas sur 6 le média *est* l'interaction.
+
+---
+
+## L'aparté — un pattern générique, pas un détail du moment IA
+
+Une ligne de contexte discrète, posée **dans le flux de la conversation**, sous la dernière bulle
+et avant la zone de choix : gris, plus petit que le texte normal, centrée. Une ligne de narration
+qui cadre un moment — sans être un indice, ni une consigne, ni jamais dans le champ de saisie
+lui-même (qui ne change jamais d'aspect selon le mode, voir plus haut).
+
+**Ce n'est pas une pièce du moment IA.** Le N9 est aujourd'hui le seul nœud du chapitre 1 à s'en
+servir, mais le mécanisme ne le sait pas et ne doit pas le savoir — n'importe quel nœud futur peut
+en porter un : signaler un silence volontaire, préciser un changement de contexte mineur, ou —
+l'usage actuel — cadrer l'attente d'une vraie réponse à la saisie libre (« Léna attend une vraie
+réponse... »).
+
+**Piloté par le contenu, comme la narration de l'écran noir** : un champ `nodes.aparte` (texte,
+nullable), pas une chaîne codée en dur dans le client ni une condition sur le mode du composer.
+`null` = ce nœud n'en porte pas, le comportement par défaut pour tous les nœuds sauf ceux qui en
+déclarent un explicitement. Voir LOGIQUE.md § L'aparté pour le mécanisme complet côté serveur.
+
+**Affiché seulement quand le joueur peut agir** : ni pendant un déroulé, ni pendant que le contact
+« écrit ». Il disparaît dès que Léna répond ou que le joueur envoie, et réapparaît avant chaque
+tour suivant si le nœud courant en porte toujours un.
+
+## La carte d'entrée — la « pochette » de l'histoire
+
+Un seul écran, affiché **une seule fois**, avant même le premier panneau de l'intronisation. Le
+joueur n'a pas encore vu le titre de l'histoire que la décision de consentement est déjà prise :
+plus simple à comprendre hors contexte (pas de moment IA en cours à interrompre pour poser la
+question), et ça évite d'interrompre l'échange avec Léna la première fois qu'il compte vraiment.
+
+**Structure, de haut en bas** :
+- Moitié supérieure de l'écran : image de couverture (`stories.cover_url`), plein cadre, bord à
+  bord y compris sous la barre de statut. Dégradé transparent → noir sur son tiers inférieur, pour
+  que l'image se dissolve dans le fond plutôt que de s'arrêter net sur un bord.
+- Icône de l'app, petite, centrée, à la jonction entre l'image et le texte.
+- Titre de l'histoire, blanc plein.
+- Accroche, gris clair, centrée, sur fond noir uni (jamais sur l'image, pour la lisibilité).
+- Case de consentement IA + texte, avec « Politique de confidentialité » en lien souligné. Case
+  **non cochée par défaut** (bible §9 — un consentement ne se présume pas).
+- Bouton « Entrer », blanc plein, texte noir, pleine largeur, en bas.
+
+**Le bouton « Entrer » est toujours actif, coché ou non** — jamais bloqué par ce choix, à la
+différence d'un ancien écran de consentement séparé qui forçait une décision explicite avant de
+laisser passer. Un tap envoie la valeur de la case au serveur et referme l'écran d'un coup ; il n'y
+a pas de second écran à traverser.
+
+**Un refus n'est pas une impasse** : rien n'est encore engagé à ce stade, donc rien à refermer —
+l'intronisation suit normalement. Le refus tient jusqu'au N9 : Léna y raccroche directement au
+premier message envoyé, sans qu'on ait besoin de redemander.
+
+Titre, accroche et image viennent tous du serveur (`stories.title/tagline/cover_url`), rien n'est
+codé en dur — pensé pour resservir tel quel avec les futures histoires de la bibliothèque. Un ancien
+écran de consentement séparé (`ConsentScreen`) reste utilisable en repli, à la première saisie
+libre — une progression antérieure à la carte d'entrée, ou un client qui l'aurait contournée — mais
+ne devrait plus s'y déclencher en usage normal. Voir LOGIQUE.md § Consentement.
+
+**Animation d'entrée, une seule fois, jamais en boucle** : l'image apparaît en fondu doublé d'un
+flou qui se dissipe (~700 ms) — impression de mise au point, comme un souvenir qui se précise. Puis
+icône, titre, accroche, case et bouton apparaissent en fondu séquentiel, décalés d'une centaine de
+millisecondes chacun. Respecte le réglage d'accessibilité « réduire les animations »
+(`MediaQuery.disableAnimations`) : dans ce cas, tout apparaît directement, sans transition.
+
+⚠️ **Le lien vers la politique de confidentialité manque encore** (`PRIVACY_URL`). Le texte reste
+affiché tel quel (« Politique de confidentialité » souligné), mais le lien ne mène nulle part tant
+que l'URL n'est pas configurée — **l'app ne peut pas sortir dans cet état** : le RGPD impose de
+pouvoir consulter le traitement auquel on consent.
 
 ---
 
@@ -579,7 +611,7 @@ Prévoir la place d'un futur bouton premium (déblocage immédiat) — non fonct
 | Écran de conversation | `screens/conversation_screen.dart` | ✅ |
 | Séquence d'intronisation | `screens/intro_screen.dart` | ✅ |
 | Aiguillage d'entrée | `screens/root_screen.dart` | ✅ |
-| Carte d'entrée (titre, accroche, tap pour entrer) | `screens/entry_card_screen.dart` | ✅ |
+| Carte d'entrée (couverture, icône, titre, accroche, consentement, animations) | `screens/entry_card_screen.dart` | ✅ |
 | Interactions cachées (geste et « + ») | `widgets/composer.dart`, `conversation_screen.dart` | ✅ |
 | Liste des conversations | `screens/conversation_list_screen.dart` | ✅ |
 | Écran de fin de chapitre | `screens/chapter_end_screen.dart` | ✅ |
