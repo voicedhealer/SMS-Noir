@@ -4,6 +4,71 @@
 
 ---
 
+## 2026-08-19 (9) — Le nom de l'app était resté sur « Numéro Inconnu »
+
+Signalé par Vivien après l'installation sur son Samsung : le label Android et le
+`CFBundleDisplayName` iOS affichaient « Numéro Inconnu », alors que l'app s'appelle **SMS Noir**
+(cohérent avec le nom du dossier du projet et l'icône source `Logo-SMS-noir.jpeg`).
+
+**Distinction clarifiée avec Vivien, maintenant notée dans CLAUDE.md** : SMS Noir est le nom de
+l'app, Numéro Inconnu reste le titre du chapitre 1 (`stories.title`, carte d'entrée) — cohérent
+avec l'architecture multi-histoires déjà en place. Rien à changer côté contenu ou base.
+
+Corrigé à trois endroits, et seulement ceux-là (pas l'`applicationId`/`CFBundleIdentifier`, hors
+sujet et bien plus lourd à changer) :
+`AndroidManifest.xml` (`android:label`), `Info.plist` (`CFBundleDisplayName`), en-tête de
+`CLAUDE.md`. APK reconstruite et réinstallée sur le Samsung de Vivien.
+
+---
+
+## 2026-08-19 (8) — Le projet distant remis à niveau, APK installée sur le Samsung de Vivien
+
+Demande : « une version pour mon Samsung ». Avant de builder, vérification de l'état du projet
+Supabase hébergé (« SMS-Noir », lié) — découverte qu'il datait du **17 août 23h28**, soit avant
+l'aparté, la transition vidéo, la carte d'entrée actuelle et le correctif photo/texte du N21.
+
+### Ce qui manquait, précisément
+
+- 3 migrations de schéma non poussées (`aparte`, transition vidéo, `messages.conditions`) + celle
+  du jour (`ai_refus_node_id`). `supabase db diff --linked` confirmait des colonnes absentes.
+- Les 5 Edge Functions distantes dataient d'avant tout ce travail.
+- Le bucket média distant n'avait pas la nouvelle photo du N21.
+- **La migration de contenu (`20260818174043`) était marquée « appliquée » côté distant, mais avec
+  un contenu PLUS ANCIEN** que le fichier local actuel — la CLI ne rejoue jamais un fichier déjà
+  enregistré, même si son contenu a changé depuis (le seed est un one-shot par construction, cf.
+  l'avertissement en tête du fichier lui-même). Nécessite `supabase migration repair <version>
+  --status reverted --linked` puis un nouveau `db push --include-all` pour forcer le rejeu.
+
+### Décision demandée à Vivien avant d'agir
+
+Remettre le contenu à niveau **efface les 14 progressions de test déjà sur le projet distant**
+(le `delete` en cascade en tête de la migration de contenu). Pas une décision à prendre seul —
+question posée, Vivien a choisi la mise à jour complète plutôt qu'un build local tunnelé en USB
+(qui aurait gardé ces progressions mais nécessité que cette machine tourne en permanence).
+
+### Séquence exécutée
+
+`supabase db push --linked --include-all` (3 migrations de schéma + celle du jour) → `migration
+repair 20260818174043 --status reverted --linked` → nouveau `db push --include-all` (rejoue le
+contenu à jour) → `supabase db diff --linked` vérifié sans `dropStatements` restant → `supabase
+functions deploy` (les 5) → `DISTANT=1 scripts/upload-media.sh` → test réel (inscription anonyme
++ appel `get-state` distant, `cover_url` signée reçue correctement, aucune erreur de colonne).
+
+### Build et installation
+
+`app/tool/run_remote.sh --release` — déjà en place dans le repo, pas improvisé : lit la clé
+publishable du projet lié, aucune clé écrite en dur. Signé avec les clés de debug (suffisant pour
+un sideload, à refaire avant toute distribution — le TODO existe déjà dans `build.gradle.kts`).
+APK de 55 Mo, installée directement via `adb install -r` sur le Galaxy S23 Ultra de Vivien, branché
+en USB (`R5CW112L06P`) — visible et autorisé, pas de config supplémentaire nécessaire.
+
+### Prochaine étape
+
+Aucune côté technique. Le mécanisme `ai_refus_node_id` (entrée 7) reste sans contenu — toujours en
+attente du texte de Vivien pour le N9_refus.
+
+---
+
 ## 2026-08-19 (7) — Refus de consentement au N9 : mécanisme prêt, contenu bloqué
 
 Correction de Vivien sur une simplification que j'avais faite en expliquant la carte d'entrée :

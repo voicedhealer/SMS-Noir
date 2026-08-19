@@ -1,6 +1,11 @@
-# Numéro Inconnu — moteur d'histoires interactives par messagerie
+# SMS Noir — moteur d'histoires interactives par messagerie
 
 App **Flutter** (plus tard) + **Supabase** (maintenant : base, contenu, Edge Functions).
+
+**SMS Noir** est le nom de l'app (label Android, `CFBundleDisplayName` iOS). **Numéro Inconnu**
+est le titre du chapitre 1 (`stories.title`), affiché sur sa carte d'entrée — pas le nom de l'app.
+L'architecture est pensée pour une future bibliothèque multi-histoires : SMS Noir la marque,
+chaque histoire son propre titre.
 
 ## À lire en premier, dans cet ordre
 
