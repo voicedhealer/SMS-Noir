@@ -64,13 +64,21 @@ dev_dependencies:
 # elle-même resserrée par l'inset de 16 % que flutter_launcher_icons applique
 # déjà au premier plan adaptatif.
 #
+# Le premier plan adaptatif Android utilise un fichier séparé,
+# icon_foreground.png : fond réellement transparent (alpha dérivé de la
+# luminance de icon.png), pas blanc opaque. Un fond opaque, même blanc,
+# reste un carré à coins droits sous le masque du lanceur — visible en
+# aperçu (Android Studio, certains explorateurs de fichiers) sous forme de
+# coins qui semblent « encore arrondis ». Un fond transparent ne peut
+# montrer aucun coin, dans aucun visualiseur : rien d'opaque à arrondir.
+#
 # Régénérer : cd app && dart run flutter_launcher_icons
 flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/icon/icon.png"
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/icon/icon.png"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
   remove_alpha_ios: true
 
 # For information on the generic Dart part of this file, see the
