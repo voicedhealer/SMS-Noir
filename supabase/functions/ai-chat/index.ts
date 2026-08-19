@@ -4,11 +4,15 @@
 //          POST { consent: true | false }   (réponse à l'écran de consentement)
 //
 // **Le mode dégradé prime sur la fonctionnalité.** Clé absente, API en erreur,
-// timeout, quota atteint, JSON illisible, consentement refusé : dans tous les
-// cas Léna raccroche en personnage et l'histoire repart au N21. Jamais de
-// message d'erreur technique, jamais de blocage.
+// timeout, quota atteint, JSON illisible : Léna raccroche en personnage et
+// l'histoire repart au fallback (`ai_fallback_node_id`). Jamais de message
+// d'erreur technique, jamais de blocage.
 //
-// Voir docs/LOGIQUE.md § Le moment IA.
+// Le consentement refusé est un cas à part, pas une panne : si le nœud
+// désigne un équivalent scripté (`ai_refus_node_id`), on y entre directement
+// — pas de raccrochage générique, l'équivalent porte sa propre ouverture et
+// sa propre clôture. Voir docs/LOGIQUE.md § Le moment IA et
+// § Le refus de consentement à un moment IA.
 
 import { json, servir } from '../_shared/http.ts'
 import {
@@ -78,6 +82,18 @@ Deno.serve(servir(async (req) => {
 
   if (progression.ai_consent_refuse) {
     // Il a dit non : on ne redemande pas, et il n'est pas pénalisé.
+    //
+    // Chemin de repli seulement : `derouler()` détourne normalement une
+    // progression dont le consentement est déjà refusé AVANT même d'exposer
+    // ce composer (voir moteur.ts, la branche ai_moment de derouler), donc ce
+    // code ne devrait plus s'exécuter en usage normal. Gardé pour une
+    // progression antérieure à ce mécanisme. Distinct d'une panne technique :
+    // si un équivalent scripté existe, on y entre directement (pas de
+    // réplique de raccrochage, l'équivalent porte sa propre ouverture) ;
+    // sinon, comportement historique inchangé.
+    if (noeud.ai_refus_node_id) {
+      return json(await entrerNoeudEtRepondre(db, progression, histoire.id, noeud.ai_refus_node_id))
+    }
     return json(await raccrocher(db, progression, histoire.id, noeud, RACCROCHAGE))
   }
   if (!progression.ai_consent_at) {
@@ -266,18 +282,37 @@ async function raccrocher(
   const contact = await contactDuNoeud(db, noeud.id)
   const messages = [...dejaEcrits, ...await ecrireReplique(db, progression.id, contact, replique)]
 
+  const suite = noeud.ai_fallback_node_id
+  if (!suite) throw new ErreurMoteur(409, 'sans_suite', 'Le moment IA n\'a pas de fallback')
+
+  return entrerNoeudEtRepondre(
+    db, { ...progression, variables }, storyId, suite, messages, detailPerso, variables)
+}
+
+/**
+ * Quitte le moment IA en entrant dans un nœud — fallback technique ou
+ * équivalent scripté d'un refus, même mécanique. Pose `ai_exchanges: 0` et
+ * construit la réponse `ai-chat` (le contrat est le même dans les deux cas :
+ * `ai_moment_pending: false`, la suite est un déroulé normal).
+ */
+async function entrerNoeudEtRepondre(
+  // deno-lint-ignore no-explicit-any
+  db: any,
+  progression: Progression,
+  storyId: string,
+  nodeId: string,
+  dejaEcrits: MessageEcrit[] = [],
+  detailPerso: string | null = null,
+  variables = progression.variables,
+) {
   await db.from('player_progress').update({
     variables,
     ai_exchanges: 0, // remis à zéro : on quitte le moment
     ...(detailPerso ? { detail_perso: detailPerso } : {}),
   }).eq('id', progression.id)
 
-  const courante: Progression = { ...progression, variables }
-  const suite = noeud.ai_fallback_node_id
-  if (!suite) throw new ErreurMoteur(409, 'sans_suite', 'Le moment IA n\'a pas de fallback')
-
-  const apres = await entrerDansNoeud(db, courante, suite)
-  messages.push(...apres.messages)
+  const apres = await entrerDansNoeud(db, progression, nodeId)
+  const messages = [...dejaEcrits, ...apres.messages]
 
   const noeudFinal = apres.progression.current_node_id
     ? await chargerNoeud(db, apres.progression.current_node_id)

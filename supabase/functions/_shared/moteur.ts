@@ -72,6 +72,7 @@ interface NoeudBrut {
   effects: Record<string, unknown>
   chapter_id: string
   aparte: string | null
+  ai_refus_node_id: string | null
 }
 
 interface ChoixBrut {
@@ -102,7 +103,7 @@ export interface Progression {
 }
 
 const CHAMPS_NOEUD = 'id, code, kind, next_node_id, ai_fallback_node_id, '
-  + 'ai_system_prompt, ai_max_exchanges, effects, chapter_id, aparte'
+  + 'ai_system_prompt, ai_max_exchanges, effects, chapter_id, aparte, ai_refus_node_id'
 const CHAMPS_PROGRESSION = 'id, user_id, story_id, current_node_id, variables, '
   + 'chapter_unlocked_at, last_choice_id, last_choice_seq, ai_exchanges, '
   + 'ai_consent_at, ai_consent_refuse, node_cursor, node_gate'
@@ -367,8 +368,14 @@ async function derouler(
     // On ne délivre que jusqu'à la prochaine pause : au-delà, des choix
     // attendent le joueur au milieu du nœud.
     const pause = await prochainePause(db, noeud.id, vars, curseur)
+    // `ai_consent_refuse` n'est jamais une variable persistée (colonne à part
+    // sur player_progress) : fusionné ici pour ce seul appel, jamais réécrit
+    // dans `vars` lui-même — sinon il polluerait `player_progress.variables`
+    // à la prochaine sauvegarde. Permet à un message de basculer de variante
+    // selon le consentement, comme `refus` le fait déjà pour le tutoiement.
+    const varsMessages = { ...vars, ai_consent_refuse: progression.ai_consent_refuse }
     const lot = await ecrireMessagesDuNoeud(
-      db, progression.id, noeud.id, vars, curseur, pause ?? Number.MAX_SAFE_INTEGER)
+      db, progression.id, noeud.id, varsMessages, curseur, pause ?? Number.MAX_SAFE_INTEGER)
     messages.push(...lot.messages)
 
     if (pause !== null) {
@@ -382,6 +389,16 @@ async function derouler(
     curseur = lot.finPosition + 1
 
     if (noeud.kind === 'ai_moment') {
+      // Refus explicite (jamais une panne technique, celle-là reste couverte
+      // par ai_fallback_node_id côté ai-chat) ET ce nœud désigne un équivalent
+      // scripté : on l'enchaîne directement, exactement comme un next_node_id
+      // normal. Le joueur ne voit jamais le champ de saisie libre — voir
+      // docs/LOGIQUE.md § Le refus de consentement à un moment IA.
+      if (progression.ai_consent_refuse && noeud.ai_refus_node_id) {
+        courant = noeud.ai_refus_node_id
+        curseur = 0
+        continue
+      }
       // On entre dans un moment IA : le décompte repart de zéro. Sans ça, un
       // second moment hériterait des échanges du premier.
       await db.from('player_progress').update({ ai_exchanges: 0 }).eq('id', progression.id)

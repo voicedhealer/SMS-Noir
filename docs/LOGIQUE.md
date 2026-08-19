@@ -495,10 +495,13 @@ puis elle raccroche et l'histoire repart au N21.
 
 ### Le mode dégradé prime sur la fonctionnalité
 
-Clé absente · API en erreur · timeout · quota atteint · JSON illisible · consentement refusé :
-**dans tous les cas, Léna raccroche en personnage et l'histoire repart au fallback.** Jamais de
+Clé absente · API en erreur · timeout · quota atteint · JSON illisible :
+**dans tous ces cas, Léna raccroche en personnage et l'histoire repart au fallback.** Jamais de
 message d'erreur technique, jamais de blocage. Le joueur ne doit pas pouvoir deviner qu'il y avait
 une IA derrière, ni qu'elle est tombée.
+
+Le consentement refusé n'est **pas** une panne — voir § Le refus de consentement à un moment IA
+plus bas : un vrai équivalent scripté, pas un raccrochage générique.
 
 Deux répliques de sortie, et deux seulement :
 « Merci. J'en avais besoin. Bon, je rentre. » (fin normale, quota, panne) ·
@@ -529,9 +532,9 @@ touché à l'histoire que la décision est déjà prise. Écrit une seule fois
 
 `ai-chat` accepte `{consent}` **indépendamment du nœud courant** : ce n'est plus réservé à un
 `ai_moment`, puisque la carte d'entrée l'appelle alors que le joueur est encore au nœud d'entrée
-(N1). Refuser à ce stade n'a rien à refermer — l'histoire continue normalement. Refuser en étant
-réellement à un `ai_moment` (chemin de repli seulement — voir plus bas) raccroche immédiatement,
-comme n'importe quelle sortie de cadre.
+(N1). Refuser à ce stade n'a rien à refermer — l'histoire continue normalement. Ce qui se passe en
+atteignant réellement un `ai_moment` avec un refus déjà posé : voir
+§ Le refus de consentement à un moment IA.
 
 `get-state` expose `ai_consent_decided` (`ai_consent_at` posé OU `ai_consent_refuse` vrai) :
 c'est ce booléen, jamais un état local, qui fait réafficher la carte d'entrée. Un indicateur
@@ -619,6 +622,65 @@ doit cacher.**
 Il vit dans `supabase/seed.sql`, pas dans une migration : une migration passe
 avant le seed, qui le réécraserait. Le modifier suppose un `supabase db reset`,
 puis un passage complet de `docs/RECETTE-MOMENT-IA.md`.
+
+## Le refus de consentement à un moment IA (`nodes.ai_refus_node_id`)
+
+Refuser l'IA ne doit coûter au joueur **aucune opportunité de jeu** — pas seulement lui éviter une
+erreur technique. Avant ce mécanisme, un refus passait par le même `raccrocher()` qu'une panne
+d'API : aucun effet appliqué, `detail_perso` toujours `null`. Mécaniquement identique à un joueur
+qui aurait eu la malchance de tomber sur un quota épuisé — sauf que lui l'a choisi. Un joueur qui
+refuse perdait donc, sans compensation, tout ce qu'un moment IA peut rapporter (jusqu'à plusieurs
+points de `confiance`, un `detail_perso` réutilisé plus tard).
+
+**Un équivalent scripté, pas un raccrochage.** `nodes.ai_refus_node_id` (nullable, comme
+`ai_fallback_node_id`) désigne un nœud `scripted` ordinaire, joué à la place de la saisie libre —
+généralement un bloc de micro-choix classique (🛡 protéger · 🔍 enquêter · 🧠 raisonner, voir
+§ La grammaire des trois axes), qui applique ses `effects` comme n'importe quel autre nœud du
+chapitre. **Aucune calibration spéciale requise** : le système proportionnel des trois axes
+empêche déjà mécaniquement qu'une posture donnée devienne dominante — le même principe qui
+protège `raisonner` de toute pénalité protège ici le joueur qui refuse de tout gain artificiel.
+`detail_perso` reste `null` sur ce chemin : ce n'est pas un cas spécial, c'est le même état qu'un
+joueur qui n'a simplement rien partagé d'exploitable (le ch. 4 gère déjà ce cas).
+
+**Null = pas d'équivalent scripté pour ce nœud, comportement historique inchangé** (raccrochage
+direct vers `ai_fallback_node_id`, comme une panne technique). Chaque `ai_moment` — y compris ceux
+des chapitres 3 et 5 — active ce mécanisme en écrivant simplement son propre `ai_refus_node_id`,
+sans toucher au moteur.
+
+### Refus explicite ≠ panne technique — deux routes distinctes, jamais confondues
+
+Un point sur lequel il ne faut jamais transiger : **`ai_refus_node_id` ne se déclenche QUE sur un
+refus explicite** (`player_progress.ai_consent_refuse = true`). Une clé absente, une API en erreur,
+un timeout, un quota dépassé, une sortie de cadre — tout ça reste sur `ai_fallback_node_id`, le
+raccrochage générique existant, inchangé. Mélanger les deux routerait un joueur qui n'a jamais
+touché au consentement vers un contenu écrit spécifiquement pour celui qui a dit non, ce qui
+n'aurait aucun sens narratif.
+
+Concrètement, deux points d'entrée distincts, jamais partagés :
+
+- **`derouler()` (`_shared/moteur.ts`)** — le chemin normal. Dès qu'un `ai_moment` est atteint,
+  AVANT même d'exposer le composer en saisie libre : si `progression.ai_consent_refuse` est vrai
+  et que le nœud a un `ai_refus_node_id`, le déroulé s'enchaîne directement sur ce nœud, exactement
+  comme un `next_node_id` ordinaire. **Le joueur qui refuse ne voit jamais le champ de saisie
+  libre** — aucun risque qu'il tape un message pour rien.
+- **`ai-chat`, branche `ai_consent_refuse`** — chemin de repli seulement, pour une progression
+  antérieure à ce mécanisme (ou un client qui aurait quand même affiché le composer). Même
+  distinction : équivalent scripté si disponible, sinon comportement historique.
+
+Les pannes techniques, elles, ne passent **jamais** par `derouler()` pour en décider — elles ne
+sont détectées qu'au moment de l'appel au modèle, donc uniquement dans `ai-chat`, qui garde son
+`raccrocher()` d'origine sans y toucher.
+
+### Une ligne d'ouverture peut basculer sur le consentement, pas seulement sur `refus`
+
+`messages.conditions` conditionnait déjà une réplique sur `refus` (tutoiement/vouvoiement, voir
+§ `refus`). Le même mécanisme s'étend au consentement IA : dans `derouler()`, l'appel qui délivre
+les messages d'un nœud reçoit une copie de `vars` enrichie de `ai_consent_refuse` — une colonne de
+`player_progress`, pas une des 5 variables du chapitre 1 — construite pour cet appel seulement,
+**jamais réinjectée dans les variables persistées** (sinon elle polluerait `player_progress.variables`
+à la sauvegarde suivante, avec une clé qui fait déjà doublon ailleurs). Un message peut donc porter
+`{"eq": {"ai_consent_refuse": true}}` exactement comme il porterait `{"eq": {"refus": true}}`, sans
+qu'aucun état supplémentaire ne soit écrit en base.
 
 ## Contraintes client *(prompt 2)*
 

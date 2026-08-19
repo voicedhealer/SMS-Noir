@@ -400,8 +400,10 @@ le dessus. Le script les repère par mot-clé : `reception`, `envoi`, `frappe`.
       Lisible **sans zoomer**. Date « 12 juin 2026 » = l'incohérence des 2 mois. ✅
 - [x] `photo-N16-plaque` — livré, 2816×1536. Macaron « SENTINEL PRO » lisible à 5× sur téléphone. ✅
       ⚠️ voir « Plaque du N16 » ci-dessous.
-- [x] `photo-N21-porte-cles` — livré, 2816×1536. Silhouettes gravées et téléphone à coque
-      rose fissuré tous deux nets au zoom. ✅ Le meilleur des trois.
+- [x] `photo-N21-porte-cles` — livré, 2816×1536, remplacé le 2026-08-19 (composition revue :
+      trousseau sur crochet, ampoule au-dessus, à gauche du cadre). Silhouettes gravées nettes
+      au zoom ; téléphone à coque rose visible mais discret sur l'établi, à confirmer sur
+      device. ✅
 - [x] `audio-N17-reperage` — livré, MP3 22,1 s. ⚠️ fond radio à vérifier à l'oreille (non contrôlable ici).
 
 ### ⚠️ Plaque du N16 — décision de contenu

@@ -442,12 +442,12 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 **MICRO-CHOIX :**
 - 🛡 « Tu as pris ce risque juste pour ça ? » → *« Regarde bien s'il te plaît, tu comprendras, tu as un regard extérieur. »*
 - 🔍 « Il y a un téléphone posé sur l'établi. » → *« Ah ouais ! Mais j'ai pas vu ça moi, où ça ? »* ⚠️ *(enquete)*
-- 🧠 « Qu'est-ce que je suis censé voir ? » → *« Le mur, à droite, au-dessus de l'établi. »*
+- 🧠 « Qu'est-ce que je suis censé voir ? » → *« Attends, je vais te guider, regarde bien l'image. »*
 
-**[Léna]** Tu vois le trousseau accroché au mur ? Zoome sur le porte-clés.
+**[Léna]** Tu vois le trousseau, sur le crochet, juste sous la lumière ? Zoome sur le porte-clés.
 
 *(Variante si `refus = true` :)*
-> Vous voyez le trousseau accroché au mur ? Zoomez sur le porte-clés.
+> Vous voyez le trousseau, sur le crochet, juste sous la lumière ? Zoomez sur le porte-clés.
 
 🔍 **INTERACTION CACHÉE — zoom :** silhouettes gravées nettes, téléphone rose fissuré visible au fond. *(indices + TELEPHONE)*
 

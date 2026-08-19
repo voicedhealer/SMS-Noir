@@ -4,6 +4,136 @@
 
 ---
 
+## 2026-08-19 (7) — Refus de consentement au N9 : mécanisme prêt, contenu bloqué
+
+Correction de Vivien sur une simplification que j'avais faite en expliquant la carte d'entrée :
+« refuser l'IA n'empêche pas de lire l'histoire » était vrai sur le papier (le scripté continue
+jusqu'à N22) mais trompeur en pratique — vérification du code a confirmé que `raccrocher()` sur un
+refus n'applique **aucun effet** (`variables` inchangé, `detail_perso` toujours `null`), exactement
+comme une panne d'API. Un joueur qui refuse était donc mécaniquement pénalisé par rapport à un
+joueur qui accepte, sans jamais le savoir.
+
+### Décision : un équivalent scripté, jamais un raccrochage
+
+Nouvelle colonne `nodes.ai_refus_node_id` (migration `20260819180000_ai_refus_node.sql`), nullable
+comme `ai_fallback_node_id` — désigne un nœud `scripted` ordinaire (bloc de micro-choix classique)
+joué à la place de la saisie libre, avec ses propres `effects`. Générique et réutilisable : chaque
+`ai_moment` futur (ch. 3, ch. 5) l'active en écrivant sa propre valeur, sans toucher au moteur.
+Documenté comme pattern à part entière dans LOGIQUE.md § Le refus de consentement à un moment IA
+(nouvelle section top-level, comme L'aparté), avec l'insistance de Vivien : **ne jamais confondre
+refus explicite et panne technique** — deux routes distinctes, la seconde inchangée.
+
+- `derouler()` (`moteur.ts`) : dès qu'un `ai_moment` est atteint avec `ai_consent_refuse` vrai et
+  un `ai_refus_node_id` renseigné, le déroulé s'enchaîne directement dessus — le joueur ne voit
+  **jamais** le champ de saisie libre. Sinon, comportement inchangé (breaks, attend la saisie).
+- `ai-chat` garde sa propre branche `ai_consent_refuse` comme chemin de repli seulement (une
+  progression antérieure à ce mécanisme) — factorisée avec `raccrocher()` via un nouveau
+  `entrerNoeudEtRepondre()` partagé, pour ne pas dupliquer la construction de la réponse.
+- La 3e ligne d'ouverture du N9 (demandée par Vivien pour basculer selon le consentement, pas
+  seulement `refus`) : `derouler()` fusionne `ai_consent_refuse` dans une copie de `vars` **au
+  seul appel qui délivre les messages**, jamais réinjectée dans les variables persistées — sinon
+  ça polluerait `player_progress.variables` avec une clé qui fait déjà doublon (colonne à part).
+
+### Bloqué : pas de texte reçu
+
+Le message de Vivien annonçait « Texte ci-joint » pour les répliques du N9_refus (3e ligne
+alternative + bloc micro-choix) mais aucun texte n'est arrivé. Rien n'est inventé à sa place
+(règle 3) : `nodes.ai_refus_node_id` du N9 reste `null` pour l'instant, comportement historique
+inchangé (raccrochage direct vers N21, comme avant ce chantier). Dès le texte reçu : nouveau nœud
+scripté dans `docs/chapitre-1-v3.2.md` + régénération de la migration de contenu, variante
+conditionnée de la 3e ligne du N9, câblage de `ai_refus_node_id`, et les tests qui vont avec
+(`test-ai-moment.py` : nouveau scénario refus-avec-équivalent, sans casser les scénarios refus
+existants qui couvrent le cas `ai_refus_node_id = null`).
+
+### Vérification
+
+Le mécanisme est neutre par défaut (`ai_refus_node_id` toujours `null` en base) : tous les tests
+existants passent inchangés, y compris les scénarios de refus déjà couverts par `test-ai-moment.py`
+(« Refus tenu jusqu'au N9 : elle raccroche directement » etc.) — confirme que rien n'a régressé
+pendant que le mécanisme attend son contenu. `verify-graph.sql` 51/51 · `verify-fidelity.py`
+114/114 · `simulate-playthrough.py` · `test-ai-moment.py` · `test-micro-choix.py`.
+
+### Prochaine étape
+
+Le texte de Vivien (3e ligne alternative du N9 + répliques du bloc micro-choix N9_refus), puis
+reprise du chantier pour le contenu et son câblage.
+
+---
+
+## 2026-08-19 (6) — N21 : nouvelle photo, texte corrigé pour coller à la composition
+
+Demande de Vivien : la photo de l'entrepôt fournie initialement décrivait un emplacement du
+trousseau (« le mur, à droite, au-dessus de l'établi ») qui ne correspondait ni à l'ancienne
+image ni à la nouvelle. Remplacement du média et correction du texte pour qu'ils s'accordent.
+
+### Média : `photo-N21-porte-cles.jpeg` remplacé
+
+Nouvelle composition : trousseau accroché à un crochet sur le mur en bois à gauche du cadre,
+éclairé directement par une ampoule suspendue au-dessus — le point le plus lumineux de la photo.
+Téléphone à coque rose toujours visible, discret, sur l'établi à droite.
+
+Fichier déposé sous un nom temporaire (`N21 — l'entrepôt-new.jpeg`) à côté de l'ancien
+(`N21 — l'entrepôt.jpeg`, qui matchait déjà par correspondance floue sur le code nœud dans
+`upload-media.sh`) : les deux fichiers auraient rendu `trouver()` ambigu — deux noms contenant
+« N21 ». Résolu en supprimant l'ancien et en renommant le nouveau vers le nom canonique
+`photo-N21-porte-cles.jpeg` (déjà la clé de `generate-seed-content.py`), sur le même principe que
+`photo-N16-plaque.png`. `messages.media_url` ne change donc pas de valeur — seul l'objet dans le
+bucket change de contenu.
+
+Vérifié aux pixels (crop + agrandissement) : les deux silhouettes gravées à la main sont nettes
+au zoom ; le téléphone rose reste identifiable sur l'établi, dans le flou de vitre déjà voulu par
+la mise en scène (« photo floue à travers une fenêtre »). `docs/TODO.md` § Livraison des médias et
+`media/README.md` mis à jour pour décrire la nouvelle composition (crochet + ampoule comme repères
+visuels de référence pour toute réplique future).
+
+### Pas de « zone de zoom » à recaler — la mécanique n'en a pas
+
+Vivien demandait de vérifier que la zone de zoom de l'interaction cachée suive la nouvelle
+position du trousseau. Il n'existe pas de zone stockée : `PhotoViewer` (`message_widgets.dart`)
+déclenche l'interaction sur **tout** pincement au-delà d'un seuil d'échelle (`scale > 1.15`), où
+que le joueur touche l'image — `InteractiveViewer` générique, `maxScale: 5`. Rien à recaler côté
+mécanique ; la seule chose qui compte est la lisibilité du détail une fois zoomé (voir plus haut),
+couverte par `media/README.md` § Lisibilité au zoom.
+
+### Texte : message commun ET micro-choix corrigés, source d'abord
+
+Édité `docs/chapitre-1-v3.2.md` (source de vérité du contenu, pas la bible) avant la migration,
+comme l'exige la règle 6 :
+- Message commun (`N21#2`) : « Tu vois le trousseau, sur le crochet, juste sous la lumière ? Zoome
+  sur le porte-clés. » — et sa variante vouvoiement (`refus = true`), déclinée mécaniquement
+  (tu→vous) sur le même principe que les autres répliques du chapitre.
+- Micro-choix 🧠 (« Qu'est-ce que je suis censé voir ? ») : la réponse ne révèle plus l'emplacement
+  à l'avance — « Attends, je vais te guider, regarde bien l'image. »
+
+**Piège trouvé en régénérant** : `scripts/generate-seed-content.py` régénère la plupart des
+messages depuis le doc, mais les variantes tu/vous de `N21#2` sont dans une table Python à part
+(`VARIANTES_REFUS` ou équivalent, ligne ~283) — éditer le seul doc n'aurait rien changé en base. Le
+premier passage de régénération n'a mis à jour QUE le micro-choix (dérivé du doc) et a laissé
+l'ancien texte du message commun (codé en dur dans le script). Corrigé en éditant aussi le script,
+puis reconfirmé par un diff de migration propre sur les deux lignes attendues.
+
+### Vérification
+
+**Ordre important, découvert en cours de route** : `verify-graph.sql`, `verify-fidelity.py`,
+`simulate-playthrough.py`, `test-micro-choix.py`, `test-ai-moment.py` doivent tourner **avant**
+`scripts/upload-media.sh`, pas après. `signerMedias()` (moteur.ts) ne transforme `media_url` en URL
+signée que si l'objet existe dans `storage.objects` — vide juste après un `db reset`. Une fois
+`upload-media.sh` rejoué, la table se repeuple et `simulate-playthrough.py` échoue sur un contrôle
+qui compare `media_url` à un nom de fichier brut (`lena-rentre-chez-elle.mp4`), puisqu'il devient
+une URL signée. Pas une régression : reproduit et confirmé en isolant l'ordre (reset → suite de
+tests → upload-media.sh en dernier, pour laisser le bucket dans son état réel de livraison).
+
+`verify-graph.sql` 51/51 · `verify-fidelity.py` 114/114 · `simulate-playthrough.py` ✅ ·
+`test-micro-choix.py` ✅ · `test-ai-moment.py` ✅ (dont le contrôle d'étanchéité sur `aparte`,
+inchangé) · `test-migration-peuplee.py` ✅.
+
+### Prochaine étape
+
+Validation de Vivien — en particulier sur device pour la lisibilité du téléphone au zoom (le
+README documente cette vérification comme ne se jugeant jamais sur écran d'ordinateur).
+
+---
+
 ## 2026-08-19 (5) — L'apparté généralisé : `ContexteSaisieLibre` devient `nodes.aparte`
 
 Correction de Vivien sur l'entrée (3) : la ligne de contexte du N9 avait été codée en dur pour le

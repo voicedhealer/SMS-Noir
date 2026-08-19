@@ -282,9 +282,11 @@ VARIANTES = {
     ],
     ('N21', 2): [
         ({'eq': {'refus': False}},
-         "Tu vois le trousseau accroché au mur ? Zoome sur le porte-clés."),
+         "Tu vois le trousseau, sur le crochet, juste sous la lumière ? "
+         "Zoome sur le porte-clés."),
         ({'eq': {'refus': True}},
-         "Vous voyez le trousseau accroché au mur ? Zoomez sur le porte-clés."),
+         "Vous voyez le trousseau, sur le crochet, juste sous la lumière ? "
+         "Zoomez sur le porte-clés."),
     ],
     ('N22', 1): [
         ({'eq': {'refus': False}},

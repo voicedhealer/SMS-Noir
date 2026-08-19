@@ -42,8 +42,11 @@ l'indice n'existe pas.
 
 ## `photo-N21-porte-cles` — l'intérieur
 
-Photo floue à travers une fenêtre : un établi, des cartons empilés, et au mur un
-trousseau avec un porte-clés artisanal.
+Photo floue à travers une fenêtre : un établi, des cartons empilés, et à gauche
+un trousseau accroché à un crochet sur le mur en bois, éclairé directement par
+une ampoule suspendue juste au-dessus — le point le plus lumineux de la photo.
+Le crochet et la lumière sont les deux repères à réutiliser dans toute réplique
+qui y ferait référence.
 
 🔍 Deux détails doivent survivre au zoom :
 - le porte-clés en gros plan — **deux silhouettes gravées à la main** ;

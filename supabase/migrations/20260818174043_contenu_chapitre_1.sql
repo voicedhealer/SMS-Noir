@@ -370,8 +370,8 @@ from (values
 ('N21', 0, 'text', $$Je t'ai pas dit, mais je me suis approchée de l'entrepôt, je sais c'était risqué, c'est pour ça que je ne te l'ai pas dit, je ne voulais pas que tu t'inquiètes pour moi. Donc avant qu'il sorte j'ai pris une photo par une fenêtre, un peu floue et mal prise, j'étais accroupie, mais je pense avoir trouvé des preuves...$$, null, 12, 3, false, null, $${"eq": {"refus": false}}$$),
 ('N21', 0, 'text', $$Je ne vous ai pas dit, mais je me suis approchée de l'entrepôt, je sais c'était risqué, c'est pour ça que je ne vous l'ai pas dit, je ne voulais pas que vous vous inquiétiez pour moi. Donc avant qu'il sorte j'ai pris une photo par une fenêtre, un peu floue et mal prise, j'étais accroupie, mais je pense avoir trouvé des preuves...$$, null, 12, 3, false, null, $${"eq": {"refus": true}}$$),
 ('N21', 1, 'image', null, $$photo-N21-porte-cles.jpeg$$, 5, 3, false, null, $${}$$),
-('N21', 2, 'text', $$Tu vois le trousseau accroché au mur ? Zoome sur le porte-clés.$$, null, 5, 3, false, null, $${"eq": {"refus": false}}$$),
-('N21', 2, 'text', $$Vous voyez le trousseau accroché au mur ? Zoomez sur le porte-clés.$$, null, 5, 3, false, null, $${"eq": {"refus": true}}$$),
+('N21', 2, 'text', $$Tu vois le trousseau, sur le crochet, juste sous la lumière ? Zoome sur le porte-clés.$$, null, 5, 3, false, null, $${"eq": {"refus": false}}$$),
+('N21', 2, 'text', $$Vous voyez le trousseau, sur le crochet, juste sous la lumière ? Zoomez sur le porte-clés.$$, null, 5, 3, false, null, $${"eq": {"refus": true}}$$),
 
 -- N22
 ('N22', 0, 'text', $$Chloé avait exactement le même, c'est moi qui le lui avais offert.$$, null, 6, 3, false, null, $${}$$),
@@ -500,7 +500,7 @@ from (values
 -- N21 · pause après le message 1
 ('N21', 10, $$Tu as pris ce risque juste pour ça ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Regarde bien s'il te plaît, tu comprendras, tu as un regard extérieur.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
 ('N21', 11, $$Il y a un téléphone posé sur l'établi.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Ah ouais ! Mais j'ai pas vu ça moi, où ça ?", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N21', 12, $$Qu'est-ce que je suis censé voir ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Le mur, à droite, au-dessus de l'établi.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+('N21', 12, $$Qu'est-ce que je suis censé voir ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Attends, je vais te guider, regarde bien l'image.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N22 · pause après le message 0
 ('N22', 10, $$Tu es sûre de toi, vraiment ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Sûre et certaine.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
