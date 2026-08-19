@@ -4,6 +4,43 @@
 
 ---
 
+## 2026-08-19 (2) — Addendum transition N20-N9, Phase C : visionneuse photo plein écran
+
+Dernière phase de l'addendum (§3.1). Bug confirmé en lisant `PhotoViewer`
+(`app/lib/widgets/message_widgets.dart`) : `Image.network(...)` n'avait ni `fit`
+ni conteneur dimensionné, et rendait donc à sa taille intrinsèque à l'intérieur
+d'`InteractiveViewer` — d'où le cadre visible autour de l'image une fois
+agrandie, exactement ce que le rapport décrivait.
+
+**Correctif** : le chemin image réelle passe maintenant par `SizedBox.expand`
++ `Image.network(fit: BoxFit.contain)`, avant même le zoom — comportement de
+référence (iMessage, WhatsApp) : l'image occupe tout l'écran disponible sans
+recadrage, fond noir uniforme si l'aspect ne correspond pas. Le chemin
+placeholder (média pas encore produit) est inchangé dans l'esprit — cartouche
+neutre, taille modeste, pas de raison de le forcer plein écran — juste
+recentré (`Center`) pour rester cohérent avec le nouveau body.
+
+**Pourquoi pas de test automatisé sur le chemin réel** : `Image.network` a
+besoin d'une base (`Env.supabaseUrl`), qui lève une erreur si aucune n'est
+configurée — ce qu'aucun test widget de ce projet ne fournit (même contrainte
+déjà contournée par PhotoBubble/AudioBubble/VideoTransitionScreen, toujours
+testés en `placeholder://`). Le correctif est donc vérifié par lecture du
+code, pas par un test qui exercerait réellement `SizedBox.expand` +
+`BoxFit.contain` — à la différence du chemin placeholder, qui lui est
+couvert (`test/photo_viewer_test.dart`, 2 tests). Même limite que la lecture
+vidéo réelle de la Phase B : pas d'outil de tap disponible sur cette machine
+pour confirmer à l'œil sur device.
+
+`flutter analyze` propre, `flutter test` 104/104 (102 + 2 nouveaux).
+
+### Prochaine étape
+
+Validation de Vivien — dernière phase de cet addendum. Les deux témoins
+visuels dus (vidéo N9 de la Phase B, zoom photo de cette phase) restent à
+confirmer en jouant sur device.
+
+---
+
 ## 2026-08-19 — Addendum transition N20-N9, Phase B : écran de transition vidéo
 
 Phase A validée par Vivien (deux ajustements appliqués, committée — voir entrée du 18/08). Cette

@@ -286,24 +286,35 @@ class PhotoViewer extends StatelessWidget {
         ),
       ),
       extendBodyBehindAppBar: true,
-      body: Center(
-        child: InteractiveViewer(
-          transformationController: controleur,
-          minScale: 1,
-          maxScale: 5,
-          child: message.isPlaceholderMedia
-              ? const Padding(
+      // L'image occupe tout l'écran AVANT le zoom, comme une visionneuse
+      // standard (iMessage, WhatsApp) : `SizedBox.expand` + `BoxFit.contain`
+      // la portent à la plus grande taille possible sans la recadrer, fond
+      // noir uniforme autour si l'aspect ne correspond pas à l'écran. Avant ce
+      // correctif, l'image se rendait à sa taille intrinsèque — d'où le cadre
+      // visible autour d'elle une fois agrandie.
+      body: InteractiveViewer(
+        transformationController: controleur,
+        minScale: 1,
+        maxScale: 5,
+        child: message.isPlaceholderMedia
+            ? const Center(
+                child: Padding(
                   padding: EdgeInsets.all(AppSpacing.xxl),
                   child: MediaPlaceholder(type: ContentType.image, hauteur: 320),
-                )
-              : Image.network(
+                ),
+              )
+            : SizedBox.expand(
+                child: Image.network(
                   message.urlAbsolue(Env.supabaseUrl)!,
-                  errorBuilder: (_, _, _) => const Padding(
-                    padding: EdgeInsets.all(AppSpacing.xxl),
-                    child: MediaPlaceholder(type: ContentType.image, hauteur: 320),
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(AppSpacing.xxl),
+                      child: MediaPlaceholder(type: ContentType.image, hauteur: 320),
+                    ),
                   ),
                 ),
-        ),
+              ),
       ),
     );
   }

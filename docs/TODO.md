@@ -1,18 +1,20 @@
 # TODO.md
 
-## 🔴 Addendum transition N20-N9 — reste (Phase C, et un témoin visuel dû sur la B)
+## 🔴 Addendum transition N20-N9 — TERMINÉ côté code, deux témoins visuels dus à Vivien
 
-Phases A et B terminées, vérifiées côté back/tests — voir MEMOIRE.md 2026-08-18/19. Restent :
+Phases A, B et C terminées, vérifiées côté back/tests — voir MEMOIRE.md 2026-08-18/19. Aucun outil
+d'automatisation de tap n'est disponible sur cette machine (pas d'accès d'aide autorisé) : deux
+correctifs UI n'ont pu être vérifiés que par lecture de code + tests widget sur média `placeholder`,
+jamais à l'œil sur device en conditions réelles.
 
-- [ ] **Témoin visuel de la Phase B, dû à Vivien.** Aucun outil d'automatisation de tap n'est
-      disponible sur cette machine (pas d'accès d'aide autorisé) : je n'ai pas pu dérouler la partie
-      jusqu'au N9 pour voir la vidéo jouer réellement sur device. Vérifié autrement (voir MEMOIRE) :
-      le bon message vidéo arrive en position 0 du N9 côté serveur, l'app démarre et tourne avec
-      `video_player` sans crash. La lecture elle-même — plein écran, bonne durée, enchaînement propre
-      sur le texte suivant — reste à confirmer en jouant.
-- [ ] **Phase C** — `PhotoViewer` (`app/lib/widgets/message_widgets.dart`) : l'image doit remplir
-      l'écran (`BoxFit`) avant que `InteractiveViewer` applique le zoom, au lieu de son cadre à
-      taille intrinsèque actuel.
+- [ ] **Vidéo de transition N20→N9 (Phase B).** Le bon message vidéo arrive en position 0 du N9 côté
+      serveur, l'app démarre et tourne avec `video_player` sans crash. La lecture elle-même — plein
+      écran, bonne durée (~6 s), enchaînement propre sur le texte suivant — reste à confirmer en
+      jouant.
+- [ ] **Zoom plein écran de la visionneuse photo (Phase C).** `SizedBox.expand` + `BoxFit.contain`
+      posés à la place du rendu à taille intrinsèque — non exerçables en test widget
+      (`Image.network` a besoin d'une base non disponible en test). À confirmer en zoomant une vraie
+      photo (N10, N16 ou N21) sur device.
 
 ## 🟡 Flakiness connue, sans rapport avec le contenu — `test-ai-moment.py` § quota
 
