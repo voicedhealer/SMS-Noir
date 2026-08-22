@@ -66,7 +66,7 @@ delete from contacts;
 insert into stories (slug, title, tagline, genre, status, is_premium) values (
   'numero-inconnu',
   'Numéro Inconnu',
-  $$22h47. Un SMS qui ne vous était pas destiné. Et vous devenez son seul contact.$$,
+  $$22h47. Un SMS qui ne vous était pas destiné, et vous devenez son seul contact.$$,
   'thriller',
   'draft',       -- imposé : la vitrine (RLS) filtre sur 'published' -> liste vide. Normal.
   false

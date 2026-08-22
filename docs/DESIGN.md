@@ -498,14 +498,19 @@ question), et ça évite d'interrompre l'échange avec Léna la première fois q
   **non cochée par défaut** (bible §9 — un consentement ne se présume pas).
 - Bouton « Entrer », blanc plein, texte noir, pleine largeur, en bas.
 
-**Le bouton « Entrer » est toujours actif, coché ou non** — jamais bloqué par ce choix, à la
-différence d'un ancien écran de consentement séparé qui forçait une décision explicite avant de
-laisser passer. Un tap envoie la valeur de la case au serveur et referme l'écran d'un coup ; il n'y
-a pas de second écran à traverser.
+**Le bouton « Entrer » est inactif tant que la case n'est pas cochée** — consentement obligatoire,
+décision explicite de Vivien qui revient sur le choix précédent (le bouton était auparavant
+toujours actif, la case ne décidant que de la valeur envoyée). Un tap, une fois actif, envoie
+`{consent: true}` et referme l'écran d'un coup ; il n'y a pas de second écran à traverser.
 
-**Un refus n'est pas une impasse** : rien n'est encore engagé à ce stade, donc rien à refermer —
-l'intronisation suit normalement. Le refus tient jusqu'au N9 : Léna y raccroche directement au
-premier message envoyé, sans qu'on ait besoin de redemander.
+⚠️ **Réserve RGPD signalée et sciemment acceptée** : la case porte sur un traitement précis (l'IA du
+N9), pas sur les conditions d'utilisation en général — en conditionner l'accès à l'histoire entière
+est le genre de chose qui peut fragiliser le caractère « librement donné » du consentement (RGPD,
+art. 7§4). Conséquence concrète : le chemin « consentement refusé » (`ai_consent_refuse`,
+`nodes.ai_refus_node_id`, la variante vouvoiement de la clôture du N9) ne se déclenche plus en usage
+normal depuis cette carte — il ne reste accessible que par le chemin de repli ci-dessous (progression
+antérieure à la carte d'entrée, ou client qui l'aurait contournée). Le mécanisme n'est pas retiré :
+il devient juste rarement emprunté.
 
 Titre, accroche et image viennent tous du serveur (`stories.title/tagline/cover_url`), rien n'est
 codé en dur — pensé pour resservir tel quel avec les futures histoires de la bibliothèque. Un ancien

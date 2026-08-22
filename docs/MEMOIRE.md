@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-08-22 (2) — Consentement IA rendu obligatoire à la carte d'entrée, décision assumée malgré la réserve RGPD
+
+Vivien : « on peut lancer l'histoire sans valider la checkbox, j'avais pourtant demandé cette
+obligation. » Avant de changer quoi que ce soit, signalé que le comportement inverse (bouton
+toujours actif) était **documenté comme volontaire** — code, tests, DESIGN.md et LOGIQUE.md
+l'expliquaient tous, avec une raison précise : ne pas conditionner l'accès à l'histoire à un
+consentement pour un traitement non essentiel (RGPD, art. 7§4 — consentement « librement donné »).
+Vivien a confirmé vouloir bloquer quand même, en connaissance de cause.
+
+**Fait** : `EntryCardScreen` — bouton « Entrer » inactif (`onPressed: null`, fond `bulleContact`,
+texte `texteTertiaire`) tant que la case n'est coché. S'active dès la coche, envoie toujours
+`{consent: true}` (plus de chemin `false` depuis cet écran).
+
+**Conséquence concrète, pas juste théorique** : ça rend le chemin « consentement refusé »
+(`ai_consent_refuse`, `nodes.ai_refus_node_id`, la variante vouvoiement `RACCROCHAGE_VOUS` ajoutée
+plus tôt dans cette même session) inatteignable en usage normal depuis la carte d'entrée — il ne
+reste accessible que par le chemin de repli existant (`ConsentScreen`, progression antérieure à la
+carte, ou client qui l'aurait contournée) et par les tests serveur (`test-ai-moment.py`), qui
+continuent d'appeler `ai-chat` directement. Rien retiré côté serveur : juste beaucoup moins
+emprunté. Signalé à Vivien après coup — pas re-demandé sa confirmation une deuxième fois, la
+décision RGPD étant déjà prise en connaissance de cause, mais la conséquence sur ce chemin précis
+n'avait pas été énoncée aussi précisément au moment de sa confirmation.
+
+**Vérifié** : `flutter analyze` propre, 149/149 tests (nouveau test dédié dans
+`entry_card_screen_test.dart` + réécriture du test « toujours actif » devenu faux dans
+`conversation_screen_test.dart`, qui vérifie maintenant l'inverse).
+
+
 ## 2026-08-22 — Reliquat « voiture » à la clôture du N9, signalé par Vivien en jouant
 
 Pas une incohérence bible §7 : un reliquat technique de l'ancienne version du moment IA, qui se

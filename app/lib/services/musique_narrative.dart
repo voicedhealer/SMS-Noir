@@ -62,9 +62,11 @@ class MusiqueNarrative {
       _desinscrireSonore = IndicateurSonore.instance.signaler(() => unawaited(arreter()));
       unawaited(lecteur.play());
       await _monter(lecteur, generation);
-    } catch (_) {
+    } catch (e) {
       // Une musique absente ou illisible ne doit jamais empêcher l'histoire de
-      // commencer : la séquence se joue en silence.
+      // commencer : la séquence se joue en silence. Mais jamais silencieux
+      // pour le diagnostic non plus — même principe que NotificationsLocales.
+      debugPrint('[MusiqueNarrative] démarrage impossible ($url) : $e');
       await arreter();
     }
   }

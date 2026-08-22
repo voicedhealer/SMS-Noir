@@ -77,6 +77,10 @@ Future<void> monter(
   Map<String, Object> prefs = const {},
   bool racine = false,
   void Function(Map<String, dynamic> corps)? surAiChat,
+  // `false` quand la carte d'entrée est encore à l'écran (consentement pas
+  // décidé) : sa respiration boucle indéfiniment (voir EntryCardScreen),
+  // donc `pumpAndSettle` n'y termine jamais.
+  bool attendreStabilisation = true,
 }) async {
   SharedPreferences.setMockInitialValues(prefs);
 
@@ -104,7 +108,11 @@ Future<void> monter(
       home: racine ? const RootScreen() : const ConversationScreen(),
     ),
   ));
-  await tester.pumpAndSettle();
+  if (attendreStabilisation) {
+    await tester.pumpAndSettle();
+  } else {
+    await tester.pump(const Duration(seconds: 3));
+  }
 }
 
 void main() {
@@ -134,7 +142,8 @@ void main() {
         };
 
     testWidgets('précède tout, avec le titre, l\'accroche et le bouton', (tester) async {
-      await monter(tester, getState: etatSansConsentement(), racine: true);
+      await monter(tester,
+          getState: etatSansConsentement(), racine: true, attendreStabilisation: false);
       expect(find.byType(EntryCardScreen), findsOneWidget);
       expect(find.text('Numéro Inconnu'), findsOneWidget);
       expect(find.text('22h47. Un SMS...'), findsOneWidget);
@@ -144,12 +153,16 @@ void main() {
     });
 
     testWidgets('la case n\'est pas cochée par défaut (bible §9)', (tester) async {
-      await monter(tester, getState: etatSansConsentement(), racine: true);
+      await monter(tester,
+          getState: etatSansConsentement(), racine: true, attendreStabilisation: false);
       expect(find.byIcon(Icons.check_box_outline_blank), findsOneWidget);
       expect(find.byIcon(Icons.check_box), findsNothing);
     });
 
-    testWidgets('« Entrer » est toujours actif, même la case décochée', (tester) async {
+    testWidgets('« Entrer » est inactif tant que la case n\'est pas cochée', (tester) async {
+      // Consentement obligatoire, décision explicite de Vivien (voir la doc
+      // de classe d'EntryCardScreen) : un tap sur « Entrer » case décochée ne
+      // doit rien envoyer, rien fermer.
       Map<String, dynamic>? envoye;
       await monter(
         tester,
@@ -157,15 +170,14 @@ void main() {
         aiChat: reponseAiChat(),
         racine: true,
         surAiChat: (corps) => envoye = corps,
+        attendreStabilisation: false,
       );
 
-      // Ni tap sur la case, ni changement d'état : directement « Entrer ».
-      await tester.tap(find.text('Entrer'));
-      await tester.pumpAndSettle();
+      await tester.tap(find.text('Entrer'), warnIfMissed: false);
+      await tester.pump();
 
-      expect(envoye, {'consent': false}, reason: 'décochée -> refus, mais l\'entrée n\'a pas attendu');
-      expect(find.byType(EntryCardScreen), findsNothing);
-      expect(find.byType(ConsentScreen), findsNothing);
+      expect(envoye, isNull, reason: 'bouton inactif : aucune requête ne doit partir');
+      expect(find.byType(EntryCardScreen), findsOneWidget, reason: 'l\'écran doit rester ouvert');
     });
 
     testWidgets('case cochée puis « Entrer » : le consentement accepté part au serveur',
@@ -177,6 +189,7 @@ void main() {
         aiChat: reponseAiChat(),
         racine: true,
         surAiChat: (corps) => envoye = corps,
+        attendreStabilisation: false,
       );
 
       await tester.tap(find.byIcon(Icons.check_box_outline_blank));

@@ -16,8 +16,10 @@ import '../theme/tokens.dart';
 /// serveur — `stories.title/tagline/cover_url`) pour resservir tel quel avec
 /// les futures histoires de la bibliothèque, sans rien coder en dur.
 ///
-/// Le bouton « Entrer » est **toujours actif**, coché ou non : la case ne le
-/// bloque jamais, elle décide seulement de la valeur envoyée. Voir
+/// Le bouton « Entrer » reste **inactif tant que la case n'est pas cochée** :
+/// consentement obligatoire, décision explicite de Vivien malgré la réserve
+/// RGPD soulevée (rendre l'accès à l'histoire conditionnel à un consentement
+/// pour un traitement non essentiel). Voir
 /// `ConversationController.repondreConsentement`.
 class EntryCardScreen extends StatefulWidget {
   const EntryCardScreen({
@@ -44,13 +46,19 @@ class EntryCardScreen extends StatefulWidget {
 }
 
 class _EntryCardScreenState extends State<EntryCardScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   // Case non cochée par défaut (bible §9) : un consentement ne se présume pas.
   bool _consentement = false;
 
   late final AnimationController _image;
   late final Animation<double> _imageOpacite;
   late final Animation<double> _imageFlou;
+
+  // Respiration continue de la couverture — indépendante de `_image` (qui ne
+  // joue qu'une fois, à l'entrée) : léger zoom aller-retour, sans fin, pour
+  // que l'écran d'accueil ne soit jamais complètement figé.
+  late final AnimationController _respiration;
+  late final Animation<double> _echelle;
 
   final _timers = <Timer>[];
   var _titreVisible = false;
@@ -71,6 +79,13 @@ class _EntryCardScreenState extends State<EntryCardScreen>
     // Flou qui se dissipe : sigma élevé -> 0, impression de mise au point.
     _imageFlou = Tween<double>(begin: 14, end: 0)
         .animate(CurvedAnimation(parent: _image, curve: Curves.easeOut));
+
+    // Très lent et très léger (4 %) : un mouvement qu'on sent plus qu'on ne le
+    // voit. `Curves.easeInOut` sur un aller-retour évite tout à-coup aux
+    // extrémités, qui trahirait la boucle.
+    _respiration = AnimationController(vsync: this, duration: const Duration(seconds: 9));
+    _echelle = Tween<double>(begin: 1, end: 1.04)
+        .animate(CurvedAnimation(parent: _respiration, curve: Curves.easeInOut));
   }
 
   @override
@@ -96,6 +111,7 @@ class _EntryCardScreenState extends State<EntryCardScreen>
     }
 
     unawaited(_image.forward());
+    unawaited(_respiration.repeat(reverse: true));
     // Fondu séquentiel des éléments de texte, après l'image — une seule fois,
     // jamais en boucle. Même idiome que NarrationScreen/IntroScreen.
     var quand = _dureeImage;
@@ -115,6 +131,7 @@ class _EntryCardScreenState extends State<EntryCardScreen>
   @override
   void dispose() {
     _image.dispose();
+    _respiration.dispose();
     for (final t in _timers) {
       t.cancel();
     }
@@ -144,6 +161,7 @@ class _EntryCardScreenState extends State<EntryCardScreen>
               url: widget.coverUrl,
               opacite: _imageOpacite,
               flou: _imageFlou,
+              echelle: _echelle,
             ),
           ),
           Expanded(
@@ -229,11 +247,14 @@ class _EntryCardScreenState extends State<EntryCardScreen>
                       child: SizedBox(
                         width: double.infinity,
                         child: TextButton(
-                          // Toujours actif : la case ne bloque jamais l'entrée,
-                          // elle décide seulement de ce qui est envoyé.
-                          onPressed: () => widget.onEntrer(_consentement),
+                          // Consentement obligatoire : inactif tant que la
+                          // case n'est pas cochée (décision explicite de
+                          // Vivien — voir la doc de classe).
+                          onPressed:
+                              _consentement ? () => widget.onEntrer(_consentement) : null,
                           style: TextButton.styleFrom(
-                            backgroundColor: Colors.white,
+                            backgroundColor:
+                                _consentement ? Colors.white : AppColors.bulleContact,
                             padding: const EdgeInsets.symmetric(vertical: AppSpacing.l),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(AppSpacing.m),
@@ -242,7 +263,9 @@ class _EntryCardScreenState extends State<EntryCardScreen>
                           child: Text(
                             'Entrer',
                             style: AppText.libelleChoix.copyWith(
-                                color: Colors.black, fontWeight: FontWeight.w600),
+                              color: _consentement ? Colors.black : AppColors.texteTertiaire,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
@@ -263,45 +286,61 @@ class _EntryCardScreenState extends State<EntryCardScreen>
 /// s'arrêter net sur un bord. Calque indépendant — jamais fusionné avec le
 /// texte posé par-dessus.
 class _Couverture extends StatelessWidget {
-  const _Couverture({required this.url, required this.opacite, required this.flou});
+  const _Couverture({
+    required this.url,
+    required this.opacite,
+    required this.flou,
+    required this.echelle,
+  });
 
   final String? url;
   final Animation<double> opacite;
   final Animation<double> flou;
+
+  /// Respiration continue (voir `_EntryCardScreenState._respiration`) —
+  /// contrôleur distinct de `opacite`/`flou`, donc écouté séparément.
+  final Animation<double> echelle;
 
   @override
   Widget build(BuildContext context) {
     if (url == null) return const SizedBox.shrink();
     final absolue = '${Env.supabaseUrl}$url';
 
-    return AnimatedBuilder(
-      animation: opacite,
-      builder: (context, _) => Opacity(
-        opacity: opacite.value,
-        child: ImageFiltered(
-          imageFilter: ui.ImageFilter.blur(
-              sigmaX: flou.value, sigmaY: flou.value, tileMode: TileMode.decal),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Image.network(
-                absolue,
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-                errorBuilder: (_, _, _) => const SizedBox.shrink(),
-              ),
-              // Dégradé en overlay, sur le tiers inférieur uniquement.
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.transparent, Colors.black],
-                    stops: [0, 0.62, 1],
+    return ClipRect(
+      // Le zoom de la respiration dépasse légèrement le cadre : sans ce
+      // clip, il peindrait par-dessus le texte posé juste en dessous.
+      child: AnimatedBuilder(
+        animation: Listenable.merge([opacite, echelle]),
+        builder: (context, _) => Opacity(
+          opacity: opacite.value,
+          child: Transform.scale(
+            scale: echelle.value,
+            child: ImageFiltered(
+              imageFilter: ui.ImageFilter.blur(
+                  sigmaX: flou.value, sigmaY: flou.value, tileMode: TileMode.decal),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.network(
+                    absolue,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.topCenter,
+                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
                   ),
-                ),
+                  // Dégradé en overlay, sur le tiers inférieur uniquement.
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Colors.transparent, Colors.black],
+                        stops: [0, 0.62, 1],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

@@ -547,6 +547,12 @@ touché à l'histoire que la décision est déjà prise. Écrit une seule fois
 atteignant réellement un `ai_moment` avec un refus déjà posé : voir
 § Le refus de consentement à un moment IA.
 
+⚠️ **Ce chemin serveur reste valide, mais le bouton « Entrer » de la carte d'entrée ne l'exerce plus
+en usage normal** : consentement rendu obligatoire côté client (décision de Vivien, voir DESIGN.md §
+La carte d'entrée, réserve RGPD signalée). `{consent: false}` reste un cas géré par `ai-chat` — le
+chemin de repli ci-dessous continue de s'en servir, et les tests (`test-ai-moment.py`) continuent de
+l'exercer directement contre le serveur, sans passer par la carte d'entrée.
+
 `get-state` expose `ai_consent_decided` (`ai_consent_at` posé OU `ai_consent_refuse` vrai) :
 c'est ce booléen, jamais un état local, qui fait réafficher la carte d'entrée. Un indicateur
 purement client ne prouverait rien et disparaîtrait sans trace (RGPD, bible §9).
