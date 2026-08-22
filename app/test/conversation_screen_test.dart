@@ -319,6 +319,64 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 30));
     });
 
+    testWidgets(
+        'la musique du N19 et de fin restent exposées même une fois l\'intronisation déjà vue',
+        (tester) async {
+      // Régression : `ConversationState.intro` (et donc son
+      // `narration_music_url`/`chapter_end_music_url`) était nullé dès que
+      // l'intro avait déjà été vue, alors que ces segments doivent rester
+      // disponibles à CHAQUE passage par le N19 ou l'écran de fin — pas
+      // seulement à la toute première ouverture de l'app. Signalé par
+      // Vivien : sur son téléphone, seul le son de l'intro du tout début
+      // fonctionnait.
+      //
+      // Testé au niveau de l'état exposé par le contrôleur, pas en montant
+      // `NarrationScreen` : ce widget résout `Env.supabaseUrl` dès qu'un
+      // `musique` non nul lui est passé, absent en environnement de test
+      // (voir `tool/run_local.sh`) — hors sujet ici, le bug vivait dans la
+      // dérivation de l'état, pas dans l'écran.
+      final api = EngineApi(
+        jetonAcces: () => 'jeton',
+        baseUrl: 'http://test.local',
+        apiKey: 'k',
+        httpClient: MockClient((_) async => http.Response.bytes(
+            utf8.encode(jsonEncode({
+              'story': {'slug': 's', 'title': 'T'},
+              'intro': {
+                'panels': const [],
+                'music_url': null,
+                'narration_music_url': '/musique-n19.mp3',
+                'chapter_end_music_url': '/musique-fin.mp3',
+              },
+              'new_messages': const [],
+              'conversations': [conversation()],
+              'history': const [],
+              'node': noeud(),
+              'chapter_end': null,
+              'ai_moment_pending': false,
+              'ai_consent_decided': true,
+            })),
+            200)),
+      );
+      SharedPreferences.setMockInitialValues({'flutter.intro_vue:joueur-test': true});
+      final conteneur = ProviderContainer(overrides: [
+        authPreteProvider.overrideWith((ref) async => 'joueur-test'),
+        engineApiProvider.overrideWithValue(api),
+      ]);
+      addTearDown(conteneur.dispose);
+
+      await tester.pumpWidget(UncontrolledProviderScope(
+        container: conteneur,
+        child: MaterialApp(theme: AppTheme.sombre, home: const ConversationScreen()),
+      ));
+      await tester.pumpAndSettle();
+
+      final etat = conteneur.read(conversationProvider).value!;
+      expect(etat.intro, isNull, reason: 'l\'intro elle-même ne doit pas rejouer');
+      expect(etat.musiqueNarration, '/musique-n19.mp3');
+      expect(etat.musiqueFin, '/musique-fin.mp3');
+    });
+
     testWidgets('la zone de choix reste masquée pendant les 4 s de vide', (tester) async {
       // Régression : les réponses proposées s'affichaient dès la fin de
       // l'intro, avant le moindre message de Léna, puis disparaissaient au
@@ -538,13 +596,14 @@ void main() {
   });
 
   testWidgets('un texte saisi s\'affiche à droite, non délivré', (tester) async {
+    // Aucun choix sur ce nœud : le champ reste actif (silence du N19, geste
+    // de continuation...). Voir « le champ se verrouille dès qu'un choix
+    // s'affiche » plus bas pour le cas où des choix sont présents.
     await monter(tester, getState: {
       'story': {'slug': 's', 'title': 'T'},
       'conversations': [conversation()],
       'history': [message(seq: 1, body: '23h31', type: 'separator')],
-      'node': noeud(choix: [
-        {'id': 'a', 'position': 0, 'label': 'Réponse A', 'kind': 'reply'},
-      ]),
+      'node': noeud(),
       'chapter_end': null,
       'ai_moment_pending': false,
     });
@@ -557,6 +616,31 @@ void main() {
     expect(find.text('réponds bordel'), findsOneWidget);
     // Une seule coche : envoyé, jamais délivré.
     expect(find.byIcon(Icons.check), findsOneWidget);
+  });
+
+  testWidgets('le champ ignore le tap dès qu\'un choix est affiché', (tester) async {
+    // Régression : le champ restait cliquable même avec des choix affichés —
+    // le curseur s'activait et clignotait sans jamais ouvrir le clavier, un
+    // geste parasite qui cassait l'immersion pour rien, le vrai choix étant
+    // déjà à l'écran. Signalé par Vivien.
+    await monter(tester, getState: {
+      'story': {'slug': 's', 'title': 'T'},
+      'conversations': [conversation()],
+      'history': const [],
+      'node': noeud(choix: [
+        {'id': 'a', 'position': 0, 'label': 'Réponse A', 'kind': 'reply'},
+      ]),
+      'chapter_end': null,
+      'ai_moment_pending': false,
+    });
+
+    await tester.tap(find.byType(TextField), warnIfMissed: false);
+    await tester.pump();
+
+    final champ = tester.widget<TextField>(find.byType(TextField));
+    expect(champ.focusNode?.hasFocus, isFalse);
+    // Aspect rigoureusement inchangé : même indice, jamais grisé.
+    expect(find.text('Message'), findsOneWidget);
   });
 
   testWidgets('les médias portent leur heure de fiction, comme les bulles texte',
@@ -705,8 +789,12 @@ void main() {
       'chapter_end': {
         'chapter_title': 'Le mauvais numéro',
         'next_chapter_title': 'Chloé',
+        'next_chapter_position': 2,
         'unlocked_at': DateTime.now().add(const Duration(hours: 8)).toIso8601String(),
         'next_chapter_pending': true,
+        'next_chapter_unlock_delay_minutes': 480,
+        'next_chapter_notification_text': 'Léna vous attend. Le chapitre 2 est disponible.',
+        'next_chapter_teaser_text': null,
       },
       'ai_moment_pending': false,
     });
@@ -717,9 +805,13 @@ void main() {
     // Le cliffhanger s'écrit maintenant caractère par caractère : on laisse la
     // frappe se terminer avant de chercher la phrase entière.
     await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
     expect(find.text('Quelqu\'un est entré chez Léna.'), findsOneWidget);
-    expect(find.text('CHLOÉ'), findsOneWidget);
-    expect(find.text('à venir'), findsOneWidget);
+    expect(find.text('CHAPITRE 2 — CHLOÉ'), findsOneWidget);
+    // Plus de compte à rebours en chiffres : un bouton pour programmer un
+    // rappel, jamais un chiffre qui descend.
+    expect(find.textContaining(':'), findsNothing);
+    expect(find.text('Me prévenir dans 8h'), findsOneWidget);
   });
 
   testWidgets('la bascule d\'identité change le nom de l\'en-tête', (tester) async {
@@ -1041,8 +1133,15 @@ void main() {
       expect(find.byType(TextField), findsOneWidget);
     });
 
-    testWidgets('taper le champ révèle les choix même remonté dans le fil',
+    testWidgets(
+        'taper le champ ne bouge rien quand des choix sont affichés, même remonté dans le fil',
         (tester) async {
+      // Avant le verrouillage (voir § Verrouillage, DESIGN.md), un tap
+      // délibéré sur le champ ramenait le joueur en bas pour révéler les
+      // choix sous le clavier qui s'ouvrait. Depuis, le champ ignore
+      // justement ce tap quand des choix sont affichés — rien à révéler
+      // puisque rien ne s'ouvre. Ce test vérifie que ça tient même sur un
+      // fil long et un bloc de choix chargé, pas seulement le cas trivial.
       await monter(
         tester,
         getState: {
@@ -1062,26 +1161,13 @@ void main() {
       expect(positionRemontee, lessThan(scroll.maxScrollExtent - 120),
           reason: 'point de départ : bien remonté, loin du bas');
 
-      // Taper le champ est un geste délibéré : contrairement à une livraison
-      // spontanée, il a le droit de ramener le joueur en bas pour voir ce
-      // qu'il peut répondre.
-      await tester.tap(find.byType(TextField));
-      await ouvrirClavier(tester);
-      for (var i = 0; i < 40; i++) {
-        await tester.pump(const Duration(milliseconds: 50));
-      }
+      await tester.tap(find.byType(TextField), warnIfMissed: false);
       await tester.pumpAndSettle();
 
-      // Pas une égalité pixel-parfait avec `maxScrollExtent` : sur une liste
-      // dont les derniers éléments (les choix) sont bien plus hauts que les
-      // messages courts qui précèdent, Flutter ESTIME l'extent des enfants pas
-      // encore construits avant de les avoir vraiment mesurés — cette
-      // estimation évolue au fil du layout, y compris dans le simulateur de
-      // test, d'une façon qui n'a rien à voir avec le comportement qu'on
-      // vérifie ici. Ce qui compte pour le joueur : avoir été ramené
-      // largement vers le bas, pas atteindre une valeur théorique au pixel.
-      expect(scroll.pixels, greaterThan(positionRemontee + 500),
-          reason: 'le tap sur le champ a nettement révélé le bas du fil, où vivent les choix');
+      expect(scroll.pixels, positionRemontee,
+          reason: 'le tap est ignoré : aucune raison de bouger le fil');
+      final champ = tester.widget<TextField>(find.byType(TextField));
+      expect(champ.focusNode?.hasFocus, isFalse);
     });
   });
 

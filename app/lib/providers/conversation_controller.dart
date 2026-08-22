@@ -13,6 +13,7 @@ import '../services/engine_api.dart';
 import '../services/engine_exception.dart';
 import '../services/fiction_clock.dart';
 import '../services/musique_narrative.dart';
+import '../services/notifications_locales.dart';
 import '../services/local_store.dart';
 import '../services/playback.dart';
 import '../services/read_receipts.dart';
@@ -46,6 +47,8 @@ class ConversationState {
     this.storyTagline,
     this.storyCoverUrl,
     this.consentDecide = false,
+    this.musiqueNarration,
+    this.musiqueFin,
   });
 
   final List<ClientMessage> fil;
@@ -83,11 +86,25 @@ class ConversationState {
   /// Séquence d'ouverture à jouer avant tout. Null = déjà vue, ou aucune.
   final IntroSequence? intro;
 
+  /// Segment 2 du morceau (écran noir du N19) — chemin signé relatif.
+  ///
+  /// Distinct de [intro] à dessein : [intro] se vide définitivement une fois
+  /// l'intronisation vue (`LocalStore.introVue`), alors que ce segment doit
+  /// rester disponible à CHAQUE passage par le N19, potentiellement bien après
+  /// la toute première ouverture de l'app. Le nuller avec [intro] revenait à
+  /// ne jamais jouer ce son après la première fois.
+  final String? musiqueNarration;
+
+  /// Segment 3 du morceau (écran de fin de chapitre) — même raison que
+  /// [musiqueNarration] : jamais gouverné par `introVue`.
+  final String? musiqueFin;
+
   /// L'écran de consentement doit s'afficher.
   final bool consentementRequis;
   final String? erreur;
 
-  Conversation? get contact => conversations.isEmpty ? null : conversations.first;
+  Conversation? get contact =>
+      conversations.isEmpty ? null : conversations.first;
 
   /// Lignes de l'écran noir, si le dernier message délivré est une narration.
   ///
@@ -153,7 +170,10 @@ class ConversationState {
   /// nœuds révolus.
   ClientMessage? get dernierMedia {
     for (final m in fil.reversed) {
-      if (m.contentType == ContentType.image || m.contentType == ContentType.audio) return m;
+      if (m.contentType == ContentType.image ||
+          m.contentType == ContentType.audio) {
+        return m;
+      }
     }
     return null;
   }
@@ -167,7 +187,8 @@ class ConversationState {
   ///
   /// Au chapitre 1 : N10, N16, N21 -> geste sur la photo · N17 -> réécoute ·
   /// N8 et N13 -> « + ». Les six y sont, sans que le client connaisse le graphe.
-  bool get interactionParGeste => (node?.interactions.isNotEmpty ?? false) && _noeudAApporteUnMedia;
+  bool get interactionParGeste =>
+      (node?.interactions.isNotEmpty ?? false) && _noeudAApporteUnMedia;
 
   List<ClientChoice> get interactionsParlees =>
       _noeudAApporteUnMedia ? const [] : (node?.interactions ?? const []);
@@ -222,27 +243,30 @@ class ConversationState {
     String? storyTagline,
     String? storyCoverUrl,
     bool? consentDecide,
-  }) =>
-      ConversationState(
-        fil: fil ?? this.fil,
-        node: viderNode ? null : (node ?? this.node),
-        conversations: conversations ?? this.conversations,
-        chapterEnd: chapterEnd ?? this.chapterEnd,
-        typing: typing ?? this.typing,
-        presence: viderPresence ? null : (presence ?? this.presence),
-        enDeroule: enDeroule ?? this.enDeroule,
-        mode: mode ?? this.mode,
-        heures: heures ?? this.heures,
-        vu: vu ?? this.vu,
-        nonLus: nonLus ?? this.nonLus,
-        intro: viderIntro ? null : (intro ?? this.intro),
-        consentementRequis: consentementRequis ?? this.consentementRequis,
-        erreur: viderErreur ? null : (erreur ?? this.erreur),
-        storyTitle: storyTitle ?? this.storyTitle,
-        storyTagline: storyTagline ?? this.storyTagline,
-        storyCoverUrl: storyCoverUrl ?? this.storyCoverUrl,
-        consentDecide: consentDecide ?? this.consentDecide,
-      );
+    String? musiqueNarration,
+    String? musiqueFin,
+  }) => ConversationState(
+    fil: fil ?? this.fil,
+    node: viderNode ? null : (node ?? this.node),
+    conversations: conversations ?? this.conversations,
+    chapterEnd: chapterEnd ?? this.chapterEnd,
+    typing: typing ?? this.typing,
+    presence: viderPresence ? null : (presence ?? this.presence),
+    enDeroule: enDeroule ?? this.enDeroule,
+    mode: mode ?? this.mode,
+    heures: heures ?? this.heures,
+    vu: vu ?? this.vu,
+    nonLus: nonLus ?? this.nonLus,
+    intro: viderIntro ? null : (intro ?? this.intro),
+    consentementRequis: consentementRequis ?? this.consentementRequis,
+    erreur: viderErreur ? null : (erreur ?? this.erreur),
+    storyTitle: storyTitle ?? this.storyTitle,
+    storyTagline: storyTagline ?? this.storyTagline,
+    storyCoverUrl: storyCoverUrl ?? this.storyCoverUrl,
+    consentDecide: consentDecide ?? this.consentDecide,
+    musiqueNarration: musiqueNarration ?? this.musiqueNarration,
+    musiqueFin: musiqueFin ?? this.musiqueFin,
+  );
 }
 
 class ConversationController extends AsyncNotifier<ConversationState> {
@@ -261,6 +285,11 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   String _storyTitle = '';
   String? _storyTagline;
   String? _storyCoverUrl;
+
+  /// Voir `ConversationState.musiqueNarration`/`musiqueFin` : jamais nullé
+  /// avec `_intro`, sinon plus aucun son après la première intronisation.
+  String? _musiqueNarration;
+  String? _musiqueFin;
 
   /// Voir `ConversationState.consentDecide`.
   bool _consentDecide = false;
@@ -331,7 +360,8 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         if (!aSonne && reglages.vibrations && effet == EffetSonore.reception) {
           HapticFeedback.lightImpact();
         }
-        if (m.sender == MessageSender.contact && m.contentType != ContentType.system) {
+        if (m.sender == MessageSender.contact &&
+            m.contentType != ContentType.system) {
           _nonLus++;
         }
         unawaited(_store.poserCurseur(m.seq));
@@ -369,11 +399,13 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     });
 
     final etat = await _api.getState();
-    unawaited(_sons.precharger(
-      reception: _absolue(etat.sounds.received),
-      envoi: _absolue(etat.sounds.sent),
-      frappe: _absolue(etat.sounds.typing),
-    ));
+    unawaited(
+      _sons.precharger(
+        reception: _absolue(etat.sounds.received),
+        envoi: _absolue(etat.sounds.sent),
+        frappe: _absolue(etat.sounds.typing),
+      ),
+    );
     _appliquerEtat(etat);
     return _etat();
   }
@@ -394,6 +426,12 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     _intro = (!etat.intro.estVide && !_store.introVue) ? etat.intro : null;
     _aJouerApresIntro = const [];
 
+    // Contrairement à `_intro`, ces deux-là ne se vident JAMAIS avec
+    // `introVue` : le N19 et l'écran de fin ont besoin de leur musique à
+    // chaque passage, pas seulement à la toute première ouverture de l'app.
+    _musiqueNarration = etat.intro.musiqueNarration;
+    _musiqueFin = etat.intro.musiqueFin;
+
     // L'historique se rejoue d'un bloc : le déjà-vu n'a pas de timers.
     final enAttente = _store.enAttente;
     final aRejouer = enAttente.map((m) => m.seq).toSet();
@@ -410,7 +448,9 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     // de la séquence, `introTerminee` appellerait `jouer` à son tour, ce qui
     // incrémente la génération du moteur et **annule le déroulé en cours**.
     // Les messages restaient en base et disparaissaient du fil.
-    final aJouerMaintenant = enAttente.isNotEmpty ? enAttente : etat.newMessages;
+    final aJouerMaintenant = enAttente.isNotEmpty
+        ? enAttente
+        : etat.newMessages;
     if (aJouerMaintenant.isEmpty) return;
     if (_intro != null) {
       _aJouerApresIntro = aJouerMaintenant;
@@ -470,24 +510,26 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   }
 
   ConversationState _etat() => ConversationState(
-        fil: List.unmodifiable(_fil),
-        node: _node,
-        conversations: _conversations,
-        chapterEnd: _chapterEnd,
-        typing: _attenteIA ? TypingState.reel : _moteur.typing,
-        presence: _moteur.presence,
-        enDeroule: _moteur.enCours || _derouleImminent,
-        mode: _mode(),
-        heures: FictionClock.horaires(_fil),
-        vu: ReadReceipts.marqueur(_fil, _vuAnticipe),
-        consentementRequis: _consentementRequis,
-        nonLus: _nonLus,
-        intro: _intro,
-        storyTitle: _storyTitle,
-        storyTagline: _storyTagline,
-        storyCoverUrl: _storyCoverUrl,
-        consentDecide: _consentDecide,
-      );
+    fil: List.unmodifiable(_fil),
+    node: _node,
+    conversations: _conversations,
+    chapterEnd: _chapterEnd,
+    typing: _attenteIA ? TypingState.reel : _moteur.typing,
+    presence: _moteur.presence,
+    enDeroule: _moteur.enCours || _derouleImminent,
+    mode: _mode(),
+    heures: FictionClock.horaires(_fil),
+    vu: ReadReceipts.marqueur(_fil, _vuAnticipe),
+    consentementRequis: _consentementRequis,
+    nonLus: _nonLus,
+    intro: _intro,
+    storyTitle: _storyTitle,
+    storyTagline: _storyTagline,
+    storyCoverUrl: _storyCoverUrl,
+    consentDecide: _consentDecide,
+    musiqueNarration: _musiqueNarration,
+    musiqueFin: _musiqueFin,
+  );
 
   /// Le mode se déduit entièrement du contrat : le client ne connaît pas le graphe.
   ComposerMode _mode() {
@@ -509,13 +551,13 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   void _armerFallbackContinuation() {
     _fallbackContinuation?.cancel();
     if (_moteur.enCours || _mode() != ComposerMode.continuation) return;
-    final aUnMedia = _fil.isNotEmpty &&
+    final aUnMedia =
+        _fil.isNotEmpty &&
         _fil.last.contentType != ContentType.text &&
         _fil.last.contentType != ContentType.separator;
-    _fallbackContinuation = Timer(
-      Duration(seconds: aUnMedia ? 30 : 25),
-      () { if (!_termine) state = AsyncData(_etat().copier()); },
-    );
+    _fallbackContinuation = Timer(Duration(seconds: aUnMedia ? 30 : 25), () {
+      if (!_termine) state = AsyncData(_etat().copier());
+    });
   }
 
   // --- Cycle de vie de l'application ----------------------------------------
@@ -653,7 +695,10 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     // envoie apparaît avant que l'autre ait lu. Le serveur la réécrira avec son
     // vrai `seq`, on retire alors la version locale.
     final provisoire = ClientMessage.decorative(
-      contactId: contactId, texte: texte, ancreSeq: _fil.isEmpty ? 0 : _fil.last.seq);
+      contactId: contactId,
+      texte: texte,
+      ancreSeq: _fil.isEmpty ? 0 : _fil.last.seq,
+    );
     _fil.add(provisoire);
     _attenteIA = true;
     _publier();
@@ -738,13 +783,22 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   }
 
   /// Efface la partie et la mémoire locale : le joueur repart du tout début,
-  /// intronisation comprise. Outil de développement.
+  /// intronisation comprise. Utilisé par l'outil de développement ET par
+  /// « Effacer ma progression » dans les Réglages (celui-là bien réel,
+  /// accessible à n'importe quel joueur).
   Future<void> reinitialiser() async {
     // Une intro va rejouer : on part d'un état sonore propre. `demarrer` coupe
     // déjà la précédente, mais ne rien laisser tourner pendant l'aller-retour
     // réseau évite toute superposition.
     await MusiqueNarrative.instance.arreter();
     _moteur.interrompre();
+    // Un rappel de déblocage pouvait avoir été programmé pour le chapitre
+    // qu'on efface : le laisser courir sonnerait plus tard pour une partie
+    // qui n'existe plus. Seul déclencheur réel aujourd'hui de « la
+    // notification programmée ne correspond plus à rien » — aucun système
+    // d'achat n'existe encore pour débloquer un chapitre autrement (voir
+    // docs/LOGIQUE.md § Notification locale de déblocage de chapitre).
+    await NotificationsLocales.instance.annuler();
     await _api.resetProgress();
     await _store.effacerTout();
     ref.invalidateSelf();
@@ -759,4 +813,5 @@ class ConversationController extends AsyncNotifier<ConversationState> {
 
 final conversationProvider =
     AsyncNotifierProvider<ConversationController, ConversationState>(
-        ConversationController.new);
+      ConversationController.new,
+    );

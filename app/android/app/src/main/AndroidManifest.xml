@@ -4,6 +4,14 @@
          de développement. L'app y perd tout — get-state, médias, moment IA. -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- Notification locale de déblocage de chapitre — voir
+         services/notifications_locales.dart. POST_NOTIFICATIONS est le prompt
+         runtime Android 13+ ; le reste permet au rappel de survivre à un
+         redémarrage du téléphone pendant l'attente (jusqu'à plusieurs heures). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+
     <application
         android:label="SMS Noir"
         android:name="${applicationName}"
@@ -35,6 +43,20 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Requis par flutter_local_notifications pour reprogrammer les
+             rappels après un redémarrage — sans ça, une notification
+             programmée avant que le téléphone s'éteigne disparaît. -->
+        <receiver android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

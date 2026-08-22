@@ -373,6 +373,30 @@ divergence entre la base et sa source de vérité. **58 = 58 actuellement.**
       (« Léna : 1 nouveau message »). Les N4, N6, N14, N19 et N20 ont `push_notification = true`
       mais `push_text = null`. Sans texte, les notifications locales du prompt 4 devront se replier
       sur un libellé générique — ce qui gâche l'effet, surtout au N19 (« il sort »).
+      ⚠️ Distinct de `chapters.notification_text` (posé, voir ci-dessous) : ceci concerne
+      l'arrivée d'un message pendant que l'app est fermée, pas le déblocage de chapitre.
+- [ ] **`chapters.teaser_text` du chapitre 2 reste vide.** Colonne posée (migration
+      `20260821120000_...`), affichée sur l'écran de fin si non nulle — mais rien n'y a été écrit :
+      pas de contenu inventé à sa place (règle 3). L'écran de fin fonctionne déjà sans (le label
+      « CHAPITRE 2 — CHLOÉ » s'affiche, simplement pas de phrase d'accroche dessous).
+
+## 🔔 Notifications locales de déblocage de chapitre — code prêt, jamais vérifié sur device
+
+`services/notifications_locales.dart`. `flutter test` confirme que rien ne plante en l'absence de
+plateforme (résultat neutre), mais **le vrai comportement — programmation, prompt de permission
+iOS/Android, réception après fermeture de l'app — n'a jamais été observé sur un appareil réel.**
+
+- [ ] Tester sur le Samsung de Vivien dès reconnexion : taper « Me prévenir », vérifier le prompt
+      de permission système, fermer l'app, attendre (ou avancer l'horloge du téléphone) et
+      confirmer la réception.
+- [ ] Vérifier après un redémarrage du téléphone pendant l'attente — c'est justement ce que les
+      receivers ajoutés à `AndroidManifest.xml` (`ScheduledNotificationBootReceiver`) sont censés
+      couvrir, jamais observé en vrai.
+- [ ] **Programmer un rappel, puis « Effacer ma progression » (Réglages) avant l'échéance —
+      confirmer qu'il ne sonne PAS plus tard.** `reinitialiser()` appelle bien
+      `NotificationsLocales.instance.annuler()`, vérifié à la lecture du code et par les tests
+      existants (rien ne plante), mais l'annulation réelle côté OS n'a jamais été observée sur un
+      vrai appareil — seul un test manuel peut le confirmer.
 
 ## 🔊 Sons de message — en place, personnalisables
 

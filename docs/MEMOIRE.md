@@ -4,6 +4,283 @@
 
 ---
 
+## 2026-08-21 (4) — Notifications locales + refonte écran de fin : Phase 1, implémentée
+
+Suite de l'entrée (3) — Phase 0 validée par Vivien (SMS Noir comme titre de notification, lien
+Écrivez-nous laissé décoratif, `flutter_local_notifications` confirmé). `docs/prompts/
+prompt-notifications-ecran-fin.md` couvert dans son intégralité côté 1 (notifications) et 2
+(refonte écran).
+
+### Schéma et contrat — tout le contenu, jamais rien en dur
+
+`chapters.notification_text`/`teaser_text` (migration `20260821120000_...`, nullable). Chapitre 2
+reçoit le texte de notification donné verbatim par Vivien dans le prompt — le teaser reste `null`,
+pas de contenu inventé pour le remplir (règle 3). `ChapterEndState` étendu de 3 champs
+(`next_chapter_position`, `next_chapter_unlock_delay_minutes`, `next_chapter_notification_text`,
+`next_chapter_teaser_text` — 4 en fait) : le `next_chapter_position` s'est révélé nécessaire en
+cours de route, le label « CHAPITRE 2 — CHLOÉ » demandé par le prompt ne pouvait pas se composer
+sans le numéro, qui n'était encore exposé nulle part.
+
+### `NotificationsLocales` — un seul id, jamais un par chapitre
+
+L'histoire est linéaire : un seul « prochain chapitre » possible à la fois, donc un seul
+identifiant de notification fixe suffit — reprogrammer écrase, n'ajoute jamais. Permission jamais
+demandée avant le tap sur « Me prévenir » (`DarwinInitializationSettings` avec les 3 permissions
+explicitement à `false` à l'init, sinon iOS la redemande dès le lancement de l'app). `tz.UTC` comme
+repère de programmation plutôt que de détecter le fuseau réel — inutile, `TZDateTime.from`
+convertit en UTC en interne avant de réétiqueter, donc l'instant programmé ne dépend pas du repère.
+
+**Piège trouvé en testant** : `FlutterLocalNotificationsPlatform.instance` lève un
+`LateInitializationError` dans l'environnement `flutter test` (aucune plateforme enregistrée) —
+appelé depuis `initState()` de l'écran de fin, ça faisait planter le montage du widget dans
+n'importe quel test qui l'utilise, pas seulement les miens. Corrigé en enveloppant **toute**
+méthode publique de `NotificationsLocales` dans un `try/catch` qui renvoie un résultat neutre —
+même principe déjà établi pour `MusiqueNarrative` (musique absente ou illisible). Sans ce
+correctif, la refonte de l'écran de fin aurait rendu caduc n'importe quel test existant montant cet
+écran.
+
+### Écran de fin — trois états pour un bouton, jamais un grisage
+
+Compte à rebours en chiffres supprimé. Nouveau : teaser conditionnel, trois actions hiérarchisées
+(« Me prévenir » plein → « Débloquer ce chapitre » stubé → « Voir toutes les offres » stubé), les
+deux stubs répondent par un `SnackBar` « bientôt disponible » plutôt qu'un bouton grisé — la
+philosophie déjà établie pour le champ de saisie (jamais un signal qui dit « ça ne marche pas
+encore ») s'applique aussi ici. `Écrivez-nous` et `Revenir aux messages` inchangés.
+
+**Piège de layout trouvé en testant** : `Spacer()` dans une `Column` à l'intérieur d'un
+`SingleChildScrollView` — `Expanded`/`Spacer` exige une contrainte de hauteur bornée, or un
+scrollable donne une hauteur non bornée à son enfant. Le `Spacer()` de l'ancien écran (qui plaquait
+« Revenir aux messages » tout en bas) est devenu inutile une fois `mainAxisAlignment: center` posé
+sur la `Column` pour le centrage vertical demandé par le prompt — supprimé plutôt que contourné.
+
+### Relecture de Vivien — deux points, deux vrais correctifs
+
+**« Chapitre débloqué autrement, avant l'échéance » — vérifié, un seul déclencheur réel existe
+aujourd'hui.** Pas d'achat (n'existe pas encore, donc rien à câbler dessus sans l'inventer), mais
+« Effacer ma progression » (Réglages, un vrai geste joueur) efface la partie sans jamais toucher à
+une notification déjà programmée — un rappel resté actif sonnerait plus tard pour une partie qui
+n'existe plus. `NotificationsLocales.instance.annuler()` ajouté dans `reinitialiser()`.
+
+**Les `catch` de `NotificationsLocales` avalaient tout sans distinction.** Vivien a raison de
+pointer le risque : sur un vrai appareil, une vraie erreur de permission ou de configuration
+(icône manquante, plugin mal enregistré) se serait lue exactement comme un refus normal de
+l'utilisateur — indiscernable, donc invisible en cas de vrai bug. Chaque `catch` logue maintenant
+l'erreur (`debugPrint`) avant de l'absorber ; le comportement résilient (jamais de crash, résultat
+neutre) ne change pas, seule la visibilité change.
+
+### Vérification
+
+`flutter analyze` propre, `flutter test` 148/148 (135 + 6 pour `duree_lisible`, +3 pour
+`NotificationsLocales`, +10 pour l'écran de fin — dont un test de régression migré vers les
+nouveaux champs). Serveur : `verify-graph.sql` 51/51, `verify-fidelity.py` 114/114,
+`simulate-playthrough.py` (étendu avec 3 nouvelles assertions sur les champs transmis).
+
+**Non vérifiable depuis cet environnement** : le comportement réel des notifications
+(programmation, permission, réception après fermeture de l'app) ne se teste que sur un vrai
+appareil — `flutter test` confirme seulement que rien ne plante en son absence. À vérifier
+manuellement sur le Samsung de Vivien dès qu'il est rebranché.
+
+### Prochaine étape
+
+Rebuild + install sur le Samsung dès reconnexion, pour un premier test réel du flux de bout en bout
+(tap « Me prévenir », permission, fermeture de l'app, réception). Contenu encore manquant, hors
+périmètre de ce prompt : le teaser réel du chapitre 2, le vrai système de paiement, l'écran « toutes
+les offres ». Table des prompts de CLAUDE.md à corriger (voir plus bas).
+
+---
+
+## 2026-08-21 (3) — Notifications + refonte écran de fin : Phase 0 (audit), en attente de validation
+
+`docs/prompts/prompt-notifications-ecran-fin.md` — correspond au périmètre du **prompt 4**
+(notifications, cron de déblocage, premium). Audit demandé avant tout code, fait via un agent
+Explore en lecture seule.
+
+### Constats
+
+- **Écran de fin actuel** (`chapter_end_screen.dart`) : déjà structurellement centré verticalement
+  (`mainAxisAlignment: center` + `Spacer()`), cliffhanger en 3 temps machine à écrire déjà en
+  place. Le compte à rebours brut (`hh:mm:ss`, recalculé chaque seconde) est purement client,
+  lecture passive de `player_progress.chapter_unlocked_at` — à supprimer de l'affichage, pas de la
+  logique. **« Écrivez-nous » n'est aujourd'hui qu'un `Text` statique, pas un lien** — aucun
+  `onTap`/`url_launcher` dessus, contrairement à ce que « garder le lien existant » suppose.
+- **`chapter_unlocked_at`** : calculé **une seule fois**, côté serveur, à l'entrée du nœud
+  `chapter_end` (`calculerDeblocage()`, moteur.ts) — `now() + unlock_delay_minutes du chapitre
+  SUIVANT`. Jamais réévalué ensuite : **aucun cron n'existe** (confirmé, aucune trace de
+  `pg_cron`/`Deno.cron`). Correspond exactement à l'hypothèse du prompt (« le serveur fait déjà foi
+  sur ce timestamp ») — rien à changer côté déblocage lui-même pour la notification locale.
+- **Aucun package de notifications présent** (`flutter_local_notifications` ou équivalent) —
+  vérifié dans `pubspec.yaml`/`pubspec.lock`, absent. Le mécanisme de vibration existant
+  (`haptic_at`) est un `HapticFeedback.*` in-app, foreground uniquement — rien à voir avec une
+  notification système programmée, ne survit pas à la fermeture de l'app. `messages.push_text`
+  existe déjà en base et jusque dans le modèle client, mais **n'est lu nulle part** dans l'UI —
+  data morte aujourd'hui.
+- **Aucun système de paiement/achat**, nulle part dans le repo — confirmé par recherche exhaustive.
+  Le prompt anticipait déjà ce cas (« le bouton peut être stubé, dis-le si c'est le cas »).
+- **`chapters.notification_text`/`teaser_text` n'existent pas** — nouvelle migration nécessaire. Le
+  stub du chapitre 2 (`position=2, title='Chloé', unlock_delay_minutes=480`) n'a aucun contenu sur
+  ces colonnes puisqu'elles n'existent pas encore.
+- **Table des prompts de CLAUDE.md obsolète** : marque encore « 1 (en cours) », alors que
+  MEMOIRE.md dit déjà ailleurs « Prompt 1 terminé » et que les prompts 2 et 3 sont massivement
+  construits et utilisés depuis des jours. À corriger une fois cette phase validée.
+
+### Trois points soumis à Vivien avant de coder
+
+Voir la question posée dans la conversation : le texte de titre de notification donné dans le
+prompt (« Numéro Inconnu ») pré-date la clarification SMS Noir = nom de l'app / Numéro Inconnu =
+titre du chapitre 1 — à trancher. Le lien « Écrivez-nous » n'a aujourd'hui aucune destination réelle
+à câbler. Confirmation à obtenir avant d'ajouter `flutter_local_notifications` comme nouvelle
+dépendance.
+
+### Prochaine étape
+
+Réponses de Vivien, puis Phase 1 (implémentation) — pas commencée.
+
+---
+
+## 2026-08-21 (2) — Recommandation casque + indicateur sonore transverse
+
+Deux ajouts UI demandés par Vivien, tous deux articulés autour de la même distinction : son
+**narratif** (musique des écrans noirs, note vocale) contre bips de messagerie/typing, déjà
+attendus et jamais concernés. Documentée dans DESIGN.md § Le système sonore.
+
+### 1. Recommandation casque sur la carte d'entrée
+
+Ligne discrète sous l'accroche, icône + texte `texteTertiaire`. Affichée que l'histoire porte une
+accroche ou non (nouveau bloc `AnimatedOpacity` séparé, même timing que l'accroche).
+
+### 2. `IndicateurSonore` — un registre générique, pas un branchement ad hoc
+
+Nouveau service à instance unique (`services/indicateur_sonore.dart`) : chaque source sonore
+narrative s'enregistre en démarrant (`signaler(arreter)`, renvoie une désinscription), se
+désinscrit en s'arrêtant naturellement. `ValueNotifier<bool> enCours` pilote une icône
+haut-parleur pulsée, montée une seule fois au niveau de l'app (`MaterialApp.builder`) — pas
+dupliquée par écran, puisqu'un écran noir narratif et une bulle vocale dans le fil n'ont aucune
+zone de statut commune autrement.
+
+Branché sur les deux sources existantes : `MusiqueNarrative` (au moment où `lecteur.play()` est
+appelé, désinscrit dans `arreter()`) et `AudioBubble` (sur les transitions de `_enLecture`, calcul
+séparé du `setState` pour ne signaler qu'un vrai changement d'état). Un futur chapitre qui ajoute
+une source narrative n'a qu'à s'enregistrer au bon moment — rien à toucher dans le registre.
+
+**Piège trouvé en testant** : `couperTout()` appelait d'abord chaque `arreter()` puis comptait sur
+la source pour se désinscrire en retour — correct pour `MusiqueNarrative` (désinscription
+synchrone avant le premier `await`), mais un test avec un arrêt trivial (qui ne se désinscrit pas
+lui-même) a révélé la fragilité : l'indicateur pouvait rester affiché après un « tout couper » si
+la source ne rappelait pas le registre. Corrigé en vidant le registre **avant** d'appeler les
+arrêts — `couperTout()` ne dépend plus de la coopération des sources.
+
+### Vérification
+
+`flutter analyze` propre, `flutter test` 129/129 (116 + 7 pour `IndicateurSonore`, +5 pour
+l'overlay, +1 pour la recommandation casque). Pas encore testé sur device : téléphone de Vivien
+toujours débranché.
+
+---
+
+## 2026-08-21 — Le champ de saisie se verrouille dès qu'un choix est affiché
+
+Retour de test de Vivien : le champ restait cliquable même avec des choix affichés — le curseur
+s'activait et clignotait sans ouvrir le clavier, un geste parasite qui cassait l'immersion.
+**Correction volontaire d'une règle établie**, pas un bug de régression : jusqu'ici,
+`composer.dart` documentait explicitement l'inverse (« Toujours actif, quel que soit l'état du
+nœud »), avec un « Interdit » sur tout grisage ou blocage. Vivien a confirmé vouloir revenir dessus
+avant que je touche au code — voir l'échange complet dans la session, pas reproduit ici.
+
+### Portée exacte du verrouillage — plus étroite que « mode décoratif »
+
+Le verrouillage suit **la présence effective de choix à l'écran** (`ChoiceArea`/`DiscreetPlus` non
+vides), pas le `ComposerMode.decorative` au sens large. Distinction importante : `decorative`
+couvre aussi le silence du N19 (aucun choix, rien à proposer), où DESIGN.md décrit explicitement
+« le joueur peut écrire, ses messages s'accumulent en non délivrés, il agit sur son angoisse » —
+un mécanisme volontaire, pas touché. Même chose pour `continuation` (geste d'avancer sur un nœud en
+pause, N13/N16/N21) : jamais de choix affiché, jamais verrouillé. Seul `ai_input` reste toujours
+actif quoi qu'il arrive — c'est le seul mode où le champ sert vraiment.
+
+### Implémentation — verrouiller le geste, jamais l'aspect
+
+Nouveau paramètre `Composer.choixPresents`, calculé dans `conversation_screen.dart` avec exactement
+la même condition que celle qui peuple `ChoiceArea`/`DiscreetPlus` (pas de logique dupliquée à
+désynchroniser). Le champ s'enveloppe dans un `IgnorePointer` (pas `TextField(enabled: false)`, qui
+grise le champ — proscrit) et `FocusNode.canRequestFocus` bascule en même temps, pour bloquer aussi
+un focus programmatique ou clavier externe. `didUpdateWidget` referme le clavier si des choix
+apparaissent pendant que le joueur avait déjà le focus.
+
+### Une conséquence en cascade : un test devenu structurellement invalide
+
+`conversation_screen_test.dart` avait un test vérifiant qu'un tap sur le champ, joueur remonté dans
+le fil, le ramenait en bas pour révéler des choix caché par le clavier à venir — cette séquence est
+désormais **impossible par construction** : si des choix sont affichés, le tap est ignoré, donc rien
+n'ouvre le clavier, donc rien à révéler. Remplacé par le test inverse (le tap ne bouge rien), plutôt
+que supprimé — la mécanique de protection contre le débordement (l'autre test du même groupe,
+simulant un clavier déjà ouvert via `viewInsets`) reste valable et intacte, elle ne dépend pas d'un
+tap. Le test « un texte saisi s'affiche à droite, non délivré » gardait un nœud avec un choix
+`reply` — changé pour un nœud sans choix, seul moyen de continuer à exercer la fonctionnalité qu'il
+visait (le champ reste actif hors présence de choix).
+
+### Vérification
+
+`flutter analyze` propre, `flutter test` 116/116 (115 + le nouveau test de régression). DESIGN.md
+§ Le champ de saisie réécrit : nouvelle sous-section « Verrouillage — quand des choix sont
+affichés », la portée précise documentée pour éviter que la prochaine session ne reproduise la
+confusion decorative/choix-présents.
+
+---
+
+## 2026-08-20 (2) — Nouvelle icône officielle
+
+Vivien a fourni `assets/icon/icon-officel.png` (1024×1024, RGB opaque, aucun artefact de mockup
+détecté aux pixels — contrairement au tout premier essai). Pipeline identique à la première icône :
+`icon.png` = copie normalisée (aucun recadrage nécessaire cette fois), `icon_foreground.png` =
+alpha dérivé de la luminance (vérifié : transparence réelle aux coins, opacité pleine sur le motif),
+régénéré via `dart run flutter_launcher_icons`. `icon-source-original.jpeg` (premier essai) gardé
+pour mémoire, plus référencé nulle part. `flutter analyze` propre.
+
+Pas encore réinstallé sur le Samsung de Vivien (toujours débranché depuis le correctif musique du
+19/08) — les deux changements partiront ensemble au prochain build.
+
+---
+
+## 2026-08-20 — Bug : la musique du N19 et de fin ne jouait plus après la première intro
+
+Retour de test de Vivien sur son Samsung : « les sons des différentes intro ne fonctionnent pas,
+juste celui du début ». Diagnostic confirmé côté serveur d'abord — `get-state` distant renvoyait
+bien les trois URLs signées (`music_url`, `narration_music_url`, `chapter_end_music_url`), toutes
+les trois vérifiées récupérables en HTTP (200, bons octets). Le bug était donc côté client.
+
+### La cause : un seul champ pour deux durées de vie différentes
+
+`ConversationState.intro` (l'objet `IntroSequence` complet, panneaux + les 3 URLs de musique) est
+nullé dès que `LocalStore.introVue` est vrai (`conversation_controller.dart`, `_appliquerEtat`) —
+correct pour les PANNEAUX, qui ne doivent effectivement jouer qu'une fois. Mais
+`narration_music_url` et `chapter_end_music_url` vivaient dans ce même objet, alors qu'ils doivent
+rester disponibles à CHAQUE passage par le N19 ou l'écran de fin — potentiellement des heures après
+la toute première ouverture de l'app. Résultat : le tout premier son (l'intro elle-même) jouait,
+puis plus aucun autre son de toute la partie.
+
+### Correctif
+
+Deux nouveaux champs indépendants sur `ConversationState` — `musiqueNarration` et `musiqueFin` —
+alimentés sans condition depuis `etat.intro.musiqueNarration`/`musiqueFin` à chaque
+`_appliquerEtat`, jamais nullés par `introVue`. `conversation_screen.dart` les lit directement
+(`etat.musiqueNarration`/`etat.musiqueFin`) au lieu de `etat.intro?.musiqueNarration`/`musiqueFin`.
+`intro` lui-même reste inchangé, toujours réservé aux panneaux one-shot.
+
+Nouveau test de régression dans `conversation_screen_test.dart` : intro déjà vue (`introVue: true`
+en prefs), vérifie que `musiqueNarration`/`musiqueFin` restent exposés dans l'état. Testé au
+niveau du contrôleur (`ProviderContainer` + lecture directe de l'état), pas en montant
+`NarrationScreen` — ce widget résout `Env.supabaseUrl` dès qu'un `musique` non nul lui est passé,
+absent en environnement de test.
+
+### Vérification et déploiement
+
+`flutter analyze` propre, `flutter test` 115/115 (114 + le nouveau test). Rebuild
+`app/tool/run_remote.sh --release` — le téléphone de Vivien n'était plus branché en USB au moment
+de la reconstruction, donc l'APK corrigée n'a **pas encore été réinstallée** : à refaire au
+prochain branchement (`adb install -r build/app/outputs/flutter-apk/app-release.apk`), ou par
+Vivien lui-même via un autre moyen de transfert.
+
+---
+
 ## 2026-08-19 (9) — Le nom de l'app était resté sur « Numéro Inconnu »
 
 Signalé par Vivien après l'installation sur son Samsung : le label Android et le

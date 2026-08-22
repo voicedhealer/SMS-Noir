@@ -42,6 +42,8 @@ dependencies:
   audio_session: ^0.2.4
   video_player: ^2.10.0
   url_launcher: ^6.3.1
+  flutter_local_notifications: ^22.3.0
+  timezone: ^0.11.1
 
 dev_dependencies:
   flutter_test:
@@ -56,14 +58,12 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.4
 
 # Icône de l'app, générée pour iOS et Android via `flutter_launcher_icons`.
-# Source : assets/icon/icon.png — dérivée de assets/icon/icon-source-original.jpeg
-# (opaque, aucun canal alpha) en retirant ~230 px de marge sur chaque bord : le
-# fichier d'origine portait un mockup (carré arrondi + ombre légère) déjà
-# incrusté dans les pixels, invisible à l'échelle mais net une fois généré en
-# icône réelle — d'où le recadrage. Marge restante ~11-15 % de chaque côté,
-# dans la zone de sécurité des icônes adaptatives Android (66 % centraux),
-# elle-même resserrée par l'inset de 16 % que flutter_launcher_icons applique
-# déjà au premier plan adaptatif.
+# Source : assets/icon/icon-officel.png (1024×1024, déjà opaque et plat, sans
+# artefact de mockup — vérifié aux pixels avant usage). icon.png en est une
+# copie normalisée, aucun recadrage nécessaire cette fois.
+#
+# icon-source-original.jpeg : premier essai d'icône, remplacé — gardé pour
+# mémoire, plus référencé par la config ci-dessous.
 #
 # Le premier plan adaptatif Android utilise un fichier séparé,
 # icon_foreground.png : fond réellement transparent (alpha dérivé de la

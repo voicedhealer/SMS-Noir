@@ -317,7 +317,15 @@ def parcours_allie():
     verifier('Léna révélée par le geste', v['contacts_reveles'], ['lena'])
     verifier('Compte à rebours posé', etat['chapter_unlocked_at'] is not None, True)
     verifier('Chapitre 2 annoncé', p.etat['chapter_end']['next_chapter_title'], 'Chloé')
+    verifier('Numéro du chapitre 2 transmis', p.etat['chapter_end']['next_chapter_position'], 2)
     verifier('Chapitre 2 sans contenu', p.etat['chapter_end']['next_chapter_pending'], True)
+    verifier('Délai de déblocage transmis (8h)',
+             p.etat['chapter_end']['next_chapter_unlock_delay_minutes'], 480)
+    verifier('Texte de notification transmis',
+             p.etat['chapter_end']['next_chapter_notification_text'],
+             'Léna vous attend. Le chapitre 2 est disponible.')
+    verifier('Teaser absent pour l\'instant (contenu à venir)',
+             p.etat['chapter_end']['next_chapter_teaser_text'], None)
     return p
 
 

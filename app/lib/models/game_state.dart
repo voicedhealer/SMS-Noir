@@ -145,10 +145,17 @@ class ChapterEnd {
     required this.nextChapterTitle,
     required this.unlockedAt,
     required this.nextChapterPending,
+    this.nextChapterPosition,
+    this.nextChapterUnlockDelayMinutes,
+    this.nextChapterNotificationText,
+    this.nextChapterTeaserText,
   });
 
   final String chapterTitle;
   final String? nextChapterTitle;
+
+  /// Pour composer « Chapitre N — titre » sans jamais coder N en dur.
+  final int? nextChapterPosition;
 
   /// Purement décoratif côté client : seul le serveur débloque réellement.
   final DateTime? unlockedAt;
@@ -156,13 +163,26 @@ class ChapterEnd {
   /// Le chapitre suivant existe mais n'a pas encore de contenu.
   final bool nextChapterPending;
 
+  /// Pour composer « Me prévenir dans Xh » sans jamais coder le délai en dur.
+  final int? nextChapterUnlockDelayMinutes;
+
+  /// Corps de la notification locale. Null = bouton « Me prévenir » inerte.
+  final String? nextChapterNotificationText;
+
+  /// Phrase d'accroche courte du chapitre suivant. Null = pas de ligne affichée.
+  final String? nextChapterTeaserText;
+
   factory ChapterEnd.fromJson(Map<String, dynamic> json) => ChapterEnd(
         chapterTitle: json['chapter_title'] as String? ?? '',
         nextChapterTitle: json['next_chapter_title'] as String?,
+        nextChapterPosition: json['next_chapter_position'] as int?,
         unlockedAt: json['unlocked_at'] == null
             ? null
             : DateTime.tryParse(json['unlocked_at'] as String)?.toLocal(),
         nextChapterPending: json['next_chapter_pending'] as bool? ?? false,
+        nextChapterUnlockDelayMinutes: json['next_chapter_unlock_delay_minutes'] as int?,
+        nextChapterNotificationText: json['next_chapter_notification_text'] as String?,
+        nextChapterTeaserText: json['next_chapter_teaser_text'] as String?,
       );
 }
 

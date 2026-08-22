@@ -599,15 +599,20 @@ export async function etatFinDeChapitre(
   const { data: actuel } = await db
     .from('chapters').select('position, title').eq('id', noeud.chapter_id).single()
   const { data: suivant } = await db
-    .from('chapters').select('title, entry_node_id')
+    .from('chapters')
+    .select('title, position, entry_node_id, unlock_delay_minutes, notification_text, teaser_text')
     .eq('story_id', progression.story_id).eq('position', (actuel?.position ?? 1) + 1).maybeSingle()
 
   return {
     chapter_title: actuel?.title ?? '',
     next_chapter_title: suivant?.title ?? null,
+    next_chapter_position: suivant?.position ?? null,
     unlocked_at: progression.chapter_unlocked_at,
     // Le chapitre suivant existe (stub) mais n'a pas encore de contenu.
     next_chapter_pending: suivant != null && suivant.entry_node_id == null,
+    next_chapter_unlock_delay_minutes: suivant?.unlock_delay_minutes ?? null,
+    next_chapter_notification_text: suivant?.notification_text ?? null,
+    next_chapter_teaser_text: suivant?.teaser_text ?? null,
   }
 }
 

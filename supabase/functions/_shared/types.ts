@@ -146,9 +146,21 @@ export interface ClientNode {
 export interface ChapterEndState {
   chapter_title: string
   next_chapter_title: string | null
+  /** Pour composer « Chapitre N — titre » sans jamais coder N en dur. */
+  next_chapter_position: number | null
   unlocked_at: string | null
   /** true quand le chapitre suivant n'a pas encore de contenu. */
   next_chapter_pending: boolean
+  /**
+   * Délai de déblocage du chapitre SUIVANT, en minutes — pour que le client
+   * compose « Me prévenir dans Xh » sans jamais coder ce chiffre en dur.
+   * Null si le chapitre suivant n'existe pas.
+   */
+  next_chapter_unlock_delay_minutes: number | null
+  /** Corps de la notification locale. Null = bouton « Me prévenir » inerte. */
+  next_chapter_notification_text: string | null
+  /** Phrase d'accroche courte du chapitre suivant. Null = pas de ligne affichée. */
+  next_chapter_teaser_text: string | null
 }
 
 /** Séquence d'ouverture, jouée une seule fois par le client. */

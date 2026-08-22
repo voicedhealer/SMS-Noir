@@ -209,7 +209,8 @@ Le client dérive l'heure du fil lui-même : chaque séparateur réancre l'horlo
 l'avance de son `delay_seconds`. Déterministe, donc identique après un rechargement.
 Implémentation : `app/lib/services/fiction_clock.dart` · règle : LOGIQUE.md § Le temps de fiction.
 
-**Seule exception : le compte à rebours de fin de chapitre**, qui est du temps réel.
+**Seule exception : l'échéance de déblocage de fin de chapitre** (`unlocked_at`), qui est du temps
+réel — même si elle ne s'affiche plus en chiffres qui défilent, voir § Écran de fin de chapitre.
 
 ## Écran 1 — Liste des conversations
 
@@ -377,11 +378,17 @@ Boutons empilés en bas, au-dessus de la barre de saisie.
 
 | Mode | Quand | Ce que fait l'envoi |
 |---|---|---|
-| `decorative` | Le nœud propose des `reply`/`ignore` | Le texte s'affiche à droite, **non délivré**. Rien n'est envoyé au serveur |
+| `decorative` | Le nœud propose des `reply`/`ignore`, ou rien du tout (silence, N19) | Le texte s'affiche à droite, **non délivré**. Rien n'est envoyé au serveur |
 | `continuation` | `awaiting_interaction` ou `can_continue` sans réponse à donner | Le texte s'affiche à droite, puis déclenche `advance {continue: true}` |
 | `ai_input` | `ai_moment_pending` — **prompt 3** | Saisie réelle, envoyée à `ai-chat` |
 
 Le mode se déduit **entièrement du contrat serveur**. Le client ne connaît pas le graphe.
+
+**Le verrouillage du champ est une notion à part, orthogonale au mode** : dès qu'un `reply`/`ignore`
+ou une interaction relancée (« + » discret) sont **affichés à l'écran**, le champ ignore tout geste —
+voir § Verrouillage ci-dessous. `decorative` couvre donc deux situations différentes à ce niveau :
+choix affichés (verrouillé) et silence sans rien à proposer, comme le N19 (toujours actif). Le
+mode, lui, ne distingue pas les deux — seule la présence de choix compte.
 
 ### Le mode `ai_input` en pratique
 
@@ -398,7 +405,25 @@ Le texte part vraiment vers `ai-chat`. Trois différences invisibles pour le jou
 
 Si le champ change d'apparence quand l'IA écoute vraiment, le joueur comprend instantanément quels
 moments « comptent » — et il perd le doute qui rend le mode décoratif intéressant. **Aucun indice
-visuel ne distingue les modes. Jamais.**
+visuel ne distingue les modes. Jamais.** Ça reste vrai même verrouillé (voir plus bas) : le
+verrouillage change l'interactivité, jamais l'aspect.
+
+### Verrouillage — quand des choix sont affichés
+
+**Correction de Vivien (2026-08-21) sur la version précédente de cette règle.** Le champ ignore
+tout geste dès que `ChoiceArea` ou `DiscreetPlus` affichent quelque chose à l'écran — plus de focus,
+plus de clavier, plus de curseur clignotant. Avant ce correctif, le champ restait cliquable :
+le curseur s'activait et clignotait sans ouvrir le clavier, un geste parasite qui cassait
+l'immersion sans rien apporter, puisqu'un choix visible est déjà la vraie réponse attendue.
+
+- **Toujours sans changement d'aspect** : `IgnorePointer`, jamais `TextField(enabled: false)` —
+  ce dernier grise le champ, ce que la règle ci-dessus interdit. Un joueur qui compare une capture
+  d'écran ne doit rien voir de différent entre verrouillé et actif.
+- **Ne couvre que la présence de choix**, pas le mode `decorative` en entier : le silence du N19
+  (aucun choix affiché) laisse le champ actif — voir § Le silence du N19, « le joueur peut écrire ».
+  `continuation` (le geste sur un nœud en pause) n'affiche jamais de choix non plus : intact.
+- **Seul `ai_input` reste toujours actif**, choix ou pas — c'est le seul mode où le champ sert
+  vraiment à quelque chose au-delà de l'ambiance.
 
 ### Règles du mode décoratif
 
@@ -406,8 +431,10 @@ visuel ne distingue les modes. Jamais.**
   `bulleJoueurNonDelivre`, une seule coche grise. Ils ne « passent » jamais.
 - Ils sont **persistés localement** : relire ses propres messages paniqués une fois la tension
   retombée fait partie du plaisir.
-- **Aucun feedback ne trahit jamais leur inutilité** : pas de message d'erreur, pas de grisage du
-  champ, pas de « Léna ne peut pas répondre maintenant ». Interdit.
+- **Aucun feedback ne trahit jamais leur inutilité, quand le champ reste actif** : pas de message
+  d'erreur, pas de grisage, pas de « Léna ne peut pas répondre maintenant ». Le verrouillage
+  ci-dessus n'est pas une exception à cette règle — il ne se déclenche que quand un vrai choix est
+  de toute façon affiché, donc rien n'est perdu qui n'ait déjà sa réponse à l'écran.
 
 ### Ancrage technique
 
@@ -581,20 +608,56 @@ un bug — c'est tout l'argument en faveur de cet emplacement.
 
 ## Écran 3 — Fin de chapitre
 
-Sortie du fil, plein écran.
+Sortie du fil, plein écran, contenu **centré verticalement** — jamais plaqué en haut, refonte
+prompt 4 (notifications + fin de chapitre).
 
 **Règle de basculement** : un message `content_type: 'system'` sur un nœud `kind: 'chapter_end'` ne
 va pas dans le fil — il devient le texte de cet écran. (Un `system` ailleurs est un statut de
 présence. Un `system` n'est jamais une bulle, dans les deux cas.)
 
-Contenu : le texte du message système, le titre du chapitre suivant, et un compte à rebours vers
-`unlocked_at`. **Le compte à rebours est purement décoratif** — seul le serveur débloque, et
-l'horloge du téléphone n'a aucun pouvoir.
+**Contenu, dans l'ordre** :
 
-Quand `next_chapter_pending` est vrai, le chapitre suivant est annoncé comme « à venir » : il existe
-mais n'a pas encore de contenu.
+1. **Le cliffhanger**, en trois temps machine à écrire (inchangé) — le texte du message système,
+   découpé sur la ponctuation forte.
+2. **Séparateur discret**, une simple ligne de 32px.
+3. **Le teaser du chapitre suivant** : label « CHAPITRE {position} — {titre} » (petit, gris,
+   majuscules espacées — jamais le titre seul : le numéro vient de `next_chapter_position`, jamais
+   codé en dur, pour rester correct au chapitre 3, 4…), puis `next_chapter_teaser_text` si le
+   chapitre le porte déjà (null tant que non écrit — pas de ligne affichée, pas de placeholder
+   inventé).
+4. **Trois actions**, hiérarchie visuelle décroissante — voir ci-dessous.
+5. « La suite de {nom de l'app}, prochainement. » et « Un retour, une note, une idée ? Écrivez-nous »
+   (ce dernier reste un texte décoratif, pas un lien — aucune destination n'existe à ce jour).
+6. « Revenir aux messages » — inchangé, referme l'écran.
 
-Prévoir la place d'un futur bouton premium (déblocage immédiat) — non fonctionnel au prompt 2.
+**Plus de compte à rebours en chiffres.** L'ancien `hh:mm:ss` recalculé chaque seconde a disparu :
+le joueur programme un rappel plutôt que de regarder un chiffre descendre. `unlocked_at` reste lu
+(c'est la date qu'on programme), simplement plus jamais affiché brut.
+
+### Les trois actions
+
+| # | Apparence | Libellé | Comportement |
+|---|---|---|---|
+| 1 | Bouton plein, le plus visible | « Me prévenir dans {délai lisible} » | Programme la notification locale — voir § Notification locale de déblocage, LOGIQUE.md |
+| 2 | Bouton contour | « Débloquer ce chapitre » | Stubé : aucun système d'achat n'existe. Tap → `SnackBar` « bientôt disponible », jamais un bouton grisé (se lirait comme une panne, pas comme une fonctionnalité à venir) |
+| 3 | Lien discret, le moins visible | « Voir toutes les offres » | Même stub — écran à construire séparément |
+
+Le délai (« dans 8h ») vient de `next_chapter_unlock_delay_minutes`, formaté par
+`services/duree_lisible.dart` — jamais un « 8h » codé en dur : un futur chapitre choisira peut-être
+un autre délai.
+
+**Le bouton « Me prévenir » a trois états, jamais un grisage** (même principe que le champ de
+saisie — un état informatif reste un vrai bouton) :
+
+- **Initial** : le libellé ci-dessus, tapable.
+- **Programmé** (permission accordée) : « Vous serez prévenu·e », non tapable une seconde fois —
+  ici un vrai état terminal, pas un moment IA à cacher.
+- **Refusé** : « Vous pourrez revenir consulter l'histoire », reste tapable (referme l'écran) —
+  jamais un blocage, jamais une culpabilisation pour avoir refusé la permission.
+
+Quand `next_chapter_pending` est vrai, le chapitre suivant existe (stub) mais n'a pas encore de
+contenu — les trois actions restent affichées (rien n'empêche de programmer un rappel pour un
+chapitre encore en écriture), seul le teaser reste absent tant que `teaser_text` est null.
 
 ---
 
@@ -702,6 +765,46 @@ rafale de bips au retour dans l'app.
 
 Le **silence du N19** en découle : « Léna est hors ligne » ne sonne pas, et les 90 secondes qui
 suivent ne délivrent rien.
+
+## Le système sonore — recommandation et indicateur
+
+Deux ajouts transverses, tous deux liés à la même distinction : un son **narratif** (musique
+d'ambiance des écrans noirs — intro, N19, fin de chapitre — et note vocale) contre les bips de
+messagerie et le typing, déjà attendus dans une messagerie et couverts § Sons de message ci-dessus.
+Les seconds ne concernent ni la recommandation ci-dessous ni l'indicateur : personne ne s'étonne
+qu'une messagerie fasse un petit bruit à la réception.
+
+### Recommandation casque, sur la carte d'entrée
+
+Une ligne discrète sous l'accroche : icône haut-parleur, « Casque ou haut-parleur recommandé »,
+`texteTertiaire`, même registre que le reste de l'écran — une recommandation de confort, pas un
+avertissement. Affichée que l'histoire porte une accroche ou non : ce n'est pas du contenu narratif,
+donc pas conditionné par ce que l'histoire fournit.
+
+### L'indicateur — pendant la lecture
+
+Une icône haut-parleur discrète apparaît près de la zone de statut système **dès qu'un son
+narratif joue**, avec une pulsation légère tant qu'il joue — jamais éteinte complètement, c'est une
+présence continue, pas un clignotement. Tapable : coupe tout net, sans passer par les Réglages du
+téléphone.
+
+**Ce que « son narratif » couvre précisément** : tout ce qui passe par `MusiqueNarrative` (musique
+d'intronisation, écran noir du N19, écran de fin) et la note vocale (`AudioBubble`). Rien d'autre —
+en particulier jamais les sons de `SoundEffects` (réception, envoi, frappe), qui restent muets pour
+cet indicateur comme pour la recommandation ci-dessus.
+
+**Générique et transversal, pas propre à un écran** : monté une seule fois au niveau de l'app
+(`MaterialApp.builder`, `main.dart`), au-dessus de tout le reste — un écran noir narratif et une
+bulle vocale dans le fil n'ont aucune zone de statut en commun autrement. `IndicateurSonore`
+(`services/indicateur_sonore.dart`) est un registre à instance unique : chaque source s'enregistre
+avec son propre arrêt en démarrant, se désinscrit en s'arrêtant naturellement ; l'indicateur reste
+affiché tant qu'au moins une source est active. Un futur chapitre qui ajoute une nouvelle source
+sonore narrative (chapitre 3, 5) n'a rien à changer dans le registre ni dans l'icône — juste à
+s'enregistrer au bon moment, comme `MusiqueNarrative` et `AudioBubble` le font déjà.
+
+**Le tap coupe, ne met jamais juste en pause** : le registre vide sa liste immédiatement (avant même
+d'appeler les arrêts), pour que l'icône disparaisse sans attendre qu'une source asynchrone confirme
+qu'elle s'est bien arrêtée.
 
 ## Pause automatique — sans bouton
 

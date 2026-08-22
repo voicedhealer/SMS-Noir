@@ -1026,11 +1026,76 @@ Quand `node.can_continue` est vrai. Deux situations :
 
 ## Fin de chapitre (N22)
 
-`chapter_unlocked_at = now() + unlock_delay_minutes` du **chapitre suivant** (position + 1).
-Le chapitre 2 est seedé comme **stub** : `position=2`, `title='Chloé'`,
-`unlock_delay_minutes=480` (8 h, bible §9), `entry_node_id = null`, aucun nœud.
+`chapter_unlocked_at = now() + unlock_delay_minutes` du **chapitre suivant** (position + 1),
+calculé **une seule fois**, à l'entrée du nœud `chapter_end` (`calculerDeblocage()`, moteur.ts) —
+jamais réévalué ensuite. **Aucun cron ne tourne dessus** : rien ne « débloque » activement le
+chapitre suivant à l'échéance, le timestamp est juste une donnée que le client compare à l'heure
+courante pour savoir si la suite est disponible. Un futur `unlock-chapter` (prompt 4, achat
+premium) resterait le seul autre écrivain de cette colonne.
 
-C'est ce qui permet au N22 de fonctionner sans chapitre 2 écrit : le compte à rebours a une cible
-réelle, l'app affiche « Chapitre 2 : Chloé — disponible dans 8h », et le déblocage effectif
-(`unlock-chapter`, prompt 4) constatera simplement qu'il n'y a pas encore de contenu à servir.
-Le déblocage immédiat premium reste une décision serveur (`stories.is_premium` / achat), prompt 4.
+Le chapitre 2 est seedé comme **stub** : `position=2`, `title='Chloé'`,
+`unlock_delay_minutes=480` (8 h, bible §9), `entry_node_id = null`, aucun nœud. C'est ce qui permet
+au N22 de fonctionner sans chapitre 2 écrit : l'écran de fin a une cible réelle vers laquelle
+programmer un rappel, et le déblocage effectif constatera simplement qu'il n'y a pas encore de
+contenu à servir (`next_chapter_pending`).
+
+### Contrat `ChapterEndState` — tout le contenu du prochain chapitre, jamais rien en dur côté client
+
+```ts
+{
+  chapter_title: string
+  next_chapter_title: string | null
+  next_chapter_position: number | null        // « Chapitre N — titre », N jamais codé en dur
+  unlocked_at: string | null
+  next_chapter_pending: boolean
+  next_chapter_unlock_delay_minutes: number | null   // « Me prévenir dans Xh »
+  next_chapter_notification_text: string | null      // corps de la notification locale
+  next_chapter_teaser_text: string | null             // accroche courte sur l'écran de fin
+}
+```
+
+Les quatre derniers champs viennent de `chapters.notification_text`/`teaser_text` (nullable —
+migration `20260821120000_chapter_notification_teaser.sql`) et `chapters.unlock_delay_minutes`
+(déjà existant), tous lus sur le chapitre **suivant**, jamais le courant : c'est lui qu'on attend,
+c'est son contenu qui doit apparaître sur l'écran de fin du chapitre qu'on vient de terminer.
+
+## Notification locale de déblocage de chapitre
+
+Programmée **côté client** (`app/lib/services/notifications_locales.dart`,
+`flutter_local_notifications`) quand le joueur tape « Me prévenir » sur l'écran de fin — le serveur
+ne programme rien, il ne fait que fournir la cible (`unlocked_at`) et le contenu
+(`next_chapter_notification_text`) sur lesquels le client cale un rappel local.
+
+**Un seul identifiant fixe, jamais un par chapitre.** L'histoire est strictement linéaire : à un
+instant donné, un joueur ne peut avoir qu'un seul « prochain chapitre » en attente de déblocage.
+Reprogrammer (le joueur retape sur le bouton, ou rouvre l'écran après avoir déjà programmé) réécrit
+la même notification — jamais une deuxième. Pas besoin de dériver un id par chapitre pour ça.
+
+**La permission n'est jamais demandée avant le tap.** `DarwinInitializationSettings` désactive
+explicitement les trois permissions à l'initialisation (`requestAlertPermission` etc. à `false`) —
+sans ça, iOS demanderait la permission dès le lancement de l'app, avant même que le joueur ait vu
+le bouton. La demande réelle n'a lieu que dans `NotificationsLocales.programmer()`, au moment du
+tap. Si déjà refusée, l'OS ne réaffiche pas l'invite de lui-même — le service ne la redemande donc
+jamais, il relit juste le résultat renvoyé par l'OS.
+
+**`tz.UTC` comme repère de programmation, jamais le fuseau réel de l'appareil.** `TZDateTime.from`
+convertit l'instant donné en UTC en interne avant de le réétiqueter avec le repère fourni :
+l'instant réel programmé ne dépend donc pas du repère choisi, seul l'affichage en dépendrait — or
+rien de tout ça n'est jamais montré au joueur. Détecter le fuseau réel de l'appareil (ex. via un
+package séparé) n'apporte donc rien ici et n'a volontairement pas été ajouté.
+
+**Aucune méthode du service ne lève jamais.** Une plateforme sans implémentation enregistrée
+(desktop non supporté, environnement de test) doit se comporter comme s'il n'y avait simplement
+jamais de notification possible — jamais un crash de l'écran de fin de chapitre. Même principe que
+`MusiqueNarrative` pour une musique absente ou illisible : chaque opération est enveloppée dans un
+`try/catch` qui renvoie un résultat neutre (`false`, ou rien) plutôt que de propager l'exception.
+**Mais jamais silencieux pour autant** : chaque `catch` logue l'erreur (`debugPrint`) avant
+d'absorber — sans ça, une vraie erreur de permission ou de configuration sur un appareil réel se
+lirait exactement comme un refus normal de l'utilisateur, invisible en debug comme en production.
+
+**`annuler()` a un vrai appelant dès aujourd'hui : `reinitialiser()`.** « Effacer ma progression »
+(Réglages, un vrai geste joueur, pas seulement l'outil de développement) efface la partie — un
+rappel resté programmé pour un chapitre qui n'existe plus sonnerait plus tard pour une partie qui
+n'a plus cours. C'est le seul déclencheur réel aujourd'hui : aucun système d'achat n'existe encore
+pour débloquer un chapitre autrement avant l'échéance naturelle, donc aucun appel à `annuler()`
+n'est câblé sur un tel événement — la méthode reste prête pour ce futur point d'intégration.
