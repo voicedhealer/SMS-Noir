@@ -95,7 +95,13 @@ class PartieIA(Partie):
         return http(f'{API}/functions/v1/ai-chat', {'consent': accepte}, self.token)
 
 
-RACCROCHAGE = "Merci. J'en avais besoin. Bon, je rentre."
+
+# Réplique de raccrochage, variante tutoiement (`refus = false`, le chemin
+# suivi par tous les parcours de ce script — voir ai-chat/index.ts § raccrochage).
+RACCROCHAGE = (
+    "Tu as raison. Je crois que je vais aller me coucher, essayer de dormir un peu. "
+    "Envoie-moi un message demain si tu veux, pour savoir comment ça va de mon côté. Merci encore."
+)
 COUPURE = 'Ok. Laisse tomber. Je rentre.'
 
 # Plafond global de `confiance` (engine.ts, BORNES) — 6 au lieu de 10 tant que

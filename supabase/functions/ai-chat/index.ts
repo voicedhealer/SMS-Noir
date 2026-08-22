@@ -44,9 +44,25 @@ import {
 /** Quota par joueur et par jour, toutes histoires confondues. */
 const QUOTA_QUOTIDIEN = 50
 
-/** Ses répliques de sortie. Elles restent en personnage, toujours. */
-const RACCROCHAGE = 'Merci. J\'en avais besoin. Bon, je rentre.'
+/**
+ * Ses répliques de sortie. Elles restent en personnage, toujours.
+ *
+ * Deux variantes pour le raccrochage normal, choisies par `raccrochage()`
+ * selon `refus` — pas de branchement tu/vous pour `COUPURE`, hors du
+ * périmètre demandé (hostilité/hors-cadre, pas la clôture normale).
+ */
+const RACCROCHAGE_TU =
+  'Tu as raison. Je crois que je vais aller me coucher, essayer de dormir un peu. ' +
+  'Envoie-moi un message demain si tu veux, pour savoir comment ça va de mon côté. Merci encore.'
+const RACCROCHAGE_VOUS =
+  'Vous avez raison. Je crois que je vais aller me coucher, essayer de dormir un peu. ' +
+  'Envoyez-moi un message demain si vous voulez, pour savoir comment ça va de mon côté. Merci encore.'
 const COUPURE = 'Ok. Laisse tomber. Je rentre.'
+
+/** Choisit la variante tu/vous du raccrochage selon la variable `refus`. */
+function raccrochage(variables: Progression['variables']): string {
+  return variables.refus === true ? RACCROCHAGE_VOUS : RACCROCHAGE_TU
+}
 
 Deno.serve(servir(async (req) => {
   const userId = await utilisateurCourant(req)
@@ -94,7 +110,7 @@ Deno.serve(servir(async (req) => {
     if (noeud.ai_refus_node_id) {
       return json(await entrerNoeudEtRepondre(db, progression, histoire.id, noeud.ai_refus_node_id))
     }
-    return json(await raccrocher(db, progression, histoire.id, noeud, RACCROCHAGE))
+    return json(await raccrocher(db, progression, histoire.id, noeud, raccrochage(progression.variables)))
   }
   if (!progression.ai_consent_at) {
     return json({ consent_required: true })
@@ -121,7 +137,8 @@ Deno.serve(servir(async (req) => {
   const usage = await lireUsage(db, userId)
   if (usage.exchanges >= QUOTA_QUOTIDIEN) {
     console.log('[ai-chat] quota quotidien atteint')
-    return json(await raccrocher(db, progression, histoire.id, noeud, RACCROCHAGE, messagesJoueur))
+    return json(await raccrocher(
+      db, progression, histoire.id, noeud, raccrochage(progression.variables), messagesJoueur))
   }
 
   // --- Appel du modèle ----------------------------------------------------
@@ -137,7 +154,8 @@ Deno.serve(servir(async (req) => {
     // Clé absente, API en erreur, timeout, JSON illisible : elle raccroche.
     console.error('[ai-chat] fournisseur indisponible :', String(e))
     if (!(e instanceof ErreurFournisseur)) throw e
-    return json(await raccrocher(db, progression, histoire.id, noeud, RACCROCHAGE, messagesJoueur))
+    return json(await raccrocher(
+      db, progression, histoire.id, noeud, raccrochage(progression.variables), messagesJoueur))
   }
 
   const { contenu, tokensEntree, tokensSortie } = resultat
@@ -164,7 +182,7 @@ Deno.serve(servir(async (req) => {
 
   if (hostile || dernier) {
     return json(await raccrocher(
-      db, courante, histoire.id, noeud, hostile ? COUPURE : RACCROCHAGE, messages,
+      db, courante, histoire.id, noeud, hostile ? COUPURE : raccrochage(variables), messages,
       detail.valeur, variables))
   }
 
@@ -359,7 +377,7 @@ async function enregistrerConsentement(
     : null
 
   if (!accepte && noeud?.kind === 'ai_moment') {
-    return raccrocher(db, progression, storyId, noeud, RACCROCHAGE)
+    return raccrocher(db, progression, storyId, noeud, raccrochage(progression.variables))
   }
 
   return {

@@ -504,8 +504,19 @@ Le consentement refusé n'est **pas** une panne — voir § Le refus de consente
 plus bas : un vrai équivalent scripté, pas un raccrochage générique.
 
 Deux répliques de sortie, et deux seulement :
-« Merci. J'en avais besoin. Bon, je rentre. » (fin normale, quota, panne) ·
-« Ok. Laisse tomber. Je rentre. » (hostilité, sortie de cadre).
+« Tu as raison. Je crois que je vais aller me coucher, essayer de dormir un peu. Envoie-moi un
+message demain si tu veux, pour savoir comment ça va de mon côté. Merci encore. » (fin normale,
+quota, panne — vouvoyée si `refus`) ·
+« Ok. Laisse tomber. Je rentre. » (hostilité, sortie de cadre — une seule variante, hors périmètre
+du tu/vous : la coupure ne s'attarde pas).
+
+⚠️ La première a longtemps dit « Bon, je rentre » — reliquat de l'ancienne version où le moment IA
+se déroulait dans la voiture, pendant le trajet retour. Depuis l'écran de transition vidéo (« Léna
+rentre chez elle »), le N9 se déroule entièrement une fois qu'elle est déjà chez elle : une réplique
+de clôture qui laisse entendre qu'elle prend encore la route n'a plus de sens. Signalé par Vivien en
+jouant. Même reliquat corrigé dans `nodes.ai_system_prompt` du N9 (« Tu es dans ta voiture, tu
+trembles encore » → « Tu es rentrée chez toi, tu trembles encore »), qui influençait aussi les
+réponses générées par le modèle pendant l'échange, pas seulement la clôture.
 
 ### Ce que le modèle fait, et ce qu'il ne fait pas
 

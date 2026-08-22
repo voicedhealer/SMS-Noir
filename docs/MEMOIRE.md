@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-08-22 — Reliquat « voiture » à la clôture du N9, signalé par Vivien en jouant
+
+Pas une incohérence bible §7 : un reliquat technique de l'ancienne version du moment IA, qui se
+déroulait dans la voiture pendant le trajet retour. Depuis l'addendum transition N20-N9 (écran
+vidéo « Léna rentre chez elle »), le N9 entier se déroule une fois qu'elle est déjà chez elle — la
+réplique de clôture qui disait « Bon, je rentre » n'avait plus de sens.
+
+**Deux endroits touchés, la même cause :**
+- `ai-chat/index.ts` — `RACCROCHAGE` (réplique fixe de fin d'échange normal/quota/panne) remplacée
+  par le texte donné par Vivien. Comme il porte une adresse tu/vous explicite (« Envoie-moi... si
+  tu veux »), elle n'existait qu'en tutoiement : `raccrochage(variables)` choisit maintenant entre
+  `RACCROCHAGE_TU`/`RACCROCHAGE_VOUS` selon `variables.refus`, aux 5 points d'appel. `COUPURE`
+  (hostilité/hors-cadre) non touché, hors périmètre demandé. Le texte fourni se terminait par
+  « Merci encore, Vivien » — retiré : `RACCROCHAGE` est une constante partagée par tous les
+  joueurs, sans mécanisme d'interpolation de prénom nulle part dans le code (confirmé par Vivien).
+- `nodes.ai_system_prompt` du N9 (migration `20260818174043_contenu_chapitre_1.sql`, hand-écrit,
+  *pas* généré par `generate-seed-content.py`) — « Tu es dans ta voiture, tu trembles encore » →
+  « Tu es rentrée chez toi, tu trembles encore ». Cause racine réelle : cette phrase de contexte
+  influençait le MODÈLE pendant tout l'échange, pas seulement la réplique de clôture — c'est elle
+  qui poussait Léna à générer des répliques du genre « je dois me concentrer sur la route ».
+  Corrigée sur validation explicite de Vivien (portée au-delà de sa demande initiale).
+
+**Vérifié** : `supabase db reset` (51/51 `verify-graph.sql`), `test-ai-moment.py` (tous les
+`raccroche(r, RACCROCHAGE)` matchent la nouvelle réplique — tous ces parcours ont `refus = false`,
+la branche vouvoiement n'est exercée par aucun test automatisé aujourd'hui), `simulate-
+playthrough.py`. Guardian Python mis à jour en conséquence (`scripts/test-ai-moment.py`).
+
+
 ## 2026-08-21 (4) — Notifications locales + refonte écran de fin : Phase 1, implémentée
 
 Suite de l'entrée (3) — Phase 0 validée par Vivien (SMS Noir comme titre de notification, lien
