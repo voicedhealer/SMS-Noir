@@ -17,22 +17,31 @@ enum ComposerMode {
   aiInput,
 }
 
-/// Champ de saisie. Toujours actif, quel que soit l'état du nœud.
+/// Champ de saisie.
 ///
-/// Le joueur peut écrire n'importe quand : pendant les silences, ses messages
-/// s'accumulent en non délivrés, et il agit sur son angoisse au lieu de la
-/// subir. Aucun feedback ne trahit jamais leur inutilité — pas d'erreur, pas de
-/// grisage, pas de « Léna ne peut pas répondre maintenant ».
+/// Actif dans le silence (le joueur peut écrire, ses messages s'accumulent en
+/// non délivrés, il agit sur son angoisse au lieu de la subir) et pendant un
+/// vrai moment IA. **Verrouillé au tap, sans aucun changement d'aspect,
+/// dès que des choix sont affichés** — [choixPresents] — pour qu'écrire dans
+/// le vide ne devienne jamais un geste concurrent d'un vrai choix. Voir
+/// docs/DESIGN.md § Champ de saisie.
 class Composer extends StatefulWidget {
   const Composer({
     super.key,
     required this.mode,
     required this.onEnvoyer,
+    this.choixPresents = false,
     this.onFocusRecu,
     this.focusNode,
   });
 
   final ComposerMode mode;
+
+  /// Des choix (réponses ou interactions) sont affichés à l'écran : le champ
+  /// ignore alors tout geste — aucun focus, aucun clavier, aucun curseur
+  /// clignotant. Jamais un changement d'aspect, seulement d'interactivité :
+  /// un joueur qui compare une capture d'écran ne doit rien voir de différent.
+  final bool choixPresents;
 
   /// Le texte saisi. C'est l'appelant qui décide quoi en faire selon le mode.
   final void Function(String texte) onEnvoyer;
@@ -65,6 +74,7 @@ class _ComposerState extends State<Composer> {
     super.initState();
     _focusEstNotre = widget.focusNode == null;
     _focus = widget.focusNode ?? FocusNode();
+    _focus.canRequestFocus = !widget.choixPresents;
     _controleur.addListener(() {
       final vide = _controleur.text.trim().isEmpty;
       if (vide != _vide) setState(() => _vide = vide);
@@ -72,6 +82,16 @@ class _ComposerState extends State<Composer> {
     _focus.addListener(() {
       if (_focus.hasFocus) widget.onFocusRecu?.call();
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant Composer old) {
+    super.didUpdateWidget(old);
+    if (old.choixPresents == widget.choixPresents) return;
+    _focus.canRequestFocus = !widget.choixPresents;
+    // Des choix viennent d'apparaître pendant que le joueur écrivait : on ne
+    // lui laisse pas un clavier ouvert concurrencer un vrai choix.
+    if (widget.choixPresents && _focus.hasFocus) _focus.unfocus();
   }
 
   @override
@@ -105,31 +125,37 @@ class _ComposerState extends State<Composer> {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
-            child: Container(
-              constraints: const BoxConstraints(minHeight: 38),
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppColors.fond,
-                borderRadius: BorderRadius.circular(19),
-                border: Border.all(color: AppColors.separateurLigne),
-              ),
-              child: TextField(
-                controller: _controleur,
-                focusNode: _focus,
-                minLines: 1,
-                maxLines: 5,
-                textCapitalization: TextCapitalization.sentences,
-                style: AppText.corpsMessage.copyWith(color: AppColors.textePrincipal),
-                cursorColor: AppColors.bulleJoueur,
-                // Aucun libellé qui trahirait le mode. Le champ est le même partout.
-                decoration: const InputDecoration(
-                  isDense: true,
-                  border: InputBorder.none,
-                  hintText: 'Message',
-                  hintStyle: TextStyle(color: AppColors.texteTertiaire),
-                  contentPadding: EdgeInsets.symmetric(vertical: AppSpacing.s),
+            // Verrouille le geste, jamais l'aspect : `IgnorePointer` n'altère
+            // rien visuellement, contrairement à `TextField(enabled: false)`
+            // qui grise le champ — proscrit, voir DESIGN.md § Champ de saisie.
+            child: IgnorePointer(
+              ignoring: widget.choixPresents,
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 38),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.fond,
+                  borderRadius: BorderRadius.circular(19),
+                  border: Border.all(color: AppColors.separateurLigne),
                 ),
-                onSubmitted: (_) => _envoyer(),
+                child: TextField(
+                  controller: _controleur,
+                  focusNode: _focus,
+                  minLines: 1,
+                  maxLines: 5,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: AppText.corpsMessage.copyWith(color: AppColors.textePrincipal),
+                  cursorColor: AppColors.bulleJoueur,
+                  // Aucun libellé qui trahirait le mode. Le champ est le même partout.
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    border: InputBorder.none,
+                    hintText: 'Message',
+                    hintStyle: TextStyle(color: AppColors.texteTertiaire),
+                    contentPadding: EdgeInsets.symmetric(vertical: AppSpacing.s),
+                  ),
+                  onSubmitted: (_) => _envoyer(),
+                ),
               ),
             ),
           ),

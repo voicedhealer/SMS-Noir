@@ -171,7 +171,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           builder: (_) => ChapterEndScreen(
             fin: etatCourant.chapterEnd!,
             texte: etatCourant.texteFinDeChapitre!,
-            musique: etatCourant.intro?.musiqueFin,
+            musique: etatCourant.musiqueFin,
             onFermer: () => Navigator.of(context).pop(),
           ),
           fullscreenDialog: true,
@@ -214,7 +214,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           final narration = etat.narrationEnCours;
           if (narration.isNotEmpty) {
             return NarrationScreen(
-                lignes: narration, musique: etat.intro?.musiqueNarration);
+                lignes: narration, musique: etat.musiqueNarration);
           }
           // Même principe, fond vidéo plutôt que noir pur — addendum
           // transition N20-N9 §2.
@@ -259,6 +259,15 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               ),
           ];
 
+          // Même condition que celle qui peuple `DiscreetPlus`/`ChoiceArea`
+          // ci-dessus : le champ se verrouille exactement quand ils
+          // apparaissent, jamais avant, jamais après. Le moment IA reste
+          // toujours exempté — c'est le seul mode où le champ sert vraiment.
+          final choixPresents = etat.mode != ComposerMode.aiInput &&
+              !etat.enDeroule &&
+              (etat.interactionsParlees.isNotEmpty ||
+                  (etat.node?.replies.isNotEmpty ?? false));
+
           return Column(
           children: [
             Expanded(
@@ -283,6 +292,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             ),
             Composer(
               mode: etat.mode,
+              choixPresents: choixPresents,
               // Le mode décide de ce que devient le texte — le champ, lui, est
               // rigoureusement le même. Voir DESIGN.md § Champ de saisie.
               onEnvoyer: etat.mode == ComposerMode.aiInput

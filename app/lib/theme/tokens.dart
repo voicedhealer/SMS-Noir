@@ -80,6 +80,9 @@ class AppText {
 
   /// Écran d'entrée : accroche, sous le titre.
   static const accrocheAccueil = TextStyle(fontSize: 13.5, height: 1.4);
+
+  /// Écran d'entrée : note discrète sous l'accroche (recommandation casque).
+  static const noteAccueil = TextStyle(fontSize: 11.5, height: 1.3);
 }
 
 /// Échelle d'espacement, base 4.

@@ -7,6 +7,7 @@ import 'config/env.dart';
 import 'services/audio_session_config.dart';
 import 'screens/root_screen.dart';
 import 'theme/app_theme.dart';
+import 'widgets/sound_indicator.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +38,16 @@ class NumeroInconnuApp extends StatelessWidget {
       theme: AppTheme.sombre,
       themeMode: ThemeMode.dark,
       home: const RootScreen(),
+      // Un seul indicateur sonore, monté au-dessus de tout : l'écran change
+      // (carte d'entrée, intro, conversation, écran noir), la source du son
+      // aussi, mais l'endroit où le signaler ne doit pas être réécrit à
+      // chaque fois. Voir docs/DESIGN.md § Le système sonore.
+      builder: (context, child) => Stack(
+        children: [
+          ?child,
+          const SoundIndicatorOverlay(),
+        ],
+      ),
     );
   }
 }

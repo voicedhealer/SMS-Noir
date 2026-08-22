@@ -5,6 +5,7 @@ import 'package:just_audio/just_audio.dart';
 
 import '../config/env.dart';
 import '../services/audio_session_config.dart';
+import '../services/indicateur_sonore.dart';
 import '../models/client_message.dart';
 import '../theme/tokens.dart';
 
@@ -372,6 +373,10 @@ class _AudioBubbleState extends State<AudioBubble> {
   Duration _position = Duration.zero;
   bool _enLecture = false;
 
+  /// Désinscription auprès de [IndicateurSonore] — voir docs/DESIGN.md
+  /// § Le système sonore. Non nulle uniquement pendant une vraie lecture.
+  VoidCallback? _desinscrireSonore;
+
   @override
   void initState() {
     super.initState();
@@ -380,6 +385,7 @@ class _AudioBubbleState extends State<AudioBubble> {
 
   @override
   void dispose() {
+    _desinscrireSonore?.call();
     _lecteur?.dispose();
     super.dispose();
   }
@@ -402,7 +408,19 @@ class _AudioBubbleState extends State<AudioBubble> {
       });
       lecteur.playerStateStream.listen((etat) {
         if (!mounted) return;
-        setState(() => _enLecture = etat.playing && etat.processingState != ProcessingState.completed);
+        final enLecture =
+            etat.playing && etat.processingState != ProcessingState.completed;
+        if (enLecture != _enLecture) {
+          if (enLecture) {
+            // Couper depuis l'indicateur global équivaut à taper pause ici :
+            // même geste que le joueur aurait fait sur la bulle elle-même.
+            _desinscrireSonore = IndicateurSonore.instance.signaler(() => lecteur.pause());
+          } else {
+            _desinscrireSonore?.call();
+            _desinscrireSonore = null;
+          }
+        }
+        setState(() => _enLecture = enLecture);
         if (etat.processingState == ProcessingState.completed) {
           lecteur.seek(Duration.zero);
           lecteur.pause();

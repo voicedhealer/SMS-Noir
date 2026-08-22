@@ -186,6 +186,30 @@ class _EntryCardScreenState extends State<EntryCardScreen>
                         ),
                       ),
                     ],
+                    const SizedBox(height: AppSpacing.s),
+                    // Discrète, même registre que l'accroche — pas un
+                    // avertissement, une simple recommandation de confort.
+                    // Voir DESIGN.md § Le système sonore pour la distinction
+                    // avec l'indicateur qui apparaît pendant la lecture.
+                    AnimatedOpacity(
+                      opacity: _accrocheVisible ? 1 : 0,
+                      duration: AppMotion.fonduNarration,
+                      curve: Curves.easeOut,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.volume_up_outlined,
+                              size: 13, color: AppColors.texteTertiaire),
+                          const SizedBox(width: AppSpacing.xs),
+                          Text(
+                            'Casque ou haut-parleur recommandé',
+                            style: AppText.noteAccueil.copyWith(
+                                color: AppColors.texteTertiaire),
+                          ),
+                        ],
+                      ),
+                    ),
                     const Spacer(),
                     AnimatedOpacity(
                       opacity: _consentementVisible ? 1 : 0,

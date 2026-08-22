@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 
 import 'audio_session_config.dart';
+import 'indicateur_sonore.dart';
 
 /// Musique d'intronisation.
 ///
@@ -25,6 +27,11 @@ class MusiqueNarrative {
 
   AudioPlayer? _lecteur;
   int _generation = 0;
+
+  /// Désinscription auprès de [IndicateurSonore] — voir docs/DESIGN.md
+  /// § Le système sonore. Appelée dès que la musique s'arrête, quelle qu'en
+  /// soit la raison (naturelle ou tap sur l'indicateur).
+  VoidCallback? _desinscrireSonore;
 
   /// Volume cible : c'est une ambiance, pas une bande-son.
   static const double _volume = 0.45;
@@ -52,6 +59,7 @@ class MusiqueNarrative {
       await lecteur.setVolume(0);
       await lecteur.setLoopMode(LoopMode.off); // une seule lecture, jamais en boucle
       if (generation != _generation) return;
+      _desinscrireSonore = IndicateurSonore.instance.signaler(() => unawaited(arreter()));
       unawaited(lecteur.play());
       await _monter(lecteur, generation);
     } catch (_) {
@@ -76,6 +84,8 @@ class MusiqueNarrative {
     _generation++;
     final lecteur = _lecteur;
     _lecteur = null;
+    _desinscrireSonore?.call();
+    _desinscrireSonore = null;
     if (lecteur == null) return;
     try {
       await lecteur.stop();

@@ -92,4 +92,23 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.byType(EntryCardScreen), findsOneWidget);
   });
+
+  testWidgets('recommandation casque/haut-parleur présente, avec ou sans accroche',
+      (tester) async {
+    for (final accroche in [null, 'Une accroche.']) {
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.sombre,
+        home: EntryCardScreen(
+          titre: 'Numéro Inconnu',
+          accroche: accroche,
+          onEntrer: (_) {},
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Casque ou haut-parleur recommandé'), findsOneWidget,
+          reason: 'accroche: $accroche');
+      expect(find.byIcon(Icons.volume_up_outlined), findsOneWidget);
+    }
+  });
 }
