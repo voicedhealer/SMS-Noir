@@ -74,6 +74,15 @@ Aucun détecteur mécanique n'attrapera ça. À chaque nouveau moment IA :
 
 ## 🔴 Bloquant avant mise en production
 
+- [ ] **`android:usesCleartextTraffic="true"` à réévaluer** (`AndroidManifest.xml`). Posé le
+      22 août 2026 pour que les lecteurs natifs (just_audio/ExoPlayer, video_player) puissent
+      lire les médias du Supabase **local** de développement, qui est en `http://`. Le Supabase
+      hébergé est en `https`, donc le flag n'est pas nécessaire en production — mais tant qu'il
+      est là, il autorise n'importe quel trafic non chiffré. Deux sorties possibles : le retirer
+      purement et simplement une fois qu'on ne teste plus contre le local, ou le restreindre à
+      l'IP de développement via un `network_security_config.xml`. Ne pas expédier sur les stores
+      sans avoir tranché. Voir MEMOIRE.md 2026-08-22 (3).
+
 - [ ] **Deux champs de la politique de confidentialité** : identité du
       responsable de traitement, et adresse de contact. Marqués « À COMPLÉTER »
       dans `app/lib/screens/privacy_text.dart`. Je ne les invente pas — un

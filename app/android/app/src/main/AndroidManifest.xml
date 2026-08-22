@@ -12,10 +12,22 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
+    <!-- usesCleartextTraffic : les lecteurs NATIFS (just_audio/ExoPlayer pour
+         les musiques et vocaux, video_player pour la transition N9) appliquent
+         la politique réseau d'Android, qui interdit le HTTP non chiffré par
+         défaut — contrairement au client HTTP de Dart (API, images), qui ne
+         l'applique pas. Sans ce flag, AUCUN média audio/vidéo ne peut se lire
+         depuis le Supabase local de développement (http://...), alors que tout
+         le reste de l'app fonctionne — panne silencieuse trouvée le 22 août
+         2026 (« Source error », voir MEMOIRE.md). Le Supabase hébergé de
+         production est en https : ce flag ne l'affecte pas, mais à réévaluer
+         avant une sortie sur les stores (voir TODO.md). iOS n'a pas ce
+         problème : l'ATS d'Apple exempte les médias AVFoundation. -->
     <application
         android:label="SMS Noir"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"

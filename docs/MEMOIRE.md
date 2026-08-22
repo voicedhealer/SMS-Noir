@@ -4,6 +4,44 @@
 
 ---
 
+## 2026-08-22 (3) — Aucun son sur Android : `usesCleartextTraffic`, et deux fausses pistes avant
+
+Vivien, en testant sur son Galaxy S23 : le son de l'intro fonctionne sur le simulateur iPhone,
+pas sur Android. Symptôme : aucune musique, et l'indicateur sonore n'apparaît jamais.
+
+**La cause, la vraie** : `java.io.IOException: Cleartext HTTP traffic to 192.168.1.18 not
+permitted`. Android interdit par défaut le HTTP non chiffré aux lecteurs **natifs** — ExoPlayer
+(`just_audio`) et `video_player` — alors que le client HTTP de **Dart** (`package:http`, donc
+l'API, les images, la couverture) n'applique pas cette politique. D'où une app parfaitement
+fonctionnelle en apparence, où seuls les médias audio/vidéo tombaient. iOS n'a pas ce problème :
+l'ATS d'Apple exempte les médias AVFoundation — ce qui explique exactement l'asymétrie constatée.
+Corrigé par `android:usesCleartextTraffic="true"` (**à réévaluer avant les stores**, voir TODO.md).
+
+**Deux fausses pistes avant d'y arriver, à ne pas refaire :**
+1. `intro-music.mp4` contenait bien une piste vidéo H.264 cachée à côté de l'AAC (artefact
+   d'export). Retirée (`ffmpeg -vn -acodec copy`) — vrai défaut du fichier, mais **pas** la cause.
+2. Son atome `moov` était en fin de fichier. Déplacé en tête (`-movflags +faststart`) — également
+   sain, également **pas** la cause.
+   Le fichier a fini converti en `.mp3` comme les deux autres segments (`narration-music.mp3`,
+   `fin-music.mp3`), ce qui reste le bon format par cohérence. Sauvegardes des états intermédiaires
+   dans `media/*.bak-*`.
+
+**La leçon** : `just_audio` remonte `(0) Source error`, un message générique qui ne dit rien. La
+vraie cause était dans le `Caused by:` du stacktrace **ExoPlayer**, visible seulement dans
+`adb logcat` (filtrer sur `ExoPlayerImplInternal`), jamais dans la couche Dart. Devant un
+`Source error` Android, aller lire le logcat natif AVANT de suspecter le fichier — deux
+manipulations de média inutiles auraient été évitées.
+
+**Piège de méthode, aussi** : `adb reverse tcp:54321` (tunnel USB) a fait croire un moment que le
+tunnel était en cause, parce que le test « ça marche en LAN » avait été fait sur l'émulateur, dont
+le manifeste installé était encore l'ancien. Les deux chemins échouaient pour la même raison
+cleartext. Quand deux configurations diffèrent, vérifier que c'est bien la **seule** différence.
+
+**Le `debugPrint` ajouté à `MusiqueNarrative` a servi immédiatement** — sans lui, l'échec restait
+un silence indistinguable d'une absence de musique. Même principe que `NotificationsLocales`
+(entrée du 21 août) : résilient, mais jamais muet.
+
+
 ## 2026-08-22 (2) — Consentement IA rendu obligatoire à la carte d'entrée, décision assumée malgré la réserve RGPD
 
 Vivien : « on peut lancer l'histoire sans valider la checkbox, j'avais pourtant demandé cette
