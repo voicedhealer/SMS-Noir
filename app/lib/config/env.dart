@@ -14,11 +14,17 @@ class Env {
   static const String _urlDefini = String.fromEnvironment('SUPABASE_URL');
   static const String _cleDefinie = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
 
+  /// `true` pour un appareil Android réel relié en USB avec `adb reverse
+  /// tcp:54321 tcp:54321` déjà posé — sur ce chemin, `127.0.0.1` désigne déjà
+  /// la machine hôte via le tunnel adb, contrairement à l'émulateur.
+  static const bool _adbReverse = bool.fromEnvironment('ADB_REVERSE');
+
   /// URL de l'API Supabase.
   ///
   /// En développement local, l'émulateur Android n'atteint pas `127.0.0.1` :
   /// cette adresse désigne l'émulateur lui-même. `10.0.2.2` est l'alias de la
   /// machine hôte. Le simulateur iOS, lui, partage la boucle locale du Mac.
+  /// Un appareil Android réel n'a ni l'un ni l'autre : voir `_adbReverse`.
   static String get supabaseUrl {
     if (_urlDefini.isNotEmpty) return _adapterHote(_urlDefini);
     throw StateError(
@@ -34,7 +40,7 @@ class Env {
 
   static String _adapterHote(String url) {
     final estLocal = url.contains('127.0.0.1') || url.contains('localhost');
-    if (estLocal && Platform.isAndroid) {
+    if (estLocal && Platform.isAndroid && !_adbReverse) {
       return url.replaceAll('127.0.0.1', '10.0.2.2').replaceAll('localhost', '10.0.2.2');
     }
     return url;

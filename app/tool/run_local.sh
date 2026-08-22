@@ -8,6 +8,13 @@
 # Usage :
 #   supabase start && supabase functions serve &
 #   app/tool/run_local.sh [-d <device>]
+#
+# Appareil Android réel en USB (pas un émulateur) : `127.0.0.1` ne désigne ni
+# l'appareil ni la machine hôte, contrairement à l'émulateur (10.0.2.2, géré
+# tout seul par lib/config/env.dart). Poser le tunnel, puis ajouter
+# --dart-define=ADB_REVERSE=true en argument :
+#   adb reverse tcp:54321 tcp:54321
+#   app/tool/run_local.sh -d <device> --dart-define=ADB_REVERSE=true
 set -euo pipefail
 
 RACINE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
