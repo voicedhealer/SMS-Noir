@@ -58,20 +58,32 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.4
 
 # Icône de l'app, générée pour iOS et Android via `flutter_launcher_icons`.
-# Source : assets/icon/icon-officel.png (1024×1024, déjà opaque et plat, sans
-# artefact de mockup — vérifié aux pixels avant usage). icon.png en est une
-# copie normalisée, aucun recadrage nécessaire cette fois.
+#
+# ⚠️ **icon-officel.png est la SOURCE, ne jamais l'écraser.** 1024×1024, opaque
+# et plat, sans artefact de mockup. Son glyphe n'occupe que ~60 % du cadre :
+# c'est voulu, c'est la source, et les deux fichiers ci-dessous en sont des
+# dérivés RECADRÉS. Régénérer un dérivé en repartant d'un autre dérivé
+# recadrerait un glyphe déjà agrandi, et l'icône finirait démesurée (constaté
+# le 22 août 2026 — voir MEMOIRE.md).
+#
+# Recette des deux dérivés, à partir de la boîte englobante du glyphe dans la
+# source (205, 233)-(820, 807), recadrée puis remise à l'échelle, centrée sur
+# un canevas blanc 1024×1024 :
+#   • icon.png            — glyphe à 86 % du cadre. Icône plate (iOS, Play
+#     Store) : rien ne la recadre ensuite, elle peut remplir largement.
+#   • icon_foreground.png — glyphe à 60 %, sur fond TRANSPARENT (alpha dérivé
+#     de la luminance). Premier plan adaptatif Android : le lanceur recadre
+#     encore par-dessus avec son propre masque (zone de sûreté ~66 %), donc
+#     rester nettement en retrait — à 68 % l'icône paraissait déjà trop grosse
+#     sur un vrai Samsung.
+#
+# Le fond transparent du premier plan n'est pas un détail : un fond opaque,
+# même blanc, reste un carré à coins droits sous le masque du lanceur —
+# visible en aperçu (Android Studio, certains explorateurs de fichiers) sous
+# forme de coins qui semblent « encore arrondis ».
 #
 # icon-source-original.jpeg : premier essai d'icône, remplacé — gardé pour
 # mémoire, plus référencé par la config ci-dessous.
-#
-# Le premier plan adaptatif Android utilise un fichier séparé,
-# icon_foreground.png : fond réellement transparent (alpha dérivé de la
-# luminance de icon.png), pas blanc opaque. Un fond opaque, même blanc,
-# reste un carré à coins droits sous le masque du lanceur — visible en
-# aperçu (Android Studio, certains explorateurs de fichiers) sous forme de
-# coins qui semblent « encore arrondis ». Un fond transparent ne peut
-# montrer aucun coin, dans aucun visualiseur : rien d'opaque à arrondir.
 #
 # Régénérer : cd app && dart run flutter_launcher_icons
 flutter_launcher_icons:
