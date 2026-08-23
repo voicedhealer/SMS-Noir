@@ -418,9 +418,9 @@ from (values
 ('N3', 12, $$Vous en êtes sûre après un seul message ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Certaine, il aurait déjà appelé.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N4 · pause après le message 1
-('N4', 10, $$Ce n'est pas Karim, mais il se passe quoi ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Rien qui vous regarde, désolée.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N4', 11, $$Vous attendez quoi de lui exactement ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Qu'il décroche, comme d'habitude, non.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
-('N4', 12, $$On ne se connaît pas, vous vous trompez de numéro.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Évidemment.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+('N4', 10, $$Ce n'est pas Karim, mais il se passe quoi ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Ça ne devrait pas vous concerner, mais je... je suis un peu à cran là, désolée.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N4', 11, $$Vous attendez quoi de lui exactement ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Qu'il décroche, comme d'habitude... c'est tout ce que je demande, en ce moment.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N4', 12, $$On ne se connaît pas, vous vous trompez de numéro.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Vous avez raison, ça doit être ça... désolée de vous avoir dérangé pour rien.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N5 · pause après le message 0
 ('N5', 10, $$Je suis désolé pour vous.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Merci, c'est déjà plus que ce que j'entends d'habitude.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
@@ -436,6 +436,11 @@ from (values
 ('N7', 10, $$J'arrête si vous voulez.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Je peux vous demander une chose, une seule, s'il vous plaît ?", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
 ('N7', 11, $$Votre sœur, elle s'appelle comment ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Chloé.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
 ('N7', 12, $$Et si j'ouvre cette bouteille, quel serait ce message ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Un appel à l'aide.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+
+-- N7 · pause après le message 1
+('N7', 20, $$Moi je préfère imaginer la vérité, même si elle fait peur.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Merci... ça change tout d'entendre ça.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N7', 21, $$Les gens autour de vous ont abandonné les recherches ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Presque tous, oui. Il ne reste que moi.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N7', 22, $$C'est courageux de continuer seule.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Ou inconscient. Je sais plus très bien lequel des deux.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N8 · pause après le message 1
 ('N8', 10, $$C'est révoltant.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Merci de le dire, vous savez, à force on finit par douter de soi.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),

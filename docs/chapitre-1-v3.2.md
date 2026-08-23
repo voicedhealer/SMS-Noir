@@ -93,9 +93,9 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 **[Léna]** Karim ? Réponds, ce n'est vraiment pas le moment de me lâcher.
 
 **MICRO-CHOIX :**
-- 🛡 « Ce n'est pas Karim, mais il se passe quoi ? » → *« Rien qui vous regarde, désolée. »*
-- 🔍 « Vous attendez quoi de lui exactement ? » → *« Qu'il décroche, comme d'habitude, non. »*
-- 🧠 « On ne se connaît pas, vous vous trompez de numéro. » → *« Évidemment. »*
+- 🛡 « Ce n'est pas Karim, mais il se passe quoi ? » → *« Ça ne devrait pas vous concerner, mais je... je suis un peu à cran là, désolée. »*
+- 🔍 « Vous attendez quoi de lui exactement ? » → *« Qu'il décroche, comme d'habitude... c'est tout ce que je demande, en ce moment. »*
+- 🧠 « On ne se connaît pas, vous vous trompez de numéro. » → *« Vous avez raison, ça doit être ça... désolée de vous avoir dérangé pour rien. »*
 
 **[Léna]** Une chance sur deux avec ce nouveau téléphone, et je la rate.
 
@@ -157,6 +157,11 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 - 🧠 « Et si j'ouvre cette bouteille, quel serait ce message ? » → *« Un appel à l'aide. »*
 
 **[Léna]** Plus personne ne croit en mon histoire, plus personne ne pose de questions, les gens préfèrent oublier qu'imaginer le pire...
+
+**MICRO-CHOIX :**
+- 🛡 « Moi je préfère imaginer la vérité, même si elle fait peur. » → *« Merci... ça change tout d'entendre ça. »*
+- 🔍 « Les gens autour de vous ont abandonné les recherches ? » → *« Presque tous, oui. Il ne reste que moi. »*
+- 🧠 « C'est courageux de continuer seule. » → *« Ou inconscient. Je sais plus très bien lequel des deux. »*
 
 **[Léna]** Vous recevez ma bouteille, mais je ne vous ai même pas dit mon nom, je m'appelle Léna.
 

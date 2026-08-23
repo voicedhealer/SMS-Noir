@@ -274,19 +274,37 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               child: Listener(
                 // Toute action repousse l'affordance de continuation.
                 onPointerDown: (_) => ctrl.signalerActivite(),
-                child: ListView.builder(
-                  controller: _scroll,
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
-                  itemCount: etat.fil.length + queue.length,
-                  itemBuilder: (context, i) {
-                    if (i >= etat.fil.length) return queue[i - etat.fil.length];
-                    return _Element(
-                      message: etat.fil[i],
-                      suivant: i + 1 < etat.fil.length ? etat.fil[i + 1] : null,
-                      etat: etat,
-                      vu: vu,
-                    );
-                  },
+                // Le fil s'empile depuis le BAS, contre le champ de saisie,
+                // comme toute vraie messagerie. Sans ça, un fil plus court que
+                // l'écran (début de chapitre) se posait en haut et laissait un
+                // grand vide entre les choix et le champ — repéré par Vivien
+                // au N1. Ce n'était pas une zone réservée : c'était du
+                // défilement vide, la ListView occupant toute la hauteur.
+                //
+                // `shrinkWrap` + `Align` plutôt que `reverse: true` : inverser
+                // la liste ancrerait aussi le contenu en bas, mais inverserait
+                // du même coup tout le repère de défilement (offset 0 = bas),
+                // or c'est exactement ce repère que règlent les protections
+                // « le fil ne vole jamais la position de lecture ». On ne
+                // renverse pas un axe déjà couvert par des tests pour un
+                // problème de mise en page.
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: ListView.builder(
+                    controller: _scroll,
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
+                    itemCount: etat.fil.length + queue.length,
+                    itemBuilder: (context, i) {
+                      if (i >= etat.fil.length) return queue[i - etat.fil.length];
+                      return _Element(
+                        message: etat.fil[i],
+                        suivant: i + 1 < etat.fil.length ? etat.fil[i + 1] : null,
+                        etat: etat,
+                        vu: vu,
+                      );
+                    },
+                  ),
                 ),
               ),
             ),

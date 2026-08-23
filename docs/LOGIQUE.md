@@ -748,6 +748,15 @@ Le mécanisme tient en deux moitiés :
 2. **Le geste du joueur** sur une carte d'enregistrement (`content_type: 'contact_card'`), qui
    appelle `reveal-contact`. **Ce n'est pas un choix narratif** : aucun nœud ne bouge, aucune
    variable de jeu n'est touchée.
+
+   ⚠️ **Ce n'est pas non plus une pause dans le déroulé.** Le mot `contact_card` n'apparaît
+   nulle part dans `supabase/functions/` : le serveur le délivre comme un message ordinaire
+   (avec son `delay_seconds`), c'est le seul client qui sait le rendre autrement. La carte occupe
+   donc une place visible dans le fil **sans** interrompre l'enchaînement — elle ne compte pas
+   comme une respiration quand on évalue la règle des 3 messages consécutifs. Les seules vraies
+   pauses sont : un bloc de micro-choix, un choix structurant, une interaction disponible, et la
+   saisie libre d'un `ai_moment`. Vérifié le 23 août 2026 en cherchant pourquoi la branche
+   N4→N7 paraissait plus dense que ses voisines.
 3. **L'effect `reveal_contact`** en filet de sécurité, posé sur le nœud de fin de chapitre :
    `nodes.effects = {"reveal_contact": "lena"}`. Le joueur qui n'a jamais enregistré voit le
    contact nommé à la fin — un geste facultatif ne bloque jamais l'histoire.

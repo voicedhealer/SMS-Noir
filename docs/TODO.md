@@ -257,6 +257,20 @@ elle a besoin de ton feu vert, et `chapitre-1-v2.md` devra être patché en mêm
 
 ## 🔴 Questions ouvertes — contenu
 
+- [x] ~~**Q11 — Deux répliques sèches restantes au N4**~~ — **tranchée et corrigée le 23 août
+      2026.** Les deux textes de remplacement ont été fournis par Vivien, appliqués aux trois
+      emplacements (doc source, migration, base locale). L'inventaire complet du chapitre lancé
+      dans la foulée n'a rien trouvé d'autre du même défaut — voir MEMOIRE.md 2026-08-23 (2).
+
+- [ ] **Q12 — La carte de contact compte-t-elle dans la règle des 3 messages consécutifs ?**
+      Après le correctif de densité du N7 (23 août 2026), N5 **et** N7 présentent la même
+      séquence avant la pause suivante : 3 bulles + 1 carte d'enregistrement = 4 éléments visibles
+      dans le fil. Techniquement la carte n'est pas une pause (voir LOGIQUE.md § Révélation
+      d'identité) mais elle se voit, et elle rompt visuellement l'enchaînement de bulles. Si tu
+      considères qu'elle compte, il faut un bloc de micro-choix de plus sur **ces deux branches**,
+      pas seulement N7. Si tu considères qu'elle ne compte pas, le chapitre est déjà conforme et
+      il n'y a rien à faire. Balayage complet du graphe fait : aucun autre endroit ne dépasse.
+
 - [ ] **Q9 — Jour J : le 13 ou le 14 août 2026 ?** Tu as indiqué « Jeudi 14 août 2026 », mais le
       14 août 2026 est un **vendredi**. Le chapitre affiche « jeudi — 22h47 » et le suspect vient
       « tous les jeudis » : la date aurait posé une contradiction sur le premier écran du jeu.

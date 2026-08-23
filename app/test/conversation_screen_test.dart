@@ -1130,6 +1130,34 @@ void main() {
       await tester.pumpAndSettle();
     }
 
+    testWidgets('un fil plus court que l\'écran s\'empile contre le champ, sans vide résiduel',
+        (tester) async {
+      // Régression : la ListView occupant toute la hauteur disponible, un fil
+      // plus court que l'écran (début de chapitre) se posait EN HAUT et
+      // laissait un grand vide entre le dernier choix et le champ de saisie.
+      // Signalé par Vivien au N1. Une vraie messagerie empile depuis le bas :
+      // le vide doit se retrouver en haut, jamais entre les deux.
+      await monter(tester, getState: {
+        'story': {'slug': 's', 'title': 'T'},
+        'conversations': [conversation()],
+        'history': [message(seq: 1, body: 'Un seul message : le fil est court.')],
+        'node': noeud(choix: [
+          {'id': 'a', 'position': 0, 'label': 'Réponse A', 'kind': 'reply'},
+          {'id': 'b', 'position': 1, 'label': 'Réponse B', 'kind': 'reply'},
+        ]),
+        'chapter_end': null,
+        'ai_moment_pending': false,
+      });
+
+      final basDesChoix = tester.getBottomLeft(find.byType(ChoiceArea)).dy;
+      final hautDuChamp = tester.getTopLeft(find.byType(Composer)).dy;
+
+      // Seule la marge basse de la liste (AppSpacing.m) doit subsister. Avant
+      // le correctif, l'écart valait plusieurs centaines de pixels.
+      expect(hautDuChamp - basDesChoix, lessThan(32),
+          reason: 'les choix doivent toucher le champ, pas flotter loin au-dessus');
+    });
+
     testWidgets('aucun débordement quand le clavier ouvre sur un bloc chargé',
         (tester) async {
       await monter(tester, getState: etatCharge());

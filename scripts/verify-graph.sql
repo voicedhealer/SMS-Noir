@@ -244,7 +244,11 @@ select _chk(43, 'Aucun média sans URL', '',
 select _chk(44, 'Nombre total de messages', '69',
   (select count(*)::text from _n n join messages m on m.node_id = n.id));
 
-select _chk(45, 'Nombre total de choix', '93',
+-- 96 depuis le 23 août 2026 : +3 options (un bloc de micro-choix ajouté au N7,
+-- après le message 1). La branche N4→N7 enchaînait 4 bulles sans pause jusque
+-- dans le N8, au-delà de la règle des 3 messages consécutifs — les deux autres
+-- branches convergentes (N5, N6) portaient une interruption de plus.
+select _chk(45, 'Nombre total de choix', '96',
   (select count(*)::text from _n n join choices ch on ch.node_id = n.id));
 
 select _chk(46, 'Répartition des choix (ignore/interaction/reply)', '0/7/26',

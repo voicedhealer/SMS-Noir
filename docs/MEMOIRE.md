@@ -4,6 +4,143 @@
 
 ---
 
+## 2026-08-23 (3) — Densité de la branche N4→N7, et ce que la carte de contact n'est pas
+
+Vivien, en jouant la branche « curieux » : le N7 ne portait qu'un bloc de micro-choix avant le N8,
+là où N5 et N6 en portaient davantage. Résultat, **4 bulles d'affilée** (N7#1, N7#2, puis N8#0 et
+la photo N8#1) par-dessus la règle des 3 messages consécutifs (récap V3.1, reprise en V3.2).
+
+**Correctif** : un bloc de micro-choix ajouté au N7 après le message 1, textes fournis par Vivien.
+Trois emplacements comme d'habitude — doc source, migration, base locale. Le générateur numérote
+les blocs par dizaines (`10 + i*10 + j`) : le nouveau bloc prend donc 20/21/22 avec
+`after_position = 1`, exactement ce que produirait une régénération depuis le doc.
+
+**La carte d'enregistrement n'est PAS une pause** — c'était la question de Vivien, et la réponse a
+de la portée. `contact_card` n'existe nulle part dans `supabase/functions/` : le serveur la délivre
+comme un message ordinaire, seul le client sait la rendre en carte. Elle occupe donc une place
+visible dans le fil sans rien interrompre. Consigné dans LOGIQUE.md § Révélation d'identité, parce
+que c'est une propriété du moteur qu'on peut facilement croire acquise.
+
+**Balayage de tout le graphe plutôt qu'un correctif ponctuel** (`/tmp` — script jetable, reproduit
+depuis la base) : reconstitution des séquences entre deux vraies pauses (bloc de micro-choix, choix
+structurant, interaction disponible, saisie libre d'un `ai_moment`), en suivant les transitions
+automatiques d'un nœud à l'autre. Deux pièges évités en route : les variantes conditionnelles
+partagent la même position et gonflaient artificiellement le compte (dédoublonnées), et la vidéo du
+N9 est un plein écran, pas une bulle.
+
+**Résultat après correctif : aucun dépassement.** Maximum 3 bulles partout. N7 est revenu
+exactement au niveau de N5 — ce que Vivien demandait.
+
+**Un point qui reste à trancher, signalé et non corrigé** : N5 et N7 affichent tous deux 3 bulles
+**plus une carte de contact** avant la pause suivante, soit 4 éléments visibles. Comme la carte
+n'est pas une pause mais se voit, savoir si elle « compte » dans la règle des 3 est un arbitrage de
+Vivien, pas une évidence technique. Noté en TODO.md § Q12.
+
+**Gardien mis à jour** : `verify-graph.sql` contrôle 45 attendait 93 choix, il y en a 96. Compte
+corrigé avec la raison en commentaire — « quand une règle change, ses gardiens aussi ».
+
+
+## 2026-08-23 (2) — Inventaire de ton sur tout le chapitre 1 : le N4 était la seule poche
+
+Suite de l'entrée précédente. Vivien a validé les deux répliques restantes du N4 et fourni les
+textes ; appliqués aux trois emplacements (doc source, migration `20260818174043`, base locale).
+Q11 refermée dans TODO.md.
+
+**Inventaire exhaustif, pas un sondage.** 114 répliques de Léna extraites **de la base** plutôt que
+du markdown — c'est ce que le joueur voit réellement, variantes `refus = true` et interactions
+cachées comprises. Réparties en 60 réponses directes à une action du joueur (micro-choix +
+interactions, examinées avec la question qui les déclenche) et 54 messages, plus 8 variantes
+conditionnelles.
+
+**Résultat : rien d'autre.** Les trois répliques du N4 formaient la seule poche de l'ancien ton
+V3.1. Tout le reste respecte les règles V3.2 — elle remercie, s'excuse, reconnaît ce que le joueur
+apporte.
+
+**Deux lignes examinées puis conservées**, notées ici pour ne pas les réexaminer à chaque passage :
+- N11 🛡 « Ne faites pas de bêtise. » → « C'est un peu tard pour ça. » Du fatalisme tourné vers
+  elle-même devant l'entrepôt, pas une pique au joueur — et le nœud s'ouvre justement sur
+  « Je comprends, vraiment. Merci quand même d'avoir répondu. »
+- N17 🧠 « Vous êtes où exactement, là ? » → « Devant, derrière le muret, pourquoi cette
+  question ? » Vigilance sous tension, et la question relance le joueur au lieu de le clore.
+
+⚠️ **N17 interaction — à ne jamais « corriger »** : « Quel bruit ? ...Une voiture qui passait je
+suppose, il y en a parfois. Concentrez-vous s'il vous plaît. » Le ton un peu directif est
+l'esquive de l'incohérence n°3 de la bible §7 (le son de fond du vocal). C'est du gameplay, pas un
+reliquat.
+
+### Un gardien qui passait pour la mauvaise raison
+
+`simulate-playthrough.py` a échoué sur « N9 ouvre sur la vidéo de transition » — **sans rapport
+avec le contenu modifié**. L'assertion comparait `media_url` au nom brut
+`lena-rentre-chez-elle.mp4`, or le serveur **signe** les médias présents dans le bucket :
+`media_url` devient `/storage/v1/object/sign/media/<objet>?token=…`. Le test ne passait donc que
+tant que l'objet était ABSENT du bucket — état dans lequel se trouvait la base juste après le
+`db reset` de la veille, avant que les médias soient restaurés. Il réussissait pour la mauvaise
+raison depuis, et est tombé au premier retour à la normale. Corrigé en cherchant le nom de l'objet
+DANS l'url plutôt qu'une égalité stricte.
+
+
+## 2026-08-23 — Réplique sèche du N4 : un reliquat du ton V3.1, et l'inventaire qui va avec
+
+Vivien, en jouant : au N4, le joueur demande « il se passe quoi ? » avec bienveillance et reçoit
+« Rien qui vous regarde, désolée. » — un rejet, pas une esquive vulnérable. Remplacée par le texte
+qu'il a fourni : « Ça ne devrait pas vous concerner, mais je... je suis un peu à cran là,
+désolée. »
+
+**Deux fichiers, pas un.** `docs/chapitre-1-v3.2.md` est la source de vérité et
+`scripts/generate-seed-content.py` en **génère** les micro-choix : ne corriger que la migration
+aurait été effacé à la première régénération. Le doc et la migration `20260818174043` sont donc
+modifiés ensemble, plus un `update choices` en base locale pour tester sans `db reset` (qui
+reviderait le bucket média). `docs/prompts/chapitre-1-v3.2.md` laissé tel quel : c'est l'archive du
+prompt d'origine, pas une source lue par le générateur.
+
+**Le critère n'était pas mon goût.** Le doc porte ses propres règles d'écriture V3.2, qui disent
+exactement ce que Vivien reprochait : « la vulnérabilité passe avant le mordant », « la sécheresse
+arrive en réflexe de défense, jamais à la place de l'émotion », « un joueur qui aide et se fait
+rembarrer décroche ». L'inventaire des 19 répliques de micro-choix les plus courtes a été mesuré
+contre ces règles, pas contre une préférence.
+
+**La brièveté n'est pas le défaut.** « Chloé. » (N7) fait un mot et doit rester : c'est le prénom
+de sa sœur disparue, la brièveté *est* l'émotion. Le défaut visé est le rejet d'un joueur qui aide.
+Deux candidats restants, tous deux au N4 — même nœud, même registre que celui corrigé :
+« Évidemment. » (🧠) et « Qu'il décroche, comme d'habitude, non. » (🔍).
+
+**Signalés, pas réécrits** (règles 2 et 3) : consignés en TODO.md § Q11, en attente de Vivien.
+
+
+## 2026-08-22 (4) — Le grand vide entre les choix et le champ : du défilement, pas une zone réservée
+
+Vivien, en jouant au N1 : un grand espace vide entre les bulles de choix et le champ de saisie.
+Son hypothèse : une zone réservée qui reste allouée même vide, probablement celle du « + »
+d'interaction cachée sur un nœud qui n'en porte pas.
+
+**Ce n'était pas ça.** `DiscreetPlus` n'est ajouté à la liste que si `interactionsParlees` est non
+vide, et `ChoiceArea` se réduit à `SizedBox.shrink()` sans choix — aucun des deux ne réserve quoi
+que ce soit. Le `Composer` n'a pas de hauteur fixe non plus (juste `minHeight: 38` sur le champ).
+
+**La vraie cause** : la `ListView` vit dans un `Expanded`, donc elle occupe toute la hauteur
+disponible. Quand le contenu est plus court que l'écran — tout début de chapitre — les items se
+posent en haut et le reste du viewport est du **défilement vide**. Ce n'est pas un conteneur trop
+grand, c'est une liste plus grande que son contenu. Confirmé visuellement avant de toucher au
+code : sur la capture, la bande `surface` de `ChoiceArea` s'arrête net au dernier choix, le vide
+en dessous est du `fond` nu.
+
+**Correctif** : `Align(bottomCenter)` + `shrinkWrap: true` — le fil s'empile depuis le bas, contre
+le champ, comme toute vraie messagerie ; le vide passe en haut, invisible sur fond noir.
+
+**Pourquoi pas `reverse: true`**, la solution habituelle pour un chat : elle ancre bien en bas,
+mais renverse le repère de défilement (offset 0 = bas, `maxScrollExtent` = haut). Or c'est
+exactement ce repère qu'utilisent `_procheDuBas`, `_versLeBas` et `_revelerPourClavier`, tous
+couverts par les tests « le fil ne vole jamais la position de lecture ». On ne renverse pas un axe
+déjà protégé par des tests pour régler un problème de mise en page. Contrepartie assumée de
+`shrinkWrap` : les enfants sont construits d'un bloc plutôt que paresseusement — acceptable sur un
+chapitre borné (~80 éléments), à revoir si un chapitre devenait beaucoup plus long.
+
+**Test de non-régression vérifié par échec** : `conversation_screen_test.dart` § « un fil plus
+court que l'écran s'empile contre le champ ». Repasser `shrinkWrap` à `false` le fait échouer —
+contrôlé, pas supposé. Un test de régression qui n'a jamais échoué ne prouve rien.
+
+
 ## 2026-08-22 (3) — Aucun son sur Android : `usesCleartextTraffic`, et deux fausses pistes avant
 
 Vivien, en testant sur son Galaxy S23 : le son de l'intro fonctionne sur le simulateur iPhone,

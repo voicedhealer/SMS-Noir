@@ -253,6 +253,14 @@ message suivant.
 
 ### Le fil
 
+**Il s'empile depuis le BAS**, contre le champ de saisie, comme toute vraie messagerie : quand la
+conversation est plus courte que l'écran — tout début de chapitre — le vide se retrouve **en haut**,
+jamais entre le dernier choix et le champ. Sans ça, la liste occupant toute la hauteur posait son
+contenu en haut et laissait un grand trou au-dessus du champ (repéré par Vivien au N1). Réalisé
+par `Align(bottomCenter)` + `shrinkWrap`, et non par `reverse: true` : inverser la liste ancrerait
+aussi le contenu en bas, mais renverserait du même coup le repère de défilement (offset 0 = bas),
+celui-là même que règlent les protections du § Le fil ne vole jamais la position de lecture.
+
 | Élément | Rendu |
 |---|---|
 | Texte reçu | Bulle gauche, `bulleContact` |

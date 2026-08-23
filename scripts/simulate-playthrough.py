@@ -270,9 +270,17 @@ def parcours_allie():
     verifier('ai_moment_pending', p.etat['ai_moment_pending'], True)
     # N9#0 est la vidéo de transition (addendum §2) : premier message 'contact'
     # du lot, avant même la réplique de Léna.
+    #
+    # On cherche le nom de l'objet DANS l'url, pas une égalité stricte : le
+    # serveur signe les médias présents dans le bucket, et `media_url` devient
+    # alors « /storage/v1/object/sign/media/<objet>?token=… ». Une égalité au
+    # nom brut ne passait donc que tant que l'objet était ABSENT du bucket
+    # (signature impossible, chemin laissé tel quel) — le test réussissait pour
+    # la mauvaise raison, et tombait dès qu'on restaurait les médias. Constaté
+    # le 23 août 2026.
     verifier('N9 ouvre sur la vidéo de transition',
              any(m['sender'] == 'contact' and m.get('content_type') == 'video'
-                 and m['media_url'] == 'lena-rentre-chez-elle.mp4'
+                 and 'lena-rentre-chez-elle' in (m['media_url'] or '')
                  for m in r['new_messages']), True)
     # refus = false ici : N9 doit ensuite ouvrir sur la demande de tutoiement,
     # pas sur la variante qui maintient le vouvoiement (messages.conditions,
