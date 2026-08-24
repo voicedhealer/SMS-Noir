@@ -182,30 +182,39 @@ MEDIA = {
 #: deux options mutuellement exclusives. Le zoom du récépissé est passé du N10
 #: au N8 en V3.2 : au N10 il n'était visible que sur la branche « appelez la
 #: police », et l'incohérence n°1 restait inaccessible aux deux autres.
-#: (nœud, libellé, marqueur, réplique de Léna ou None, effets)
+#: (nœud, libellé, marqueur, réplique de Léna ou None, effets, déclencheur)
+#:
+#: Le **déclencheur** dit comment le joueur la provoque : `geste` sur le média
+#: (zoomer une photo, réécouter un vocal) ou `texte`, une chose qu'il DIT. Il
+#: est déclaré, jamais déduit — le client le devinait à l'état du fil, ce qui
+#: faisait apparaître un bouton « + » pour un zoom dès que le joueur répondait
+#: à un micro-choix. Voir la migration 20260824170000_declencheur_interaction.
+#:
+#: ⚠️ Le N8 est **mixte** : un geste et deux relances. Toute règle qui raisonne
+#: par nœud plutôt que par interaction s'y trompe.
 INTERACTIONS = [
     ('N8', 'Zoomer sur la capture', 'ZOOM_RECEPISSE', None,
-     {'inc': {'lucidite': 1}}),
+     {'inc': {'lucidite': 1}}, 'geste'),
     ('N8', "Vous l'avez déjà vu de près ?", 'RELANCE_N8',
      'La cinquantaine, toujours seul, il ne parle à personne et personne ne le '
      "connaît dans le coin, il regarde toujours autour de lui avant d'ouvrir la "
      'porte, c\'est vraiment suspect ! Enfin, pour moi...',
-     {'append': {'indices': 'PROFIL_SUSPECT'}}),
+     {'append': {'indices': 'PROFIL_SUSPECT'}}, 'texte'),
     ('N8', "Et s'il vous a repérée ?", 'RELANCE_N8',
      'Je fais attention, je change de place à chaque fois, je ne peux pas vous '
      'jurer que non... mais je suis encore là, donc il est fort probable que non.',
-     {'append': {'indices': 'BORNAGE'}}),
+     {'append': {'indices': 'BORNAGE'}}, 'texte'),
     ('N13', '22 secondes pour répondre ça ?', 'INSISTER_N13',
      "J'hésitais à vous dire quelque chose, une autre fois, pas ce soir.",
-     {'inc': {'lucidite': 1}}),
+     {'inc': {'lucidite': 1}}, 'texte'),
     ('N16', "Zoomer sur l'autocollant", 'ZOOM_AUTOCOLLANT', None,
-     {'append': {'indices': 'AUTOCOLLANT'}}),
+     {'append': {'indices': 'AUTOCOLLANT'}}, 'geste'),
     ('N17', "C'est quoi ce bruit derrière vous ?", 'REECOUTE_N17',
      'Quel bruit ? ...Une voiture qui passait je suppose, il y en a parfois. '
      "Concentrez-vous s'il vous plaît.",
-     {'inc': {'lucidite': 1}}),
+     {'inc': {'lucidite': 1}}, 'geste'),
     ('N21', 'Zoomer sur la photo', 'ZOOM_TELEPHONE', None,
-     {'append': {'indices': 'TELEPHONE'}}),
+     {'append': {'indices': 'TELEPHONE'}}, 'geste'),
 ]
 
 
@@ -514,11 +523,12 @@ def sql_choix(noeuds):
         for i, c in enumerate(st):
             cast = '::text' if premier else ''
             kind = 'ignore' if 'ignorer' in c['label'].lower() else 'reply'
-            lignes.append("('%s', %d, $$%s$$, '%s', '%s', null%s, $$%s$$, $${}$$)," % (
-                code, i, dollars(c['label']), kind, c['cible'], cast,
-                json.dumps(c['effets'], ensure_ascii=False)))
+            lignes.append(
+                "('%s', %d, $$%s$$, '%s', '%s', null%s, $$%s$$, $${}$$, null%s)," % (
+                    code, i, dollars(c['label']), kind, c['cible'], cast,
+                    json.dumps(c['effets'], ensure_ascii=False), cast))
             premier = False
-        for k, (_, label, marqueur, reponse, eff) in enumerate(inter):
+        for k, (_, label, marqueur, reponse, eff, decl) in enumerate(inter):
             effs = json.loads(json.dumps(eff))
             # Non répétable : le marqueur est posé avec l'effet, la condition le
             # relit. Sans ça, un même geste donnerait deux fois le même indice.
@@ -535,10 +545,11 @@ def sql_choix(noeuds):
                 inline = '$$' + json.dumps(charge, ensure_ascii=False) + '$$'
             else:
                 inline = f'null{cast}'
-            lignes.append("('%s', %d, $$%s$$, 'interaction', null%s, %s, $$%s$$, $$%s$$)," % (
-                code, 50 + k, dollars(label), cast, inline,
-                json.dumps(effs, ensure_ascii=False),
-                json.dumps(cond, ensure_ascii=False)))
+            lignes.append(
+                "('%s', %d, $$%s$$, 'interaction', null%s, %s, $$%s$$, $$%s$$, $$%s$$)," % (
+                    code, 50 + k, dollars(label), cast, inline,
+                    json.dumps(effs, ensure_ascii=False),
+                    json.dumps(cond, ensure_ascii=False), decl))
             premier = False
     lignes[-1] = lignes[-1][:-1]
     return '\n'.join(lignes) + '\n'
@@ -647,8 +658,8 @@ if __name__ == '__main__':
     seed = remplacer(
         seed, 'insert into choices (node_id, position, label, kind, next_node_id',
         'select n.id, v.pos, v.label, v.kind, tgt.id, v.inline::jsonb, '
-              "v.effects::jsonb, v.conditions::jsonb\nfrom (values\n",
-        '\n) as v(node, pos, label, kind, target, inline, effects, conditions)',
+              "v.effects::jsonb, v.conditions::jsonb, v.declencheur\nfrom (values\n",
+        '\n) as v(node, pos, label, kind, target, inline, effects, conditions, declencheur)',
         sql_choix(noeuds))
     seed = remplacer(
         seed, 'MICRO-CHOIX — la grammaire des trois axes',

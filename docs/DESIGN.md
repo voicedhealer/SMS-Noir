@@ -558,16 +558,33 @@ de `lucidite`. Une interaction ne devient **jamais** un bouton.
 Le client ne connaît pas le graphe : il ne peut pas dire « au N16, c'est un zoom ». La règle se
 déduit du **contrat**, et couvre les six sans exception :
 
-> **Si le nœud courant a apporté un média, l'interaction se déclenche par le geste sur ce média**
-> (zoomer une photo, réécouter un vocal). **Sinon, c'est une chose que le joueur dit**, et elle
-> passe par le « + » discret.
+> **Chaque interaction déclare comment elle se provoque** — `choices.declencheur` :
+> `geste` sur le média (zoomer une photo, réécouter un vocal), ou `texte`, une chose que le
+> joueur **dit**. C'est du contenu, jamais une déduction du client.
 
-| Nœud | Média apporté | Déclencheur |
+| Nœud | Interaction | Déclencheur |
 |---|---|---|
-| N10, N16, N21 | photo | Tap → visionneuse, puis **le zoom lui-même** |
-| N17 | vocal | **Réécoute** — la réplique n'existe qu'après |
-| N8 | aucun | « + » → les deux questions, mutuellement exclusives |
-| N13 | aucun | « + » → l'insistance |
+| N8 | Zoomer sur la capture | `geste` — tap → visionneuse, puis **le zoom lui-même** |
+| N8 | « Vous l'avez déjà vu de près ? » · « Et s'il vous a repérée ? » | `texte`, mutuellement exclusives |
+| N13 | « 22 secondes pour répondre ça ? » | `texte` |
+| N16 | Zoomer sur l'autocollant | `geste` |
+| N17 | Le bruit derrière elle | `geste` — **réécoute** du vocal, la réplique n'existe qu'après |
+| N21 | Zoomer sur la photo | `geste` |
+
+⚠️ **Le N8 est mixte** : un geste et deux relances sur le même nœud, depuis que le récépissé y est
+remonté du N10 en V3.2. Toute règle qui raisonne par nœud plutôt que par interaction s'y trompe —
+et c'est exactement ce qui arrivait.
+
+**Pourquoi c'est déclaré et non déduit.** Le client regardait auparavant si le nœud courant avait
+apporté un média, en inspectant ce qui suivait le dernier média du fil. Deux défauts, tous deux
+visibles en jouant : l'inférence **basculait dans le temps** — au premier message du joueur, son
+propre texte s'intercalait, le nœud cessait de « porter un média », et le « + » apparaissait en
+proposant « Zoomer sur l'autocollant » en clair, c'est-à-dire un bouton pour un geste avec
+l'indice annoncé dans son libellé ; et elle ne savait pas traiter un nœud mixte.
+
+Une interaction sans déclencheur n'est proposée **nulle part** — mieux vaut ne rien offrir qu'un
+bouton pour un zoom. L'oubli ne peut pas passer : le contrôle 63 de `verify-graph.sql` refuse tout
+contenu où une interaction n'en déclare pas.
 
 Seul le **dernier média du fil** est actif : zoomer une vieille photo ne déclenche rien, et ne
 signale rien non plus.

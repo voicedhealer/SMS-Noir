@@ -87,6 +87,8 @@ interface ChoixBrut {
   inline_response: unknown
   effects: Record<string, unknown>
   conditions: Record<string, unknown>
+  /** Voir ClientChoice.declencheur. Null hors interaction. */
+  declencheur: 'geste' | 'texte' | null
 }
 
 export interface Progression {
@@ -113,6 +115,7 @@ const CHAMPS_PROGRESSION = 'id, user_id, story_id, current_node_id, variables, '
 
 const CHAMPS_CHOIX =
   'id, node_id, position, label, kind, next_node_id, inline_response, effects, conditions, '
+  + 'declencheur, '
   + 'after_position'
 
 // ---------------------------------------------------------------------------
@@ -565,6 +568,7 @@ export async function etatNoeud(
     position: c.position,
     label: c.label,
     kind: c.kind === 'micro' ? 'reply' : c.kind,
+    declencheur: c.declencheur ?? null,
   })
 
   const reponses = ouverts.filter((c) => c.kind !== 'interaction').map(visible)

@@ -574,72 +574,72 @@ where m.node_id = n.id and n.chapter_id = c.id and c.story_id = s.id
 --   kind='interaction' -> geste caché ; next_node_id null = reste sur le nœud.
 --                         conditions not_contains -> non répétable (LOGIQUE.md).
 -- ---------------------------------------------------------------------------
-insert into choices (node_id, position, label, kind, next_node_id, inline_response, effects, conditions)
-select n.id, v.pos, v.label, v.kind, tgt.id, v.inline::jsonb, v.effects::jsonb, v.conditions::jsonb
+insert into choices (node_id, position, label, kind, next_node_id, inline_response, effects, conditions, declencheur)
+select n.id, v.pos, v.label, v.kind, tgt.id, v.inline::jsonb, v.effects::jsonb, v.conditions::jsonb, v.declencheur
 from (values
 
 -- N1
-('N1', 0, $$Je ne suis pas Karim ! Vous faites erreur.$$, 'reply', 'N2', null::text, $${}$$, $${}$$),
-('N1', 1, $$Bonsoir, qui êtes-vous ? On se connaît ?$$, 'reply', 'N3', null, $${"inc": {"confiance": 1}}$$, $${}$$),
-('N1', 2, $$On ne se connaît pas.$$, 'reply', 'N4', null, $${}$$, $${}$$),
+('N1', 0, $$Je ne suis pas Karim ! Vous faites erreur.$$, 'reply', 'N2', null::text, $${}$$, $${}$$, null::text),
+('N1', 1, $$Bonsoir, qui êtes-vous ? On se connaît ?$$, 'reply', 'N3', null, $${"inc": {"confiance": 1}}$$, $${}$$, null),
+('N1', 2, $$On ne se connaît pas.$$, 'reply', 'N4', null, $${}$$, $${}$$, null),
 
 -- N2
-('N2', 0, $$Votre message était inquiétant, ça va ?$$, 'reply', 'N5', null, $${"inc": {"confiance": 1}, "set": {"branche_ch1": "empathie"}}$$, $${}$$),
-('N2', 1, $$Bonne soirée.$$, 'reply', 'N6', null, $${}$$, $${}$$),
+('N2', 0, $$Votre message était inquiétant, ça va ?$$, 'reply', 'N5', null, $${"inc": {"confiance": 1}, "set": {"branche_ch1": "empathie"}}$$, $${}$$, null),
+('N2', 1, $$Bonne soirée.$$, 'reply', 'N6', null, $${}$$, $${}$$, null),
 
 -- N3
-('N3', 0, $$Quelqu'un qui a reçu votre message par erreur, et qui s'inquiète un peu, là.$$, 'reply', 'N5', null, $${"inc": {"confiance": 1}, "set": {"branche_ch1": "empathie"}}$$, $${}$$),
-('N3', 1, $$Et vous, c'est quoi cette histoire ?$$, 'reply', 'N7', null, $${"set": {"branche_ch1": "curieux"}}$$, $${}$$),
+('N3', 0, $$Quelqu'un qui a reçu votre message par erreur, et qui s'inquiète un peu, là.$$, 'reply', 'N5', null, $${"inc": {"confiance": 1}, "set": {"branche_ch1": "empathie"}}$$, $${}$$, null),
+('N3', 1, $$Et vous, c'est quoi cette histoire ?$$, 'reply', 'N7', null, $${"set": {"branche_ch1": "curieux"}}$$, $${}$$, null),
 
 -- N4
-('N4', 0, $$C'est quoi cette histoire ?$$, 'reply', 'N7', null, $${"set": {"branche_ch1": "curieux"}}$$, $${}$$),
-('N4', 1, $$Vous devriez vérifier vos numéros avant d'envoyer ce genre de messages.$$, 'reply', 'N6', null, $${"inc": {"lucidite": 1}}$$, $${}$$),
+('N4', 0, $$C'est quoi cette histoire ?$$, 'reply', 'N7', null, $${"set": {"branche_ch1": "curieux"}}$$, $${}$$, null),
+('N4', 1, $$Vous devriez vérifier vos numéros avant d'envoyer ce genre de messages.$$, 'reply', 'N6', null, $${"inc": {"lucidite": 1}}$$, $${}$$, null),
 
 -- N6
-('N6', 0, $$D'accord, je vous écoute.$$, 'reply', 'N8', null, $${"inc": {"confiance": 1}}$$, $${}$$),
-('N6', 1, $$Appelez la police, pas un inconnu.$$, 'reply', 'N10', null, $${}$$, $${}$$),
-('N6', 2, $$Je ne peux pas vous aider.$$, 'reply', 'N11', null, $${}$$, $${}$$),
+('N6', 0, $$D'accord, je vous écoute.$$, 'reply', 'N8', null, $${"inc": {"confiance": 1}}$$, $${}$$, null),
+('N6', 1, $$Appelez la police, pas un inconnu.$$, 'reply', 'N10', null, $${}$$, $${}$$, null),
+('N6', 2, $$Je ne peux pas vous aider.$$, 'reply', 'N11', null, $${}$$, $${}$$, null),
 
 -- N8
-('N8', 0, $$N'y allez pas seule, retournez voir la police d'abord.$$, 'reply', 'N10', null, $${"inc": {"lucidite": 1}}$$, $${}$$),
-('N8', 1, $$D'accord, je garde mon téléphone à côté de moi, mais soyez prudente ! Vraiment.$$, 'reply', 'N12', null, $${"inc": {"confiance": 2}, "set": {"branche_ch1": "allié"}}$$, $${}$$),
-('N8', 2, $$Pourquoi moi ? Vous ne me connaissez pas, et si j'étais quelqu'un de pire ?$$, 'reply', 'N13', null, $${"inc": {"lucidite": 1}}$$, $${}$$),
-('N8', 50, $$Zoomer sur la capture$$, 'interaction', null, null, $${"inc": {"lucidite": 1}, "append": {"interactions_faites": "ZOOM_RECEPISSE"}}$$, $${"not_contains": {"interactions_faites": "ZOOM_RECEPISSE"}}$$),
-('N8', 51, $$Vous l'avez déjà vu de près ?$$, 'interaction', null, $$[{"sender": "player", "content_type": "text", "body": "Vous l'avez déjà vu de près ?", "delay_seconds": 0, "typing_seconds": 0}, {"sender": "contact", "content_type": "text", "body": "La cinquantaine, toujours seul, il ne parle à personne et personne ne le connaît dans le coin, il regarde toujours autour de lui avant d'ouvrir la porte, c'est vraiment suspect ! Enfin, pour moi...", "delay_seconds": 8, "typing_seconds": 4}]$$, $${"append": {"indices": "PROFIL_SUSPECT", "interactions_faites": "RELANCE_N8"}}$$, $${"not_contains": {"interactions_faites": "RELANCE_N8"}}$$),
-('N8', 52, $$Et s'il vous a repérée ?$$, 'interaction', null, $$[{"sender": "player", "content_type": "text", "body": "Et s'il vous a repérée ?", "delay_seconds": 0, "typing_seconds": 0}, {"sender": "contact", "content_type": "text", "body": "Je fais attention, je change de place à chaque fois, je ne peux pas vous jurer que non... mais je suis encore là, donc il est fort probable que non.", "delay_seconds": 8, "typing_seconds": 4}]$$, $${"append": {"indices": "BORNAGE", "interactions_faites": "RELANCE_N8"}}$$, $${"not_contains": {"interactions_faites": "RELANCE_N8"}}$$),
+('N8', 0, $$N'y allez pas seule, retournez voir la police d'abord.$$, 'reply', 'N10', null, $${"inc": {"lucidite": 1}}$$, $${}$$, null),
+('N8', 1, $$D'accord, je garde mon téléphone à côté de moi, mais soyez prudente ! Vraiment.$$, 'reply', 'N12', null, $${"inc": {"confiance": 2}, "set": {"branche_ch1": "allié"}}$$, $${}$$, null),
+('N8', 2, $$Pourquoi moi ? Vous ne me connaissez pas, et si j'étais quelqu'un de pire ?$$, 'reply', 'N13', null, $${"inc": {"lucidite": 1}}$$, $${}$$, null),
+('N8', 50, $$Zoomer sur la capture$$, 'interaction', null, null, $${"inc": {"lucidite": 1}, "append": {"interactions_faites": "ZOOM_RECEPISSE"}}$$, $${"not_contains": {"interactions_faites": "ZOOM_RECEPISSE"}}$$, $$geste$$),
+('N8', 51, $$Vous l'avez déjà vu de près ?$$, 'interaction', null, $$[{"sender": "player", "content_type": "text", "body": "Vous l'avez déjà vu de près ?", "delay_seconds": 0, "typing_seconds": 0}, {"sender": "contact", "content_type": "text", "body": "La cinquantaine, toujours seul, il ne parle à personne et personne ne le connaît dans le coin, il regarde toujours autour de lui avant d'ouvrir la porte, c'est vraiment suspect ! Enfin, pour moi...", "delay_seconds": 8, "typing_seconds": 4}]$$, $${"append": {"indices": "PROFIL_SUSPECT", "interactions_faites": "RELANCE_N8"}}$$, $${"not_contains": {"interactions_faites": "RELANCE_N8"}}$$, $$texte$$),
+('N8', 52, $$Et s'il vous a repérée ?$$, 'interaction', null, $$[{"sender": "player", "content_type": "text", "body": "Et s'il vous a repérée ?", "delay_seconds": 0, "typing_seconds": 0}, {"sender": "contact", "content_type": "text", "body": "Je fais attention, je change de place à chaque fois, je ne peux pas vous jurer que non... mais je suis encore là, donc il est fort probable que non.", "delay_seconds": 8, "typing_seconds": 4}]$$, $${"append": {"indices": "BORNAGE", "interactions_faites": "RELANCE_N8"}}$$, $${"not_contains": {"interactions_faites": "RELANCE_N8"}}$$, $$texte$$),
 
 -- N10
-('N10', 0, $$D'accord, je reste en ligne, mais n'entrez pas dans ce bâtiment.$$, 'reply', 'N12', null, $${"inc": {"confiance": 1}, "set": {"branche_ch1": "prudent"}}$$, $${}$$),
-('N10', 1, $$Je suis désolé, je ne peux pas.$$, 'reply', 'N11', null, $${}$$, $${}$$),
+('N10', 0, $$D'accord, je reste en ligne, mais n'entrez pas dans ce bâtiment.$$, 'reply', 'N12', null, $${"inc": {"confiance": 1}, "set": {"branche_ch1": "prudent"}}$$, $${}$$, null),
+('N10', 1, $$Je suis désolé, je ne peux pas.$$, 'reply', 'N11', null, $${}$$, $${}$$, null),
 
 -- N11
-('N11', 0, $$Je lis, soyez prudente.$$, 'reply', 'N14', null, $${"inc": {"confiance": 1}}$$, $${}$$),
-('N11', 1, $$...$$, 'reply', 'N14', null, $${}$$, $${}$$),
+('N11', 0, $$Je lis, soyez prudente.$$, 'reply', 'N14', null, $${"inc": {"confiance": 1}}$$, $${}$$, null),
+('N11', 1, $$...$$, 'reply', 'N14', null, $${}$$, $${}$$, null),
 
 -- N13
-('N13', 50, $$22 secondes pour répondre ça ?$$, 'interaction', null, $$[{"sender": "player", "content_type": "text", "body": "22 secondes pour répondre ça ?", "delay_seconds": 0, "typing_seconds": 0}, {"sender": "contact", "content_type": "text", "body": "J'hésitais à vous dire quelque chose, une autre fois, pas ce soir.", "delay_seconds": 8, "typing_seconds": 4}]$$, $${"inc": {"lucidite": 1}, "append": {"interactions_faites": "INSISTER_N13"}}$$, $${"not_contains": {"interactions_faites": "INSISTER_N13"}}$$),
+('N13', 50, $$22 secondes pour répondre ça ?$$, 'interaction', null, $$[{"sender": "player", "content_type": "text", "body": "22 secondes pour répondre ça ?", "delay_seconds": 0, "typing_seconds": 0}, {"sender": "contact", "content_type": "text", "body": "J'hésitais à vous dire quelque chose, une autre fois, pas ce soir.", "delay_seconds": 8, "typing_seconds": 4}]$$, $${"inc": {"lucidite": 1}, "append": {"interactions_faites": "INSISTER_N13"}}$$, $${"not_contains": {"interactions_faites": "INSISTER_N13"}}$$, $$texte$$),
 
 -- N14
-('N14', 0, $$Prenez la plaque en photo, discrètement.$$, 'reply', 'N16', null, $${"append": {"indices": "PLAQUE"}}$$, $${}$$),
-('N14', 1, $$Restez cachée, à couvert, et décrivez-moi ce que vous voyez, sans prendre de risque.$$, 'reply', 'N17', null, $${}$$, $${}$$),
-('N14', 2, $$Je ne le sens pas, partez maintenant tant que vous le pouvez, on avisera plus tard.$$, 'reply', 'N18', null, $${}$$, $${}$$),
+('N14', 0, $$Prenez la plaque en photo, discrètement.$$, 'reply', 'N16', null, $${"append": {"indices": "PLAQUE"}}$$, $${}$$, null),
+('N14', 1, $$Restez cachée, à couvert, et décrivez-moi ce que vous voyez, sans prendre de risque.$$, 'reply', 'N17', null, $${}$$, $${}$$, null),
+('N14', 2, $$Je ne le sens pas, partez maintenant tant que vous le pouvez, on avisera plus tard.$$, 'reply', 'N18', null, $${}$$, $${}$$, null),
 
 -- N16
-('N16', 50, $$Zoomer sur l'autocollant$$, 'interaction', null, null, $${"append": {"indices": "AUTOCOLLANT", "interactions_faites": "ZOOM_AUTOCOLLANT"}}$$, $${"not_contains": {"interactions_faites": "ZOOM_AUTOCOLLANT"}}$$),
+('N16', 50, $$Zoomer sur l'autocollant$$, 'interaction', null, null, $${"append": {"indices": "AUTOCOLLANT", "interactions_faites": "ZOOM_AUTOCOLLANT"}}$$, $${"not_contains": {"interactions_faites": "ZOOM_AUTOCOLLANT"}}$$, $$geste$$),
 
 -- N17
-('N17', 0, $$Non, vous n'approchez pas, c'est non.$$, 'reply', 'N19', null, $${}$$, $${}$$),
-('N17', 1, $$D'accord mais restez loin de la porte, vraiment loin.$$, 'reply', 'N19', null, $${"inc": {"confiance": 1}}$$, $${}$$),
-('N17', 50, $$C'est quoi ce bruit derrière vous ?$$, 'interaction', null, $$[{"sender": "player", "content_type": "text", "body": "C'est quoi ce bruit derrière vous ?", "delay_seconds": 0, "typing_seconds": 0}, {"sender": "contact", "content_type": "text", "body": "Quel bruit ? ...Une voiture qui passait je suppose, il y en a parfois. Concentrez-vous s'il vous plaît.", "delay_seconds": 8, "typing_seconds": 4}]$$, $${"inc": {"lucidite": 1}, "append": {"interactions_faites": "REECOUTE_N17"}}$$, $${"not_contains": {"interactions_faites": "REECOUTE_N17"}}$$),
+('N17', 0, $$Non, vous n'approchez pas, c'est non.$$, 'reply', 'N19', null, $${}$$, $${}$$, null),
+('N17', 1, $$D'accord mais restez loin de la porte, vraiment loin.$$, 'reply', 'N19', null, $${"inc": {"confiance": 1}}$$, $${}$$, null),
+('N17', 50, $$C'est quoi ce bruit derrière vous ?$$, 'interaction', null, $$[{"sender": "player", "content_type": "text", "body": "C'est quoi ce bruit derrière vous ?", "delay_seconds": 0, "typing_seconds": 0}, {"sender": "contact", "content_type": "text", "body": "Quel bruit ? ...Une voiture qui passait je suppose, il y en a parfois. Concentrez-vous s'il vous plaît.", "delay_seconds": 8, "typing_seconds": 4}]$$, $${"inc": {"lucidite": 1}, "append": {"interactions_faites": "REECOUTE_N17"}}$$, $${"not_contains": {"interactions_faites": "REECOUTE_N17"}}$$, $$geste$$),
 
 -- N20
-('N20', 0, $$Rentre chez toi, on fait le point demain.$$, 'reply', 'N9', null, $${}$$, $${}$$),
-('N20', 1, $$Il faut porter ça à la police, maintenant.$$, 'reply', 'N9', null, $${"inc": {"lucidite": 1}}$$, $${}$$),
+('N20', 0, $$Rentre chez toi, on fait le point demain.$$, 'reply', 'N9', null, $${}$$, $${}$$, null),
+('N20', 1, $$Il faut porter ça à la police, maintenant.$$, 'reply', 'N9', null, $${"inc": {"lucidite": 1}}$$, $${}$$, null),
 
 -- N21
-('N21', 50, $$Zoomer sur la photo$$, 'interaction', null, null, $${"append": {"indices": "TELEPHONE", "interactions_faites": "ZOOM_TELEPHONE"}}$$, $${"not_contains": {"interactions_faites": "ZOOM_TELEPHONE"}}$$)
+('N21', 50, $$Zoomer sur la photo$$, 'interaction', null, null, $${"append": {"indices": "TELEPHONE", "interactions_faites": "ZOOM_TELEPHONE"}}$$, $${"not_contains": {"interactions_faites": "ZOOM_TELEPHONE"}}$$, $$geste$$)
 
-) as v(node, pos, label, kind, target, inline, effects, conditions)
+) as v(node, pos, label, kind, target, inline, effects, conditions, declencheur)
 join stories  s   on s.slug = 'numero-inconnu'
 join chapters c   on c.story_id = s.id and c.position = 1
 join nodes    n   on n.chapter_id = c.id and n.code = v.node

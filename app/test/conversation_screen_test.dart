@@ -532,7 +532,7 @@ void main() {
           'id': 'c',
           'position': 2,
           'label': 'C\'est quoi ce bruit derrière vous ?',
-          'kind': 'interaction'
+          'kind': 'interaction', 'declencheur': 'texte'
         },
       ]),
       'chapter_end': null,
@@ -596,7 +596,7 @@ void main() {
       'history': const [],
       // Nœud en pause sur interaction : aucune réponse à donner.
       'node': noeud(code: 'N16', attenteInteraction: true, peutContinuer: true, choix: [
-        {'id': 'i', 'position': 0, 'label': 'Zoomer sur l\'autocollant', 'kind': 'interaction'},
+        {'id': 'i', 'position': 0, 'label': 'Zoomer sur l\'autocollant', 'kind': 'interaction', 'declencheur': 'geste'},
       ]),
       'chapter_end': null,
       'ai_moment_pending': false,
@@ -702,7 +702,7 @@ void main() {
           message(seq: 1, body: null, type: 'image', media: 'placeholder://photo-N16-plaque'),
         ],
         'node': noeud(code: 'N16', attenteInteraction: true, peutContinuer: true, choix: [
-          {'id': 'i', 'position': 0, 'label': 'Zoomer sur l\'autocollant', 'kind': 'interaction'},
+          {'id': 'i', 'position': 0, 'label': 'Zoomer sur l\'autocollant', 'kind': 'interaction', 'declencheur': 'geste'},
         ]),
         'chapter_end': null,
         'ai_moment_pending': false,
@@ -719,8 +719,8 @@ void main() {
         'history': [message(seq: 1, body: 'T\'as rien demandé, je sais.')],
         'node': noeud(code: 'N8', choix: [
           {'id': 'a', 'position': 0, 'label': 'Ok. Je garde mon téléphone', 'kind': 'reply'},
-          {'id': 'i1', 'position': 3, 'label': 'C\'est qui, ce type ?', 'kind': 'interaction'},
-          {'id': 'i2', 'position': 4, 'label': 'Pourquoi cet entrepôt ?', 'kind': 'interaction'},
+          {'id': 'i1', 'position': 3, 'label': 'C\'est qui, ce type ?', 'kind': 'interaction', 'declencheur': 'texte'},
+          {'id': 'i2', 'position': 4, 'label': 'Pourquoi cet entrepôt ?', 'kind': 'interaction', 'declencheur': 'texte'},
         ]),
         'chapter_end': null,
         'ai_moment_pending': false,
@@ -1116,8 +1116,8 @@ void main() {
               'label': 'Pourquoi moi ? Vous ne me connaissez pas, et pourtant',
               'kind': 'reply',
             },
-            {'id': 'i1', 'position': 50, 'label': 'C\'est qui, ce type ?', 'kind': 'interaction'},
-            {'id': 'i2', 'position': 51, 'label': 'Pourquoi cet entrepôt ?', 'kind': 'interaction'},
+            {'id': 'i1', 'position': 50, 'label': 'C\'est qui, ce type ?', 'kind': 'interaction', 'declencheur': 'texte'},
+            {'id': 'i2', 'position': 51, 'label': 'Pourquoi cet entrepôt ?', 'kind': 'interaction', 'declencheur': 'texte'},
           ]),
           'chapter_end': null,
           'ai_moment_pending': false,

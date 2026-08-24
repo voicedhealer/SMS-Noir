@@ -187,30 +187,35 @@ class ConversationState {
     return null;
   }
 
-  /// Comment se déclenche l'interaction cachée de ce nœud.
+  /// Les interactions cachées qui se déclenchent par un **geste sur le média**
+  /// (zoomer une photo, réécouter un vocal).
   ///
-  /// La règle se déduit du **contrat**, jamais du code de nœud : si le nœud
-  /// courant a apporté un média, le geste est sur ce média (zoomer une photo,
-  /// réécouter un vocal). Sinon, l'interaction est une chose que le joueur
-  /// *dit*, et elle passe par le « + » discret.
+  /// ⚠️ **Lu dans le contrat, jamais déduit.** Le client regardait avant si le
+  /// nœud courant avait apporté un média, en inspectant ce qui suivait le
+  /// dernier média du fil. Deux défauts, tous deux visibles en jouant :
   ///
-  /// Au chapitre 1 : N10, N16, N21 -> geste sur la photo · N17 -> réécoute ·
-  /// N8 et N13 -> « + ». Les six y sont, sans que le client connaisse le graphe.
-  bool get interactionParGeste =>
-      (node?.interactions.isNotEmpty ?? false) && _noeudAApporteUnMedia;
+  ///  • l'inférence **basculait dans le temps** — dès que le joueur répondait à
+  ///    un micro-choix, son propre message s'intercalait, le nœud cessait de
+  ///    « porter un média », et le « + » apparaissait en proposant « Zoomer sur
+  ///    l'autocollant » en clair. Un bouton pour un geste, et l'indice annoncé
+  ///    dans son libellé ;
+  ///  • elle raisonnait **par nœud**, or le N8 est mixte : le zoom du récépissé
+  ///    et deux relances textuelles y cohabitent, et recevaient le même sort.
+  ///
+  /// Voir DESIGN.md § Les interactions cachées.
+  List<ClientChoice> get interactionsParGeste => [
+        for (final c in node?.interactions ?? const <ClientChoice>[])
+          if (c.declencheur == Declencheur.geste) c,
+      ];
 
-  List<ClientChoice> get interactionsParlees =>
-      _noeudAApporteUnMedia ? const [] : (node?.interactions ?? const []);
+  /// Vrai si un geste sur le dernier média du fil déclenche quelque chose.
+  bool get interactionParGeste => interactionsParGeste.isNotEmpty;
 
-  bool get _noeudAApporteUnMedia {
-    // Le média du nœud courant est forcément le dernier du fil : les messages
-    // arrivent dans l'ordre et un nœud écrit les siens d'un bloc.
-    final m = dernierMedia;
-    if (m == null) return false;
-    final apres = fil.skipWhile((x) => x.seq != m.seq).skip(1);
-    // Rien d'autre qu'un texte de commentaire n'a suivi : on est encore dessus.
-    return apres.every((x) => x.sender == MessageSender.contact);
-  }
+  /// Celles que le joueur **dit** : relance, insistance. Jamais un zoom.
+  List<ClientChoice> get interactionsParlees => [
+        for (final c in node?.interactions ?? const <ClientChoice>[])
+          if (c.declencheur == Declencheur.texte) c,
+      ];
 
   /// Texte de l'écran de fin : le message `system` du nœud `chapter_end`.
   /// Il ne va jamais dans le fil.
@@ -668,7 +673,12 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   /// par le « + ». Silencieuse s'il n'y a rien : le joueur qui zoome sur une
   /// vieille photo ne doit rien remarquer.
   Future<void> declencherInteraction([String? choiceId]) async {
-    final id = choiceId ?? _node?.interactions.firstOrNull?.id;
+    // Sans identifiant, l'appel vient d'un geste sur le média : on vise donc
+    // une interaction de type `geste`, jamais « la première du nœud ». Au N8,
+    // la première est bien le zoom, mais c'était un hasard d'ordre — et un
+    // hasard n'est pas une règle.
+    final id = choiceId ??
+        _etat().interactionsParGeste.firstOrNull?.id;
     if (id == null) return;
     await choisir(id);
   }

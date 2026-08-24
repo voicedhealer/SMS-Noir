@@ -14,7 +14,7 @@ Map<String, dynamic> noeud({bool attendSaisie = false, String? aparte}) => {
       'code': 'N16',
       'kind': 'scripted',
       'choices': [
-        {'id': 'zoom', 'position': 50, 'label': "Zoomer sur l'autocollant", 'kind': 'interaction'},
+        {'id': 'zoom', 'position': 50, 'label': "Zoomer sur l'autocollant", 'kind': 'interaction', 'declencheur': 'geste'},
       ],
       'awaiting_interaction': true,
       'can_continue': true,

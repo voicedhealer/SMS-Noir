@@ -69,7 +69,7 @@ const _advanceN16 = {
     'code': 'N16',
     'kind': 'scripted',
     'choices': [
-      {'id': 'ch-9', 'position': 0, 'label': "Zoomer sur l'autocollant", 'kind': 'interaction'},
+      {'id': 'ch-9', 'position': 0, 'label': "Zoomer sur l'autocollant", 'kind': 'interaction', 'declencheur': 'geste'},
     ],
     'awaiting_interaction': true,
     'can_continue': true,

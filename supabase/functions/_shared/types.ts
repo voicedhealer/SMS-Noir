@@ -108,6 +108,18 @@ export interface ClientChoice {
   position: number
   label: string
   kind: ChoiceKind
+  /**
+   * Interactions cachées seulement : comment le joueur la provoque.
+   *
+   * `geste` — sur le média lui-même (zoomer une photo, réécouter un vocal).
+   * `texte` — une chose qu'il DIT, présentée parmi les réponses.
+   *
+   * **Déclaré par le contenu, jamais déduit par le client.** Il le devinait à
+   * l'état du fil, ce qui faisait apparaître un bouton pour un zoom dès que le
+   * joueur répondait à un micro-choix — et ne savait pas traiter le N8, qui
+   * porte les deux natures. Null pour tout autre kind.
+   */
+  declencheur: 'geste' | 'texte' | null
 }
 
 export interface ClientConversation {

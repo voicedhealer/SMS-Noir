@@ -23,18 +23,31 @@ enum ChoiceKind {
 
 enum NodeKind { scripted, aiMoment, chapterEnd }
 
+enum Declencheur {
+  /// Sur le média lui-même : zoomer une photo, réécouter un vocal.
+  geste,
+
+  /// Une chose que le joueur DIT — présentée parmi les réponses.
+  texte,
+}
+
 class ClientChoice {
   const ClientChoice({
     required this.id,
     required this.position,
     required this.label,
     required this.kind,
+    this.declencheur,
   });
 
   final String id;
   final int position;
   final String label;
   final ChoiceKind kind;
+
+  /// Interactions cachées seulement : comment le joueur la provoque.
+  /// **Déclaré par le contenu**, jamais déduit de l'état du fil. Null ailleurs.
+  final Declencheur? declencheur;
 
   factory ClientChoice.fromJson(Map<String, dynamic> json) => ClientChoice(
         id: json['id'] as String,
@@ -44,6 +57,11 @@ class ClientChoice {
           'ignore' => ChoiceKind.ignore,
           'interaction' => ChoiceKind.interaction,
           _ => ChoiceKind.reply,
+        },
+        declencheur: switch (json['declencheur']) {
+          'geste' => Declencheur.geste,
+          'texte' => Declencheur.texte,
+          _ => null,
         },
       );
 }

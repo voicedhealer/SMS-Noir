@@ -4,6 +4,41 @@
 
 ---
 
+## 2026-08-24 (12) — Phase 2 du carnet : le zoom ne passe plus par le « + »
+
+La nature d'une interaction — geste sur un média, ou chose que le joueur dit — était **déduite**
+par le client : « le nœud courant a-t-il apporté un média ? », en inspectant ce qui suivait le
+dernier média du fil. Deux défauts qui n'en font qu'un :
+
+- **L'inférence basculait dans le temps.** Au premier message du joueur, son texte s'intercalait
+  après le média, le nœud cessait de « porter un média », et le « + » apparaissait en proposant
+  « Zoomer sur l'autocollant » — un bouton pour un geste, avec l'indice annoncé dans son libellé.
+- **Elle raisonnait par nœud, or le N8 est mixte** depuis que le récépissé y est remonté du N10 en
+  V3.2 : un zoom et deux relances textuelles, tous trois traités pareil.
+
+**Correctif : le contenu déclare, le client ne déduit plus.** `choices.declencheur` ∈
+{`geste`, `texte`}, déclaré dans `INTERACTIONS` (6e élément du tuple) et exposé dans
+`ClientChoice`. 4 gestes, 3 textes.
+
+**Le défaut est fermé, et l'oubli impossible.** Une interaction sans déclencheur n'apparaît nulle
+part — mieux vaut ne rien offrir qu'un bouton pour un zoom. Mais un défaut fermé rend l'omission
+silencieuse en jeu : le contrôle **63** de `verify-graph` refuse donc tout contenu où une
+interaction n'en déclare pas, et le **64** fige la répartition 4/3. C'est la combinaison qui vaut
+quelque chose, pas l'un des deux seul.
+
+**`declencherInteraction()` sans argument** visait `interactions.firstOrNull`. Au N8 la première
+est bien le zoom — mais par hasard d'ordre, pas par règle. Il vise maintenant explicitement une
+interaction `geste`.
+
+**DESIGN.md corrigé** : son tableau attribuait encore la photo au N10 et déclarait le N8 sans
+média, périmé depuis la V3.2. Il a probablement contribué à ce que le défaut passe inaperçu — on
+relisait une règle qui décrivait un graphe qui n'existait plus.
+
+**Vérifié** : 165/165 tests dont 4 nouveaux, `flutter analyze` propre, `verify-graph` 54/54,
+`verify-fidelity` 123 = 123, `simulate-playthrough` vert, plus un parcours réel confirmant qu'au
+N16 après micro-choix le zoom reste un geste.
+
+
 ## 2026-08-24 (11) — Q12 tranchée : le N8 découpé, le N5 laissé
 
 Vivien a lu les deux séquences côte à côte et a tranché différemment pour chacune, ce que le

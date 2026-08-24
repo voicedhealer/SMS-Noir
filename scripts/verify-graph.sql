@@ -185,6 +185,21 @@ select _chk(30, 'Chaque interaction est à usage unique (condition not_contains)
               and ch.conditions->'not_contains'->>'interactions_faites'
                   is distinct from ch.effects->'append'->>'interactions_faites'), ''));
 
+-- Le client est STRICT : une interaction sans déclencheur déclaré n'apparaît
+-- nulle part, ni au geste ni parmi les réponses. C'est le bon défaut — mieux
+-- vaut refuser que d'afficher un bouton pour un zoom — mais il rend l'oubli
+-- silencieux en jeu. Ce contrôle le rend impossible à expédier.
+select _chk(63, 'Toute interaction déclare son déclencheur', '',
+  coalesce((select string_agg(n.code || '#' || ch.position, ', ' order by n.code, ch.position)
+            from _n n join choices ch on ch.node_id = n.id
+            where ch.kind = 'interaction'
+              and (ch.declencheur is null or ch.declencheur not in ('geste', 'texte'))), ''));
+
+select _chk(64, 'Répartition des déclencheurs (geste/texte)', '4/3',
+  (select count(*) filter (where ch.declencheur = 'geste') || '/' ||
+          count(*) filter (where ch.declencheur = 'texte')
+   from _n n join choices ch on ch.node_id = n.id where ch.kind = 'interaction'));
+
 select _chk(31, 'Aucune interaction sans effet ni réponse', '',
   coalesce((select string_agg(n.code || '#' || ch.position, ', ') from _n n join choices ch on ch.node_id = n.id
             where ch.kind = 'interaction' and ch.next_node_id is null
