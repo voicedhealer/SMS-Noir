@@ -4,6 +4,101 @@
 
 ---
 
+## 2026-08-24 (6) — L'esquive du N9 était trop large, et la corriger a coûté quatre tirages
+
+Vivien, en jouant : « comment elle s'appelle déjà ? » → « Chloé. » puis, sans qu'on lui demande
+rien, « Pas maintenant, je ne peux pas. » La consigne disait « si on te pose une question sur la
+suite, sur le sac, sur l'homme, **sur ta sœur**, tu esquives » — sans distinguer le fait déjà
+partagé de l'information à protéger.
+
+**Correctif** : l'esquive ne vise plus que les informations NOUVELLES sur l'affaire, et un
+paragraphe explicite autorise à redire ce qui a déjà été raconté ce soir. Résultat final :
+« Chloé. » tout court.
+
+### Trois erreurs de ma part, chacune trouvée par le tirage suivant
+
+**1. J'ai autorisé une invention en voulant l'interdire.** Ma première rédaction listait « son âge »
+parmi les faits redisables. Or l'âge de Chloé n'existe **nulle part** — ni chapitre, ni bible. Le
+modèle l'a inventé au premier tirage (« elle avait 21 ans »). Vérifier qu'un fait est établi AVANT
+de l'autoriser, pas après.
+
+**2. Ma sonde ne vérifiait pas les fuites.** Écrite pour contrôler qu'elle en dit ASSEZ, elle ne
+contrôlait pas qu'elle n'en dit pas TROP — et a laissé passer « Sept mois. Depuis le 12 mars. »,
+le 12 mars étant précisément un secret de la bible. Corrigé : `FAITS_ETABLIS` applique désormais
+`FUITES`/`CASSE`/`INVENTE` et les contrôles de voix, **sans** l'exemption d'esquive (ici une
+esquive est déjà un échec, elle ne peut pas excuser une fuite). *Assouplir une réserve sans
+renforcer le garde-fou correspondant, c'est échanger un défaut visible contre un défaut invisible.*
+
+**3. Mon contre-exemple était recopié mot pour mot.** J'avais écrit dans le prompt : « Répondre
+"Chloé. Pas maintenant, je ne peux pas." te ferait passer pour absente ». Le tirage suivant a
+produit « Chloé. Ne me demande pas autre chose, pas maintenant, je ne peux pas. » — le modèle
+reprend la formule concrète malgré l'interdiction qui l'entoure. Réécrit en interdiction abstraite
+(« aucune formule d'esquive n'a sa place ici — ni "pas maintenant", ni "je ne peux pas" »), sans
+phrase-exemple à copier. **Ne jamais donner un contre-exemple rédigé dans un prompt système.**
+
+### Un faux positif du détecteur, trouvé au passage
+
+`ESQUIVE` écrivait ses apostrophes en dur (`'`). Le modèle produit tout aussi souvent
+l'apostrophe typographique (`’`) : « Je ne sais pas qui c’est » n'était donc pas reconnu comme une
+esquive, et la mention de Karim qui l'accompagnait remontait en FUITE alors que la réponse était
+exactement la bonne. Toutes les apostrophes de la regex passent en `['’]`. Même famille de bug pour
+`INVENTE`, qui signalait « ton prénom » alors que demander son prénom au joueur est **la raison
+d'être du N9** — exempté.
+
+### Sur la méthode
+
+Quatre tirages, quatre résultats différents : le modèle est à température 0.8, et une sonde verte
+ne prouve rien seule. Ce qui est solide ici, ce n'est pas « ça marche », c'est que le cas est
+**verrouillé en permanence** dans `probe-lena.py` (`FAITS_ETABLIS`), à étendre aux moments IA des
+ch. 3 et 5 où la même confusion entre « fait connu » et « fait à protéger » se reproduira.
+
+**Vérifié** : `probe-lena.py` code de sortie 0 sur le dernier tirage (12 sondes), `verify-graph`
+52/52 dont les quatre contrôles qui inspectent le prompt, `verify-fidelity` 120 = 120.
+`test-ai-moment.py` non relancé : il exige le fournisseur simulé, or le serveur tournait avec la
+vraie clé pour la sonde — et le stub n'utilise pas le prompt, donc les mécaniques qu'il couvre ne
+peuvent pas être affectées.
+
+
+## 2026-08-24 (5) — Écran noir du N19 : 17 s de vide qui dormaient depuis le début
+
+Vivien, en jouant : un délai vide entre la fin du texte de l'écran noir et le retour de Léna, alors
+que la dernière lettre de « la » devait déclencher la transition.
+
+**Ce n'était pas une régression.** `git log -S` sur `'N20': 60` et sur le bloc de l'écran noir ne
+renvoie qu'un seul commit — `3a4dc79`, celui qui a créé le générateur V3.2. Les repères `0/20/40`
+et la fenêtre de 60 s n'ont **jamais** été calés. Vérifié avant de conclure, plutôt que d'accepter
+l'hypothèse de la régression.
+
+**Ce qui l'a caché si longtemps : un commentaire faux.** Le générateur affirmait « la DURÉE de
+l'écran est le délai du message suivant. L'écran noir dure donc exactement l'attente, par
+construction. » Vrai de l'ÉCRAN, muet sur le TEXTE — les décalages étaient de simples cumuls lus
+dans le doc (`decalage += 20`), sans aucun lien avec le délai. Le texte finissait à 42,74 s pour
+une fenêtre de 60 s : **17,26 s d'écran figé**. Un commentaire qui décrit une garantie inexistante
+est pire qu'un commentaire absent : il dissuade d'aller vérifier.
+
+**Correctif — le dernier repère est calculé, jamais lu.** `fenêtre − durée_de_frappe(dernière
+ligne)`, dans le générateur. Tout futur ajustement du délai se répercute seul. Répartition retenue
+par Vivien : `0 / 27 / 57` — pas `0 / 20 / 57`, qui aurait concentré 33 s de vide d'un coup et
+« risquerait de donner l'impression d'un plantage plutôt que d'une tension », un silence trop long
+ayant déjà été réduit pour cette raison exacte.
+
+**Le verrou tient des deux côtés, et c'est le point.** La vitesse de frappe est la seule
+connaissance dupliquée entre le Dart (`typewriter.dart`) et le Python (`generate-seed-content.py`).
+La verrouiller d'un seul côté ne servirait à rien : si le Dart ralentissait sa frappe, le texte
+finirait après le message sans que rien ne le signale.
+- `app/test/typewriter_test.dart` fige les 45 ms / 400 ms côté client.
+- `verify-graph.sql` contrôle 62 fige la synchronisation qui en découle côté contenu.
+
+**Le contrôle 62 a été validé par l'échec, dans les deux sens** — repère à 40 s : « blanc de
+17.26 s après la dernière lettre » ; repère à 59 s : « texte tronqué : finit à 61.75 s > fenêtre
+60 s ». Le chiffre de 17,26 s calculé en SQL recoupe exactement celui calculé en Python au
+diagnostic, ce qui vérifie au passage que les deux implémentations de la formule de frappe
+concordent.
+
+**Vérifié** : `verify-graph` 52/52, `verify-fidelity` 120 = 120, `simulate-playthrough` vert,
+`flutter analyze` propre, 151/151 tests.
+
+
 ## 2026-08-24 (4) — Le flash du N14 : une contradiction dans le choix du joueur
 
 Vivien, en jouant : « Prenez la plaque en photo, discrètement **mais avec le flash** » se contredit

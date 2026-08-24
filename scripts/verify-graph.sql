@@ -329,6 +329,48 @@ select _chk(61, 'Tout battement tombe dans son attente', '',
             where coalesce(m.phantom_typing_at, -1) >= m.delay_seconds
                or coalesce(m.haptic_at, -1) >= m.delay_seconds), ''));
 
+-- Écran noir du N19 : la dernière lettre doit tomber sur le retour de Léna.
+--
+-- Le texte s'écrit à la machine (45 ms/caractère, 400 ms de pause quand ce qui
+-- est déjà écrit finit par « ... »), et l'écran reste affiché jusqu'à l'arrivée
+-- du séparateur « 00h34 ». Ces deux horloges sont indépendantes : rien dans le
+-- moteur ne les relie. Elles ne coïncidaient PAS depuis le premier commit — le
+-- texte finissait à 42,7 s pour une fenêtre de 60 s, soit 17 s d'écran figé,
+-- masquées par un commentaire du générateur qui affirmait le contraire.
+--
+-- Ce contrôle est la moitié SERVEUR du verrou ; l'autre est
+-- `app/test/typewriter_test.dart` § « la vitesse de frappe est figée », qui
+-- empêche le Dart de changer de vitesse sans qu'on le voie ici. Les deux
+-- doivent tomber ensemble : une synchronisation ne se garde jamais d'un seul
+-- côté.
+--
+-- Tolérance : la dernière lettre doit tomber dans la seconde qui précède le
+-- retour de Léna, jamais après. Finir un peu avant est une coupure nette ;
+-- finir après serait du texte tronqué en pleine frappe.
+select _chk(62, 'Écran noir N19 : le texte finit pile au retour de Léna', 'OK',
+  (with derniere as (
+     select (jsonb_array_elements(m.body::jsonb) ->> 'a')::numeric as a,
+            jsonb_array_elements(m.body::jsonb) ->> 'texte'        as texte
+     from _n n join messages m on m.node_id = n.id
+     where n.code = 'N19' and m.content_type = 'narration'
+     order by a desc limit 1),
+   calcul as (
+     select d.a
+          + length(d.texte) * 0.045
+          + (length(d.texte) - length(replace(d.texte, '...', ''))) / 3 * (0.400 - 0.045)
+            as fin_texte,
+            (select m.delay_seconds from _n n join messages m on m.node_id = n.id
+             where n.code = 'N20' and m.position = 0) as fenetre
+     from derniere d)
+   select case
+            when fin_texte > fenetre
+              then 'texte tronqué : finit à ' || round(fin_texte, 2) || ' s > fenêtre ' || fenetre || ' s'
+            when fenetre - fin_texte > 1
+              then 'blanc de ' || round(fenetre - fin_texte, 2) || ' s après la dernière lettre'
+            else 'OK'
+          end
+   from calcul));
+
 select _chk(70, 'Séquence d''intronisation : 4 panneaux', '4',
   (select jsonb_array_length(intro_panels)::text from stories where slug = 'numero-inconnu'));
 

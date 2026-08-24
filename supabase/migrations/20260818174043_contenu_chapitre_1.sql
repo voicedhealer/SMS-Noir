@@ -208,10 +208,16 @@ Tu ne sais rien de ce qui va arriver. Rien.
 
 Tu ne sais pas ce qu'il y avait dans le sac. Tu ne sais pas qui est cet homme ni pour qui il travaille. Tu ne sais pas où est Chloé ni ce qui lui est arrivé. Tu ne parleras de personne d'autre que de Chloé et de l'homme de l'entrepôt, et de rien d'autre que de cette soirée.
 
-Si on te pose une question sur la suite, sur le sac, sur l'homme, sur ta sœur, tu esquives — sans mentir, sans inventer, sans promettre. Tu ne sais pas, et ça te ronge.
+Si on te pose une question qui demanderait une information NOUVELLE sur l'affaire — ce qui va se passer, ce qu'il y avait dans le sac, qui est cet homme ou pour qui il travaille, où est Chloé, ce qui lui est arrivé — tu esquives, sans mentir, sans inventer, sans promettre. Tu ne sais pas, et ça te ronge.
 
 Par exemple, si tu le TUTOIES : « Pas maintenant. » ou « J'en sais rien, et ça me bouffe. »
 Si tu le VOUVOIES : « Pas maintenant, je ne peux pas. » ou « Je n'en sais rien, et c'est bien ça qui me ronge. »
+
+**En revanche, ce que tu as déjà raconté ce soir, tu le redis simplement.** Ces faits-là, et eux seuls : le prénom de ta sœur (Chloé), et qu'elle a disparu il y a sept mois. Tu les as dits toi-même, ils n'ont pas à être protégés. Si on te les redemande — parce qu'on a mal lu, ou pour vérifier — **une phrase suffit, et tu t'arrêtes là**. « Chloé. » est une réponse entière. On te demande de confirmer un détail, pas de raconter la soirée une seconde fois.
+
+Deux façons de te tromper sur ce point, aussi mauvaises l'une que l'autre :
+- **Esquiver un fait anodin.** Quand on te demande juste le prénom de ta sœur, tu donnes le prénom, et c'est tout. Y accoler un refus de continuer te ferait passer pour absente, pas pour pudique : on ne t'a rien demandé de plus. Aucune formule d'esquive n'a sa place dans ce genre de réponse — ni « pas maintenant », ni « je ne peux pas », ni « pas ce soir ».
+- **En rajouter.** Redire un fait, ce n'est pas l'enrichir. Tu ne donnes ni son âge, ni ce qu'elle faisait ce jour-là, ni aucune date précise — tu n'as rien dit de tout ça ce soir, et l'inventer serait pire que te taire. Si tu ne l'as pas déjà raconté, tu ne le sais pas.
 
 **N'invente jamais un fait nouveau sur cette histoire.** Si tu ne l'as pas vécu ce soir, tu ne le sais pas.
 
@@ -353,7 +359,7 @@ from (values
 ('N19', 1, 'text', $$Il est en train de mettre un sac dans son coffre, il a l'air lourd, j'espère que ce n'est pas...$$, null, 5, 3, true, null, $${}$$),
 ('N19', 2, 'text', $$Il regarde vers moi, j'ai croisé son regard, je suis en danger ?$$, null, 5, 3, false, null, $${}$$),
 ('N19', 3, 'text', $$merde$$, null, 5, 3, false, null, $${}$$),
-('N19', 4, 'narration', $$[{"texte": "Léna ne répond plus...", "a": 0}, {"texte": "Il fait nuit, elle est seule, et vous êtes à des kilomètres. L'a-t-il enlevée ? Est-elle rentrée ?", "a": 20}, {"texte": "Vous ne pouvez rien faire d'autre qu'attendre, ou prévenir la", "a": 40}]$$, null, 0, 0, false, null, $${}$$),
+('N19', 4, 'narration', $$[{"texte": "Léna ne répond plus...", "a": 0}, {"texte": "Il fait nuit, elle est seule, et vous êtes à des kilomètres. L'a-t-il enlevée ? Est-elle rentrée ?", "a": 27}, {"texte": "Vous ne pouvez rien faire d'autre qu'attendre, ou prévenir la", "a": 57}]$$, null, 0, 0, false, null, $${}$$),
 
 -- N20
 ('N20', 0, 'separator', $$00h34$$, null, 60, 0, false, null, $${}$$),
@@ -375,8 +381,8 @@ from (values
 
 -- N22
 ('N22', 0, 'text', $$Chloé avait exactement le même, c'est moi qui le lui avais offert.$$, null, 6, 3, false, null, $${}$$),
-('N22', 1, 'text', $$Je t'explique, il n'en existe que deux au monde, je les avais fait graver pour nous deux, un pour elle et un pour moi, lors d'un voyage où on était en vacances. Ça symbolisait notre amitié, nous quoi !$$, null, 5, 3, false, null, $${"eq": {"refus": false}}$$),
-('N22', 1, 'text', $$Je vous explique, il n'en existe que deux au monde, je les avais fait graver pour nous deux, un pour elle et un pour moi, lors d'un voyage où on était en vacances. Ça symbolisait notre amitié, nous quoi !$$, null, 5, 3, false, null, $${"eq": {"refus": true}}$$),
+('N22', 1, 'text', $$Je t'explique, il n'en existe que deux au monde, je les avais fait graver pour nous deux, un pour elle et un pour moi, lors d'un voyage où on était en vacances. Ça symbolisait notre lien, nous quoi !$$, null, 5, 3, false, null, $${"eq": {"refus": false}}$$),
+('N22', 1, 'text', $$Je vous explique, il n'en existe que deux au monde, je les avais fait graver pour nous deux, un pour elle et un pour moi, lors d'un voyage où on était en vacances. Ça symbolisait notre lien, nous quoi !$$, null, 5, 3, false, null, $${"eq": {"refus": true}}$$),
 ('N22', 2, 'text', $$Et le mien a disparu de mon appartement il y a trois semaines, impossible de mettre la main dessus, et là...$$, null, 5, 3, false, null, $${}$$),
 ('N22', 3, 'system', $$Quelqu'un est entré chez Léna. Quelqu'un sait qu'elle cherche. Et ce quelqu'un a désormais votre numéro.$$, null, 8, 0, false, null, $${}$$)
 

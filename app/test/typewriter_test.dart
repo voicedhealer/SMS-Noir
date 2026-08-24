@@ -65,4 +65,22 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
     expect(appels, 1);
   });
+
+
+  test('la vitesse de frappe est figée — elle est partagée avec le serveur', () {
+    // ⚠️ Ces deux valeurs sont DUPLIQUÉES dans scripts/generate-seed-content.py
+    // (FRAPPE_PAR_CARACTERE / FRAPPE_PAUSE_POINTS), qui s'en sert pour calculer
+    // le dernier repère de l'écran noir du N19 : la dernière lettre de « la »
+    // doit tomber pile au retour de Léna.
+    //
+    // Les changer ICI sans les changer LÀ-BAS désynchronise la scène en
+    // silence — le texte finirait après le message, et la coupure serait
+    // manquée. Ce test est la moitié cliente du verrou ; l'autre moitié est le
+    // contrôle 62 de verify-graph.sql.
+    const t = Typewriter(texte: 'x');
+    expect(t.parCaractere, const Duration(milliseconds: 45),
+        reason: 'si tu changes ça, change aussi FRAPPE_PAR_CARACTERE côté Python');
+    expect(t.surPause, const Duration(milliseconds: 400),
+        reason: 'si tu changes ça, change aussi FRAPPE_PAUSE_POINTS côté Python');
+  });
 }

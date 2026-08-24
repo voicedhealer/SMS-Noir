@@ -382,13 +382,18 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 
 > *Léna ne répond plus...*
 >
-> *(20s)*
+> *(27s)*
 >
 > *Il fait nuit, elle est seule, et vous êtes à des kilomètres. L'a-t-il enlevée ? Est-elle rentrée ?*
 >
-> *(20s)*
+> *(30s)*
 >
 > *Vous ne pouvez rien faire d'autre qu'attendre, ou prévenir la*
+
+*(Le dernier décalage — 57 s — est **recalculé par le générateur**, pas lu ici : il vaut les 60 s
+de la fenêtre moins le temps de frappe de la dernière ligne, pour que sa dernière lettre tombe
+pile sur le retour de Léna. La valeur ci-dessus n'est donc qu'un reflet ; changer le délai du
+séparateur « 00h34 » suffit, le repère suit.)*
 
 *(Coupure nette — musique et texte s'interrompent en pleine phrase. Retour à la conversation.)*
 
@@ -475,10 +480,10 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 - 🔍 « Ça peut être une coïncidence, non ? » → *« Attends, écoute-moi, je vais t'expliquer pourquoi. »*
 - 🧠 « ...Ben ça alors ! » → *« Ouais. Attends, c'est pas fini. »*
 
-**[Léna]** Je t'explique, il n'en existe que deux au monde, je les avais fait graver pour nous deux, un pour elle et un pour moi, lors d'un voyage où on était en vacances. Ça symbolisait notre amitié, nous quoi !
+**[Léna]** Je t'explique, il n'en existe que deux au monde, je les avais fait graver pour nous deux, un pour elle et un pour moi, lors d'un voyage où on était en vacances. Ça symbolisait notre lien, nous quoi !
 
 *(Variante si `refus = true` :)*
-> Je vous explique, il n'en existe que deux au monde, je les avais fait graver pour nous deux, un pour elle et un pour moi, lors d'un voyage où on était en vacances. Ça symbolisait notre amitié, nous quoi !
+> Je vous explique, il n'en existe que deux au monde, je les avais fait graver pour nous deux, un pour elle et un pour moi, lors d'un voyage où on était en vacances. Ça symbolisait notre lien, nous quoi !
 
 **[Léna]** Et le mien a disparu de mon appartement il y a trois semaines, impossible de mettre la main dessus, et là...
 

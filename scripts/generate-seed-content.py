@@ -61,6 +61,39 @@ ENTREE = {
 }
 SUITE = 5
 
+#: Vitesse de la machine à écrire des écrans narratifs.
+#:
+#: ⚠️ **Ces deux constantes DOIVENT rester identiques à celles de
+#: `app/lib/widgets/typewriter.dart`** (`parCaractere`, `surPause`). C'est la
+#: seule connaissance dupliquée entre le Python et le Dart, et elle est
+#: structurante : le dernier repère de l'écran noir du N19 est calculé ici à
+#: partir d'elle pour tomber pile sur le retour de Léna. Si le Dart ralentit sa
+#: frappe sans qu'on touche ici, le texte finirait APRÈS le message et la
+#: coupure serait manquée — en silence.
+#:
+#: Verrouillé des deux côtés : `test/typewriter_test.dart` fige les valeurs
+#: Dart, `verify-graph.sql` (contrôle 62) fige la synchronisation qui en
+#: découle. Changer la vitesse fait tomber les deux.
+FRAPPE_PAR_CARACTERE = 0.045
+FRAPPE_PAUSE_POINTS = 0.400
+
+
+def duree_frappe(texte: str) -> float:
+    """Temps que met la machine à écrire pour poser `texte`, en secondes.
+
+    Réplique exacte de `_TypewriterState._suivant()` : l'attente AVANT chaque
+    caractère dépend de ce qui est déjà écrit — une pause longue si le texte
+    posé jusque-là se termine par des points de suspension.
+    """
+    total = 0.0
+    for i in range(len(texte)):
+        avant = texte[:i]
+        total += (FRAPPE_PAUSE_POINTS
+                  if avant.endswith('...') or avant.endswith('…')
+                  else FRAPPE_PAR_CARACTERE)
+    return total
+
+
 #: Délai forcé pour des positions irrégulières, en dérogation à ENTREE/SUITE.
 #: N9#1 (le texte qui suit la vidéo de transition, addendum §2) fixe à lui seul
 #: la durée d'affichage du plein écran : la vidéo reste visible jusqu'à ce que
@@ -211,8 +244,20 @@ def parser():
     # L'écran noir du N19 : un message `narration`, posé après « merde ».
     #
     # Les lignes et leurs décalages viennent du document ; la DURÉE de l'écran,
-    # elle, est le délai du message suivant (le séparateur « 00h34 », 60 s).
-    # L'écran noir dure donc exactement l'attente, par construction.
+    # elle, est le délai du message suivant (le séparateur « 00h34 »).
+    #
+    # ⚠️ Le commentaire disait ici que « l'écran noir dure exactement l'attente,
+    # par construction » — vrai de l'ÉCRAN, faux du TEXTE, et cette nuance a
+    # masqué le défaut pendant tout le développement. Les décalages étaient de
+    # simples cumuls lus dans le doc, sans aucun lien avec le délai : le texte
+    # finissait à 42,7 s pour une fenêtre de 60 s, laissant 17 s d'écran figé
+    # après la dernière lettre. Constaté en jouant le 24 août 2026, présent
+    # depuis le tout premier commit du générateur.
+    #
+    # Le DERNIER décalage est donc désormais CALCULÉ, jamais lu : il vaut la
+    # fenêtre moins le temps de frappe de la dernière ligne, pour que la
+    # dernière lettre de « la » tombe pile sur le retour de Léna. Tout futur
+    # ajustement du délai se répercute alors tout seul.
     bloc = re.search(r'### 🖤 ÉCRAN NOIR NARRATIF.*?(?=\n\*\(Coupure)',
                      DOC.read_text(), re.S)
     if bloc:
@@ -226,6 +271,13 @@ def parser():
             if m:
                 lignes_ecran.append({'texte': m.group(1).strip(), 'a': decalage})
         if lignes_ecran:
+            fenetre = SEPARATEUR['00h34']
+            declare = lignes_ecran[-1]['a']
+            calcule = int(fenetre - duree_frappe(lignes_ecran[-1]['texte']))
+            lignes_ecran[-1]['a'] = calcule
+            if declare != calcule:
+                print(f'  ⓘ écran noir N19 : dernier repère recalculé '
+                      f'{declare} s -> {calcule} s (fenêtre {fenetre} s)')
             noeuds['N19']['messages'].append(
                 ('narration', json.dumps(lignes_ecran, ensure_ascii=False)))
 

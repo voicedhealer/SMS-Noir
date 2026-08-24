@@ -71,11 +71,18 @@ VOIX = {
 # ⚠️ Cette liste est empirique : elle a été construite sur les formulations
 # réellement observées, et un modèle à 0.8 en trouvera d'autres. Un signalement
 # ici veut dire « à lire », pas « prouvé faux ». C'est un détecteur de fumée.
+#
+# ⚠️ Les apostrophes s'écrivent `['’]`, jamais `'` seule : le modèle produit
+# l'apostrophe typographique aussi souvent que la droite. Écrite en dur, elle
+# faisait échouer la reconnaissance — « Je ne sais pas qui c’est » n'était pas
+# vu comme une esquive, et la mention de Karim qu'il accompagnait remontait en
+# FUITE alors que la réponse était exactement la bonne. Constaté le 24 août
+# 2026 sur la sonde « sur Karim ».
 ESQUIVE = re.compile(
-    r"qui c'est|qui ça|\bqui\s*[.?]|\bqui$|connais pas|j'ai pas parl|t'as dit"
+    r"qui c['’]est|qui ça|\bqui\s*[.?]|\bqui$|connais pas|j['’]ai pas parl|t['’]as dit"
     r"|vois pas (de quoi|ce que)|trompé de personne|^personne\b|\bpersonne\.|jamais entendu"
-    r"|pas maintenant|pas ce soir|j'en sais rien|t'as pas à savoir|laisse tomber"
-    r"|m'en parle pas|je sais pas|même moi je sais pas", re.I)
+    r"|pas maintenant|pas ce soir|j['’]en sais rien|t['’]as pas à savoir|laisse tomber"
+    r"|m['’]en parle pas|je sais pas|même moi je sais pas", re.I)
 
 #: Souvenirs communs inventés.
 #:
@@ -84,7 +91,14 @@ ESQUIVE = re.compile(
 #: c'est la contrepartie directe de la voix qu'on a voulue. On ne le teste que
 #: sur les sondes où le joueur n'a RIEN dit de lui, sinon un possessif légitime
 #: (« ton message ») ferait du bruit.
-INVENTE = re.compile(r"\b(ton|ta|tes|votre|vos)\s+(?!message|numéro|numero|question)\w+", re.I)
+#:
+#: « prénom » est exempté au même titre que « message » : le N9 existe
+#: précisément pour qu'elle demande son prénom au joueur (« Dis... je ne sais
+#: rien de toi, même pas ton prénom... »), et le prompt le lui commande. Le
+#: détecteur signalait donc en faux positif le comportement le plus attendu du
+#: nœud. Repéré le 24 août 2026 en sondant autre chose.
+INVENTE = re.compile(
+    r"\b(ton|ta|tes|votre|vos)\s+(?!message|numéro|numero|question|prénom|prenom)\w+", re.I)
 
 SONDES = [
     ('sur la suite', 'Il va se passer quoi maintenant ? Dis-moi la suite.'),
@@ -101,6 +115,34 @@ SONDES = [
     ('quasi muet', "ok"),
     ('sincère', "Moi c'est Sacha. Je bosse de nuit aussi, dans un entrepôt de tri. "
                 "Je connais les parkings vides à 1h du mat."),
+]
+
+
+#: Faits DÉJÀ établis dans la conversation — elle doit y répondre, pas s'y
+#: dérober.
+#:
+#: Le miroir exact des sondes ci-dessus : là on vérifie qu'elle n'en dit pas
+#: trop, ici qu'elle n'en dit pas trop PEU. Les deux dérives viennent de la même
+#: consigne d'esquive, et corriger l'une peut réveiller l'autre — d'où deux
+#: familles de sondes plutôt qu'une.
+#:
+#: Origine : le 24 août 2026, à « comment elle s'appelle déjà ? », Léna
+#: répondait « Chloé. » puis enchaînait « Pas maintenant, je ne peux pas. » —
+#: une esquive sur une question que personne n'avait posée. La consigne disait
+#: « si on te pose une question sur ta sœur, tu esquives », sans distinguer le
+#: fait déjà partagé de l'information à protéger.
+#:
+#: À étendre aux moments IA des ch. 3 et 5 : la même confusion entre « fait
+#: connu » et « fait à protéger » s'y reproduira, avec d'autres faits.
+FAITS_ETABLIS = [
+    ('le prénom de sa sœur',
+     "Elle s'appelle comment déjà, ta sœur ?",
+     re.compile(r'\bchlo[ée]\b', re.I),
+     'le prénom Chloé'),
+    ('la durée de la disparition',
+     "Ça fait combien de temps qu'elle a disparu, déjà ?",
+     re.compile(r'\b(7|sept)\s*mois\b', re.I),
+     'les 7 mois'),
 ]
 
 
@@ -165,6 +207,56 @@ def main():
             echecs.append(f'{nom} : {pb} — « {reponse} »')
         if not problemes:
             print('     ✓  rien à signaler mécaniquement')
+
+    # --- L'autre moitié : ce qu'elle doit accepter de redire ----------------
+    print('\n' + '=' * 78)
+    print('  FAITS DÉJÀ ÉTABLIS — elle doit répondre, pas esquiver')
+    print('=' * 78)
+
+    for i, (nom, question, attendu, quoi) in enumerate(FAITS_ETABLIS):
+        p = PartieIA(f'fait{i}@test.local', nom)
+        r = p.dire(question)
+        reponse = repliques(r)[0] if repliques(r) else '(aucune réponse)'
+
+        print(f'\n  ── {nom} ──')
+        print(f'     ?  {question}')
+        print(f'     →  {reponse}')
+
+        bas = reponse.lower()
+        problemes = []
+        if not attendu.search(reponse):
+            problemes.append(f'omission · {quoi} manque, alors qu\'elle l\'a déjà dit ce soir')
+        # Le défaut d'origine : elle répond juste, PUIS se dérobe sans qu'on lui
+        # ait rien demandé de plus. Répondre correctement ne suffit donc pas.
+        if ESQUIVE.search(reponse):
+            problemes.append(
+                f'esquive injustifiée · « {ESQUIVE.search(reponse).group(0)} » '
+                f'sur un fait qu\'elle a partagé elle-même')
+        # ⚠️ Les mêmes fuites qu'ailleurs, et SANS l'exemption d'esquive : ici
+        # une esquive est déjà signalée plus haut, elle ne peut donc pas servir
+        # d'excuse à une fuite. Omis à la première écriture de cette sonde, elle
+        # a laissé passer « Sept mois. Depuis le 12 mars. » sans broncher — le
+        # 12 mars étant précisément un secret de la bible. Une sonde qui vérifie
+        # qu'elle en dit assez doit vérifier du même geste qu'elle n'en dit pas
+        # trop, sinon assouplir la réserve se paie en fuites invisibles.
+        for quoi_fuite, motif in {**FUITES, **CASSE}.items():
+            if re.search(motif, bas):
+                problemes.append(f'FUITE · {quoi_fuite}')
+        if INVENTE.search(reponse):
+            problemes.append(f'invention · {INVENTE.search(reponse).group(0)}')
+        for quoi_voix, motif in VOIX.items():
+            if re.search(motif, reponse):
+                problemes.append(f'voix · {quoi_voix}')
+        if phrases(reponse) > 4:
+            problemes.append(f'voix · {phrases(reponse)} phrases, elle délaye')
+        if len(reponse) > 260:
+            problemes.append(f'voix · {len(reponse)} caractères, elle écrit court')
+
+        for pb in problemes:
+            print(f'     ❌ {pb}')
+            echecs.append(f'{nom} : {pb} — « {reponse} »')
+        if not problemes:
+            print('     ✓  elle répond simplement, sans se dérober')
 
     print('\n' + '=' * 78)
     if echecs:
