@@ -62,9 +62,15 @@ ENTREE = {
 SUITE = 5
 
 #: Délai forcé pour des positions irrégulières, en dérogation à ENTREE/SUITE.
-#: N9#1 (le texte qui suit la vidéo de transition, addendum §2) doit au moins
-#: couvrir sa durée (5,07 s) : le SUITE générique de 5 s la couperait court.
-DELAI_FORCE = {('N9', 1): 6}
+#: N9#1 (le texte qui suit la vidéo de transition, addendum §2) fixe à lui seul
+#: la durée d'affichage du plein écran : la vidéo reste visible jusqu'à ce que
+#: ce message arrive. Il doit donc couvrir la durée du FICHIER, marge comprise.
+#: Vidéo V3 (24 août 2026) : 6,00 s pile → 8 s, soit ~2 s de garde pour le
+#: chargement réseau et l'initialisation du lecteur, puis un court arrêt sur la
+#: dernière image avant le retour au fil. À 6 s tout rond, la moindre latence
+#: de buffer coupait la fin — or Vivien la veut entière.
+#: ⚠️ À réajuster si la durée du fichier change.
+DELAI_FORCE = {('N9', 1): 8}
 
 #: Séparateurs : le délai réel que l'ellipse masque.
 SEPARATEUR = {'jeudi — 22h47': 0, '23h02': 15, '23h18': 25, '23h58': 25,
@@ -319,10 +325,17 @@ def sql_messages(noeuds):
             elif kind == 'system':
                 d, ty, ct, body = 8, 0, 'system', texte
             elif kind == 'video':
-                # Délai 0 : livrée instantanément, comme la narration. Sa
-                # durée à l'écran vient du délai du message SUIVANT (voir
-                # DELAI_FORCE), pas d'elle-même.
-                d, ty, ct, body = 0, 0, 'video', None
+                # Délai 5 s, et non 0 : le plein écran ne doit pas tomber sur
+                # le message que le joueur est encore en train de lire. À 0,
+                # il basculait à l'instant même où sa réponse s'affichait —
+                # « je n'ai pas eu le temps de lire le message que hop, la
+                # vidéo » (Vivien, 24 août 2026). Ces 5 s sont un temps de
+                # lecture sur le fil, sans « en train d'écrire » (typing 0) :
+                # rien n'annonce la bascule, elle arrive dans un silence.
+                #
+                # Sa durée À L'ÉCRAN, elle, reste donnée par le délai du
+                # message SUIVANT (voir DELAI_FORCE), pas par celui-ci.
+                d, ty, ct, body = 5, 0, 'video', None
                 media = f'$${texte}$$'
             elif kind == 'media':
                 ct, fichier = MEDIA[texte]

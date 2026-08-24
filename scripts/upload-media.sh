@@ -245,16 +245,27 @@ trouver_musique() {  # trouver_musique <motifs séparés par |>
     case "$nom" in *.mp3|*.m4a|*.aac|*.wav|*.mp4) ;; *) continue;; esac
     case " $_MUSIQUES_PRISES " in *" $nom "*) continue;; esac
     case "$nom" in *N17*|*audio-N*) continue;; esac
-    # Fichier source BRUT de la transition N20→N9, gardé sur disque comme
-    # référence (la version traitée, celle qu'on téléverse, est
-    # media/lena-rentre-chez-elle.mp4) : audio non coupé, filigrane visible —
-    # jamais un candidat pour quoi que ce soit. Sans cette exclusion il était
-    # ramassé par le repli musical (premier .mp4 non réclamé, ordre
-    # alphabétique) et écrasait la vraie musique de fin de chapitre. Constaté
-    # le 19 août 2026.
-    case "$nom" in "Léna rentre chez elle.mp4") continue;; esac
     case "$(echo "$nom" | tr 'A-Z' 'a-z')" in *reception*|*envoi*|*frappe*|*son-*) continue;; esac
-    if [ -z "$motifs" ]; then echo "$f"; return; fi
+    # --- Repli aveugle : jamais un .mp4 -------------------------------------
+    #
+    # Le repli prend « le premier fichier encore non réclamé », sans mot-clé
+    # pour le guider : il faut donc qu'il ne puisse ramasser QUE de l'audio
+    # certain. `.mp4` est le seul conteneur ambigu du lot (audio-only pour les
+    # musiques exportées, vidéo pour les rushes de la transition N20→N9), donc
+    # il est exclu du repli — et de lui seul : une musique légitimement nommée
+    # en .mp4 reste trouvable par mot-clé juste en dessous.
+    #
+    # Il y avait avant, ici, une exclusion sur le nom exact
+    # « Léna rentre chez elle.mp4 », posée le 19 août 2026 après que ce rush
+    # eut écrasé la musique de fin. Elle ne protégeait que ce fichier-là : le
+    # 24 août, « Léna rentre dans son immeuble-V2.mp4 » est passé à côté et a
+    # reparlé la même bêtise (chapter_end_music_url = fin-music.mp4, soit une
+    # vidéo en guise de musique). Exclure la CLASSE plutôt que le fichier ferme
+    # le cas pour tous les rushes à venir, quel que soit leur nom.
+    if [ -z "$motifs" ]; then
+      case "$nom" in *.mp4) continue;; esac
+      echo "$f"; return
+    fi
     # Pas de sous-shell pour découper sur « | » : un `return` à l'intérieur de
     # ( … ) ne sort que du sous-shell, pas de la fonction — la boucle
     # extérieure continuait et pouvait renvoyer DEUX fichiers concaténés.

@@ -262,14 +262,38 @@ elle a besoin de ton feu vert, et `chapitre-1-v2.md` devra être patché en mêm
       emplacements (doc source, migration, base locale). L'inventaire complet du chapitre lancé
       dans la foulée n'a rien trouvé d'autre du même défaut — voir MEMOIRE.md 2026-08-23 (2).
 
-- [ ] **Q12 — La carte de contact compte-t-elle dans la règle des 3 messages consécutifs ?**
-      Après le correctif de densité du N7 (23 août 2026), N5 **et** N7 présentent la même
-      séquence avant la pause suivante : 3 bulles + 1 carte d'enregistrement = 4 éléments visibles
-      dans le fil. Techniquement la carte n'est pas une pause (voir LOGIQUE.md § Révélation
-      d'identité) mais elle se voit, et elle rompt visuellement l'enchaînement de bulles. Si tu
-      considères qu'elle compte, il faut un bloc de micro-choix de plus sur **ces deux branches**,
-      pas seulement N7. Si tu considères qu'elle ne compte pas, le chapitre est déjà conforme et
-      il n'y a rien à faire. Balayage complet du graphe fait : aucun autre endroit ne dépasse.
+- [x] ~~**Q13 — La vidéo du N9 dure 10 s, son écran 6 s**~~ — **caduque le 24 août 2026** : Vivien a
+      livré une V3 de 6,00 s (celle avec les sous-titres, la V2 était un essai). Fenêtre d'affichage
+      portée à 8 s pour la couvrir avec de la marge, et 5 s de lecture ajoutées **avant** la
+      bascule. Voir MEMOIRE.md 2026-08-24 (2).
+
+- [ ] **Q14 — La vidéo du N9 pèse 13,4 Mo pour 6 s (17,9 Mbps).** Sur le réseau local ça passe,
+      mais c'est une pointe de débit importante pour un simple sas de transition, et le fichier doit
+      être bufferisé assez vite pour que ses 6 s passent en entier — l'exigence de Vivien. Un
+      ré-encodage vers ~6 Mbps le ramènerait autour de 4,5 Mo, sans différence visible à l'œil sur
+      ce contenu (plan fixe, nuit, peu de mouvement). **Non fait de notre initiative** : ré-encoder
+      est destructif et c'est ton média. À trancher avant toute mise en production, où le joueur
+      sera en 4G et pas en WiFi local.
+
+- [ ] **Q12 — Trois séquences à 4 bulles consécutives, dont la branche N5.** *(Révisée le 24 août
+      2026 — le relevé du 23 était faux par sous-comptage, voir ci-dessous.)*
+
+      Le balayage du 23 août ne comptait pas la **réplique inline** du micro-choix, alors que c'est
+      une bulle que le joueur lit comme les autres, et qu'aucune action de sa part ne la sépare des
+      suivantes. En la comptant, trois séquences dépassent les 3 bulles :
+
+      | Séquence | Bulles | Remarque |
+      |---|---|---|
+      | `N5` réplique inline → N5#1 → carte → N8#0 → photo N8#1 | 4 (+ carte) | la pire ; c'est la forme qu'avait N7 avant correction |
+      | `N8` réplique inline → N8#3 → N8#4 → N8#5 | 4 | puis choix structurant |
+      | `N18` réplique inline → N18#1 → N19#0 → N19#1 | 4 | **probablement voulu** : c'est l'accélération de la panique, et le N19 est l'exception à fragments assumée (bible §2 révisée) |
+
+      **N7 est désormais propre** (deux blocs ajoutés les 23 et 24 août) et ne figure plus au
+      relevé. Aucune de ces trois séquences n'a été introduite par nos correctifs : elles
+      préexistaient, le relevé d'hier ne les voyait pas.
+
+      À trancher : corriger N5 (même remède que N7, un bloc de micro-choix), corriger aussi N8, et
+      confirmer que N18→N19 est bien un effet voulu qu'on laisse tel quel.
 
 - [ ] **Q9 — Jour J : le 13 ou le 14 août 2026 ?** Tu as indiqué « Jeudi 14 août 2026 », mais le
       14 août 2026 est un **vendredi**. Le chapitre affiche « jeudi — 22h47 » et le suspect vient

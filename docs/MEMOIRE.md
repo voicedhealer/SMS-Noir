@@ -4,6 +4,151 @@
 
 ---
 
+## 2026-08-24 (4) — Le flash du N14 : une contradiction dans le choix du joueur
+
+Vivien, en jouant : « Prenez la plaque en photo, discrètement **mais avec le flash** » se contredit
+tout seul — on ne photographie pas discrètement au flash, de nuit, à vingt mètres de quelqu'un
+qu'on surveille. Choix ramené à « Prenez la plaque en photo, discrètement. »
+
+**La réplique à ajuster n'était pas dans le même nœud.** Le choix vit au N14, mais la réponse qui
+en dépendait est le message 1 du **N16** — le nœud d'arrivée. Elle disait « la lumière du
+lampadaire tape en plein dessus **et mon flash empire les choses**, je vais me faire griller » ;
+elle devient « ... tape en plein dessus, je vais me faire griller **si je bouge** ». La cause du
+risque passe du flash au mouvement, ce qui rejoint le message N14#3 juste avant (« j'ai peur de me
+lever, il va me repérer »).
+
+**Recherche de dépendances, demandée par Vivien** : `grep -i flash` sur tout le dépôt.
+- **Rien dans `bible-narrative.md`** — donc aucun conflit avec la source de vérité narrative, et
+  rien à signaler de ce côté.
+- Deux occurrences vivantes seulement (le choix, la réplique), toutes deux corrigées.
+- Les deux migrations antérieures et `docs/prompts/chapitre-1-v3.2.md` (archive du prompt d'origine)
+  conservent l'ancien texte — convention constante de la session : on ne réécrit ni les migrations
+  périmées ni les archives.
+
+Examiné aussi sans le mot « flash », au cas où une réplique voisine dépendrait de l'idée : le 🛡 du
+N16 (« Ne prenez plus de photos, c'est trop risqué. ») parle des photos en général, pas de
+l'éclairage — il reste cohérent tel quel.
+
+**Gardiens** : `verify-fidelity.py` 120 = 120, `verify-graph.sql` 51/51, `simulate-playthrough.py`
+vert (le libellé corrigé apparaît bien dans le parcours joué).
+
+
+## 2026-08-24 (3) — Transition vers le N8, et un relevé de densité à corriger
+
+Vivien, en jouant : « La police a classé le dossier... » (N8#0) tombait juste après la révélation
+du prénom, sans transition — une réponse à une question que le joueur n'avait pas posée.
+
+**Nœud identifié : N7, après le message 3.** Trois branches convergent vers le N8 — N5 et N7 en
+enchaînement automatique, N6 via le choix structurant « D'accord, je vous écoute. » qui fait déjà
+office de transition. Le bloc va donc **après la carte de contact** (position 3), pas après le
+texte du prénom (position 2) : la carte est le geste qui prolonge la révélation, les séparer aurait
+cassé un couple. Le parseur traite les lignes du doc dans l'ordre (`apres = len(messages) - 1`),
+donc placer le bloc sous la ligne de la carte suffit à obtenir `after_position = 3`.
+
+Le 🔍 « Vous en avez parlé à la police ou à la gendarmerie ? » → « Ahhh la police... un moment
+difficile... » est précisément la marche qui manquait : il amène le sujet dont le N8 va parler.
+
+### ⚠️ Le relevé de densité du 23 août était faux — sous-comptage
+
+J'avais annoncé « maximum 3 bulles partout, aucun dépassement ». **C'était inexact** : le script ne
+comptait pas la **réplique inline** du micro-choix, alors que c'est une bulle que le joueur lit
+comme les autres, et qu'aucune action de sa part ne la sépare des suivantes. Corrigé, trois
+séquences dépassent :
+
+- **N5** : inline → N5#1 → carte → N8#0 → photo = 4 bulles. La pire, et c'est exactement la forme
+  qu'avait N7 avant correction. La branche « empathie » a donc le même défaut que celle que Vivien
+  vient de faire corriger.
+- **N8** : inline → N8#3 → N8#4 → N8#5 = 4 bulles avant le choix structurant.
+- **N18→N19** : inline → N18#1 → N19#0 → N19#1 = 4 bulles. **Probablement voulu** — c'est
+  l'accélération de la panique, et le N19 est l'exception à fragments assumée par les règles
+  d'écriture.
+
+Aucune de ces trois n'a été introduite par nos correctifs : elles préexistaient, le relevé
+d'hier ne les voyait pas. Signalées, non corrigées (règles 2 et 3) — TODO.md § Q12 révisée.
+
+**Leçon** : un script d'analyse écrit à la va-vite mérite la même défiance qu'un test vert. Celui
+d'hier a produit un chiffre rassurant et faux, et je l'ai rapporté comme un fait.
+
+**Gardiens** : `verify-fidelity.py` (lancé pour la première fois de la session, en référence AVANT
+la modification) passe de 117 = 117 à 120 = 120. `verify-graph.sql` contrôle 45 : 96 → 99.
+
+
+## 2026-08-24 (2) — Vidéo N9 en V3, et le sas ne tombe plus sur un message non lu
+
+Vivien : la V2 était un essai, la bonne est `Lena rentre a son domicile - V3.mp4` (celle avec les
+sous-titres), **1440×2560, 6,00 s pile**. Préparée comme les précédentes : audio retiré, `moov` en
+tête, flux vidéo recopié sans ré-encodage. Nom d'objet toujours `lena-rentre-chez-elle.mp4` (écrit
+en dur dans la migration ET le générateur) — désormais un peu inexact au regard du titre du
+fichier, mais purement cosmétique.
+
+**Deux réglages de rythme, demandés explicitement**, corrigés dans le générateur (source), la
+migration et la base :
+
+1. **Le plein écran tombait à l'instant même où la réponse du joueur s'affichait.** La vidéo était
+   à `delay_seconds = 0`, valeur codée en dur dans `generate-seed-content.py` (branche
+   `kind == 'video'`), avec le commentaire « livrée instantanément, comme la narration ». Passée à
+   **5 s**, avec `typing = 0` : un temps de lecture silencieux sur le fil, rien n'annonce la
+   bascule. « Je n'ai pas eu le temps de lire le message que hop, la vidéo. »
+2. **La fenêtre d'affichage passe de 6 s à 8 s** (`DELAI_FORCE[('N9', 1)]`). C'est le délai du
+   message SUIVANT qui donne sa durée au plein écran — pas la vidéo elle-même. À 6 s pour un
+   fichier de 6,00 s, la moindre latence de buffer coupait la fin ; 8 s laissent ~2 s de garde,
+   puis un court arrêt sur la dernière image avant le retour au fil.
+
+Nouvelle séquence complète : réponse du joueur → **5 s de lecture** → vidéo (6 s) → ~2 s d'arrêt
+sur image → premier message de Léna. Soit 13 s de transition, contre 6 s avant.
+
+**Le correctif du repli musical a tenu son premier vrai test** : un nouveau rush `.mp4` traînait
+dans `media/` au moment du téléversement, et `chapter_end_music_url` est resté sur `fin-music.mp3`.
+L'exclusion par classe (voir l'entrée précédente) fait ce qu'on attendait d'elle.
+
+⚠️ **Poids** : 13,4 Mo pour 6 s, soit 17,9 Mbps. Passe en WiFi local, discutable en 4G — et c'est
+justement le débit qui conditionne « les 6 secondes complètes ». Signalé, non ré-encodé : c'est
+destructif et c'est le média de Vivien. TODO.md § Q14.
+
+
+## 2026-08-24 — Vidéo N9 remplacée (enfin au bon ratio), et le repli musical corrigé pour de bon
+
+Vivien a fourni `media/Léna rentre dans son immeuble-V2.mp4`, au bon format. L'ancienne était en
+**2560×1290** (ultra-large) sur un écran de téléphone tenu à la verticale ; la nouvelle est en
+**720×1280**, plein cadre 9:16.
+
+Préparée comme l'avait été la précédente : piste audio retirée (`-an`, le lecteur force déjà le
+volume à 0 mais la convention est établie et le commentaire du code s'y réfère), `moov` en tête
+(`+faststart`), **flux vidéo recopié sans ré-encodage** (`-c:v copy`) — aucune perte. Le nom de
+l'objet reste `lena-rentre-chez-elle.mp4` : il est écrit en dur dans la migration ET dans
+`generate-seed-content.py`, le renommer aurait demandé trois modifications pour rien.
+
+### ⚠️ Écart de durée à trancher — la vidéo dure 10 s, l'écran 6 s
+
+L'écran de transition reste affiché tant que le message suivant n'est pas arrivé, et **`typing` est
+inclus dans `delay`** (`playback.dart` : `debutTyping = total - typingSeconds`). Le N9#1 ayant
+`delay_seconds = 6`, l'écran dure **6 s**, pas 9.
+
+- L'ancienne vidéo (5,07 s) tenait entièrement, puis figeait ~1 s sur sa dernière image.
+- La nouvelle (10 s) sera **coupée à 6 s : 40 % ne sera jamais vu.**
+
+Non corrigé de notre initiative : allonger `delay_seconds` change le rythme narratif, c'est un
+arbitrage de Vivien. Signalé, en attente. Voir TODO.md § Q13.
+
+### Le repli musical a re-ramassé un rush vidéo — troisième occurrence
+
+`upload-media.sh` a attribué la nouvelle vidéo à `chapter_end_music_url` (`fin-music.mp4`),
+écrasant la vraie musique de fin. **Exactement le bug documenté le 19 août**, revenu parce que le
+correctif d'alors excluait un **nom de fichier précis** (« Léna rentre chez elle.mp4 ») : le rush
+V2, nommé autrement, est passé à côté.
+
+Le repli aveugle prend « le premier fichier non réclamé » sans mot-clé pour le guider, et `.mp4`
+est le seul conteneur ambigu du lot (audio-only pour les musiques exportées, vidéo pour les rushes).
+Correctif : **le repli refuse désormais tout `.mp4`**, quel que soit son nom. Une musique
+légitimement nommée en `.mp4` reste trouvable par mot-clé juste au-dessus — seul le repli aveugle
+est restreint. Exclure la classe plutôt que le fichier ferme le cas pour tous les rushes à venir.
+
+Dégâts réparés : `chapter_end_music_url` remis sur `fin-music.mp3`, et deux objets orphelins
+supprimés du bucket local (`fin-music.mp4`, plus `intro-music.mp4` qui traînait depuis la
+conversion de l'intro en MP3 l'avant-veille). Vérifié qu'aucun n'était référencé avant suppression.
+**N'a touché que le stack local.**
+
+
 ## 2026-08-23 (3) — Densité de la branche N4→N7, et ce que la carte de contact n'est pas
 
 Vivien, en jouant la branche « curieux » : le N7 ne portait qu'un bloc de micro-choix avant le N8,

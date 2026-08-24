@@ -339,7 +339,7 @@ from (values
 
 -- N16
 ('N16', 0, 'image', null, $$photo-N16-plaque.png$$, 18, 3, false, null, $${}$$),
-('N16', 1, 'text', $$C'est tout ce que j'arrive à avoir sans m'approcher, la lumière du lampadaire tape en plein dessus et mon flash empire les choses, je vais me faire griller.$$, null, 5, 3, false, null, $${}$$),
+('N16', 1, 'text', $$C'est tout ce que j'arrive à avoir sans m'approcher, la lumière du lampadaire tape en plein dessus, je vais me faire griller si je bouge.$$, null, 5, 3, false, null, $${}$$),
 
 -- N17
 ('N17', 0, 'audio', null, $$audio-N17-reperage.mp3$$, 20, 3, false, null, $${}$$),
@@ -360,9 +360,9 @@ from (values
 ('N20', 1, 'text', $$C'est bon, je suis dans ma voiture, il ne m'a pas vue... enfin je crois, je vois une ombre, c'est quoi ! ... oula c'était juste un animal et la lune, il faut que je redescende en émotion car je deviens parano.$$, null, 5, 3, true, null, $${}$$),
 
 -- N9
-('N9', 0, 'video', null, $$lena-rentre-chez-elle.mp4$$, 0, 0, false, null, $${}$$),
-('N9', 1, 'text', $$Je suis rentrée, je respire un peu mieux... Ça vous dérange si l'on se tutoie ? Après ce qu'on vient de vivre, le « vous » me paraît un peu ridicule, qu'en penses-tu ?$$, null, 6, 3, false, null, $${"eq": {"refus": false}}$$),
-('N9', 1, 'text', $$Je suis rentrée, je respire un peu mieux... Ça ne vous dérange pas si je continue à vous vouvoyer, je crois que j'en ai besoin ce soir.$$, null, 6, 3, false, null, $${"eq": {"refus": true}}$$),
+('N9', 0, 'video', null, $$lena-rentre-chez-elle.mp4$$, 5, 0, false, null, $${}$$),
+('N9', 1, 'text', $$Je suis rentrée, je respire un peu mieux... Ça vous dérange si l'on se tutoie ? Après ce qu'on vient de vivre, le « vous » me paraît un peu ridicule, qu'en penses-tu ?$$, null, 8, 3, false, null, $${"eq": {"refus": false}}$$),
+('N9', 1, 'text', $$Je suis rentrée, je respire un peu mieux... Ça ne vous dérange pas si je continue à vous vouvoyer, je crois que j'en ai besoin ce soir.$$, null, 8, 3, false, null, $${"eq": {"refus": true}}$$),
 ('N9', 2, 'text', $$Et merci pour cette présence, même à distance, ça me donne de la force, ce dont j'avais grand besoin.$$, null, 5, 3, false, null, $${}$$),
 ('N9', 3, 'text', $$Dis... je ne sais rien de toi, même pas ton prénom...$$, null, 5, 3, false, null, $${}$$),
 
@@ -441,6 +441,13 @@ from (values
 ('N7', 20, $$Moi je préfère imaginer la vérité, même si elle fait peur.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Merci... ça change tout d'entendre ça.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
 ('N7', 21, $$Les gens autour de vous ont abandonné les recherches ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Presque tous, oui. Il ne reste que moi.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
 ('N7', 22, $$C'est courageux de continuer seule.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Ou inconscient. Je sais plus très bien lequel des deux.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+
+-- N7 · pause après le message 3 (la carte de contact) : sans elle, le N8
+-- s'ouvrait sur « La police a classé le dossier... » juste après la révélation
+-- du prénom, comme une réponse à une question jamais posée.
+('N7', 30, $$Vous êtes seule à supporter cette situation ? Personne ne vous aide ?$$, 3, $$[{"sender": "contact", "content_type": "text", "body": "Personne, non... on me dit de passer à autre chose, de faire mon deuil. Mais c'est totalement impossible pour moi !", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N7', 31, $$Vous en avez parlé à la police ou à la gendarmerie ?$$, 3, $$[{"sender": "contact", "content_type": "text", "body": "Ahhh la police... un moment difficile...", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N7', 32, $$Ça fait combien de temps que vous cherchez seule ?$$, 3, $$[{"sender": "contact", "content_type": "text", "body": "Trop longtemps pour que ce soit sain, je crois.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N8 · pause après le message 1
 ('N8', 10, $$C'est révoltant.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Merci de le dire, vous savez, à force on finit par douter de soi.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
@@ -580,7 +587,7 @@ from (values
 ('N13', 50, $$22 secondes pour répondre ça ?$$, 'interaction', null, $$[{"sender": "player", "content_type": "text", "body": "22 secondes pour répondre ça ?", "delay_seconds": 0, "typing_seconds": 0}, {"sender": "contact", "content_type": "text", "body": "J'hésitais à vous dire quelque chose, une autre fois, pas ce soir.", "delay_seconds": 8, "typing_seconds": 4}]$$, $${"inc": {"lucidite": 1}, "append": {"interactions_faites": "INSISTER_N13"}}$$, $${"not_contains": {"interactions_faites": "INSISTER_N13"}}$$),
 
 -- N14
-('N14', 0, $$Prenez la plaque en photo, discrètement mais avec le flash.$$, 'reply', 'N16', null, $${"append": {"indices": "PLAQUE"}}$$, $${}$$),
+('N14', 0, $$Prenez la plaque en photo, discrètement.$$, 'reply', 'N16', null, $${"append": {"indices": "PLAQUE"}}$$, $${}$$),
 ('N14', 1, $$Restez cachée, à couvert, et décrivez-moi ce que vous voyez, sans prendre de risque.$$, 'reply', 'N17', null, $${}$$, $${}$$),
 ('N14', 2, $$Je ne le sens pas, partez maintenant tant que vous le pouvez, on avisera plus tard.$$, 'reply', 'N18', null, $${}$$, $${}$$),
 

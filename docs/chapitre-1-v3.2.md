@@ -166,6 +166,12 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 **[Léna]** Vous recevez ma bouteille, mais je ne vous ai même pas dit mon nom, je m'appelle Léna.
 
 *(→ carte d'enregistrement du contact · révélation d'identité)*
+
+**MICRO-CHOIX :**
+- 🛡 « Vous êtes seule à supporter cette situation ? Personne ne vous aide ? » → *« Personne, non... on me dit de passer à autre chose, de faire mon deuil. Mais c'est totalement impossible pour moi ! »*
+- 🔍 « Vous en avez parlé à la police ou à la gendarmerie ? » → *« Ahhh la police... un moment difficile... »*
+- 🧠 « Ça fait combien de temps que vous cherchez seule ? » → *« Trop longtemps pour que ce soit sain, je crois. »*
+
 → **N8**
 
 ---
@@ -288,7 +294,7 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 **[Léna]** Je vois sa voiture, une berline Peugeot 508 grise avec un macaron derrière, j'ai du mal à lire et j'ai peur de me lever, il va me repérer. C'est la même voiture que les autres fois. Que dois-je faire ?
 
 **CHOIX STRUCTURANT :**
-- A. « Prenez la plaque en photo, discrètement mais avec le flash. » → N16 *(indices + PLAQUE)*
+- A. « Prenez la plaque en photo, discrètement. » → N16 *(indices + PLAQUE)*
 - B. « Restez cachée, à couvert, et décrivez-moi ce que vous voyez, sans prendre de risque. » → N17
 - C. « Je ne le sens pas, partez maintenant tant que vous le pouvez, on avisera plus tard. » → N18
 
@@ -298,7 +304,7 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 
 **[Léna]** 📷 *[photo de la 508]*
 
-**[Léna]** C'est tout ce que j'arrive à avoir sans m'approcher, la lumière du lampadaire tape en plein dessus et mon flash empire les choses, je vais me faire griller.
+**[Léna]** C'est tout ce que j'arrive à avoir sans m'approcher, la lumière du lampadaire tape en plein dessus, je vais me faire griller si je bouge.
 
 🔍 **INTERACTION CACHÉE — zoom sur le macaron :** « SENTINEL PRO » lisible. *(indices + AUTOCOLLANT)*
 
