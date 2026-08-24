@@ -4,6 +4,40 @@
 
 ---
 
+## 2026-08-24 (13) — Phase 1 du carnet : la table `clues` et la projection `get-state`
+
+Les cinq indices du chapitre n'existaient que comme **codes** poussés dans `variables.indices`
+(`PLAQUE`, `AUTOCOLLANT`, `TELEPHONE`, `PROFIL_SUSPECT`, `BORNAGE`). Un code n'est pas affichable.
+Nouvelle table de **contenu** `clues` (`story_id`, `code`, `texte`, unique par histoire), migration
+`20260824180000_clues.sql`, textes recopiés tels quels du prompt.
+
+**RLS activée, aucune policy `select`** — comme `nodes` et `messages`. La table entière est la
+liste de ce qu'il reste à trouver : la rendre lisible donnerait la solution. Le client ne voit que
+la projection.
+
+**`carnet(db, storyId, vars)` dans `moteur.ts`** joint les codes trouvés à leurs textes, et
+**itère sur `vars.indices`, pas sur le résultat de la requête** : l'ordre est celui de la
+découverte. Un `order by code` aurait donné un ordre alphabétique — une liste triée ressemble à un
+inventaire à compléter, l'ordre de découverte raconte l'enquête.
+
+**Quatre indices maximum par partie, jamais cinq.** Ma première assertion dans
+`simulate-playthrough.py` en exigeait cinq et a échoué : `PROFIL_SUSPECT` et `BORNAGE` viennent des
+deux relances du N8, qui partagent le marqueur `RELANCE_N8` et **s'excluent par construction**
+(contrôle 22). Le test avait raison, mon attente était fausse. Le carnet ne doit donc jamais
+afficher « 4/5 » ni quoi que ce soit qui laisse croire à un manque.
+
+**Une assertion que j'avais écrite était tautologique** — elle comparait `codes` à `codes` via un
+`if/else` qui retombait sur la même valeur, et serait passée quoi qu'il arrive. Remplacée par une
+liste écrite en dur (`PROFIL_SUSPECT, PLAQUE, AUTOCOLLANT, TELEPHONE`) **plus** un contrôle que cet
+ordre diffère bien du tri alphabétique. Un test vert qui teste la mauvaise chose est plus
+dangereux qu'un rouge.
+
+**Deux gardiens de plus** (`verify-graph` 65 et 66) : tout indice qu'un `effect` peut accorder a
+son texte, et réciproquement aucun texte orphelin. Sans eux, ajouter un indice au contenu sans son
+texte le ferait disparaître du carnet en silence.
+
+---
+
 ## 2026-08-24 (12) — Phase 2 du carnet : le zoom ne passe plus par le « + »
 
 La nature d'une interaction — geste sur un média, ou chose que le joueur dit — était **déduite**

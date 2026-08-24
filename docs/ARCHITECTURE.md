@@ -53,10 +53,11 @@ Toute lecture passe par une Edge Function qui filtre. Voir § Sécurité.
 ## Modèle de données
 
 Référence : `docs/schema-supabase-v2.md`, repris **tel quel** aux écarts près (§ Écarts).
-**État réel en base : 9 tables · 28 index · 21 contraintes CHECK · 16 clés étrangères ·
-7 contraintes UNIQUE · RLS active sur les 9 tables · 4 policies.**
+**État réel en base : 10 tables · 29 index · 21 contraintes CHECK · 16 clés étrangères ·
+7 contraintes UNIQUE · RLS active sur les 10 tables · 4 policies.**
 
-**Contenu** — `stories` › `chapters` › `nodes` › (`messages`, `choices`) · `contacts` rattachés à `stories`
+**Contenu** — `stories` › `chapters` › `nodes` › (`messages`, `choices`) · `contacts` et `clues`
+rattachés à `stories`
 **Joueur** — `player_progress` › `player_messages` · `ai_usage` (par `user_id` + jour)
 
 Il n'y a **pas** de table `players` : le schéma référence directement `auth.users`
@@ -167,12 +168,16 @@ Règle générale : **RLS activé sur toutes les tables dès leur création**, s
 | Portée | Politique |
 |---|---|
 | `stories` | Lecture `authenticated` **uniquement** si `status = 'published'` (la vitrine). Seule table de contenu lisible par le client |
-| `contacts`, `chapters`, `nodes`, `messages`, `choices` | RLS activé, **aucune policy `select`** → aucune lecture client. Accès `service_role` seulement, via Edge Functions (anti-spoiler) |
+| `contacts`, `chapters`, `nodes`, `messages`, `choices`, `clues` | RLS activé, **aucune policy `select`** → aucune lecture client. Accès `service_role` seulement, via Edge Functions (anti-spoiler) |
 | `player_progress`, `player_messages` | `select` sur ses propres lignes (`auth.uid()`). **Aucune policy insert/update** : le moteur serveur écrit tout |
 | `ai_usage` | RLS activé, aucune policy client (compteur serveur) |
 
 Filtrage anti-spoiler dans `get-state` — ne sortent **jamais** vers le client :
 `next_node_id`, `effects`, `conditions`, et les choix dont les `conditions` sont fausses.
+Le carnet suit la même règle : `clues` porte les cinq textes du chapitre, mais `get-state` ne
+renvoie que ceux effectivement présents dans `variables.indices`. Lire la table entière révélerait
+les indices restant à trouver — c'est pourquoi elle n'a, comme le reste du contenu, aucune policy
+de lecture.
 
 ### Vérification fonctionnelle de la RLS
 

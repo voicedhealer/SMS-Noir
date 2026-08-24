@@ -14,6 +14,7 @@ import {
 import type {
   ChapterEndState,
   ClientChoice,
+  Clue,
   Conditions,
   ClientConversation,
   ClientMessage,
@@ -607,6 +608,42 @@ export function attenteSaisieOuverte(
   const a = noeud.attente_saisie
   if (!a) return false
   return evaluerConditions(vars, (a.conditions ?? {}) as Conditions)
+}
+
+/**
+ * Le carnet : les indices DÉJÀ TROUVÉS, avec leur texte.
+ *
+ * **Une projection, jamais la table.** Le client ne voit ni les indices qu'il
+ * n'a pas, ni les variables qui les portent — lui ouvrir `clues` reviendrait à
+ * lui livrer la carte de ce qu'il reste à chercher, et `variables` contient de
+ * toute façon bien plus que ça (confiance, lucidité, branche).
+ *
+ * **L'ordre est celui de la découverte**, et il vient gratuitement :
+ * `appliquerEffects` ajoute en fin de liste sans doublon, donc
+ * `variables.indices` EST déjà l'ordre chronologique. On s'y aligne plutôt que
+ * de trier sur un ordre de contenu, que personne n'a écrit.
+ *
+ * Persiste sur toute l'histoire, pas seulement le chapitre courant : les
+ * indices du ch. 1 resserviront aux ch. 3-4.
+ */
+export async function carnet(
+  db: SupabaseClient, storyId: string, vars: Variables,
+): Promise<Clue[]> {
+  const trouves = Array.isArray(vars.indices) ? vars.indices as string[] : []
+  if (trouves.length === 0) return []
+
+  const { data, error } = await db
+    .from('clues').select('code, texte')
+    .eq('story_id', storyId).in('code', trouves)
+  if (error) throw new ErreurMoteur(500, 'erreur_base', error.message)
+
+  const parCode = new Map((data ?? []).map((c) => [c.code as string, c.texte as string]))
+  // On parcourt `trouves`, pas `data` : c'est lui qui porte l'ordre. Un code
+  // sans texte est simplement ignoré — un indice dont on aurait oublié la
+  // rédaction ne doit pas faire tomber tout l'écran.
+  return trouves
+    .filter((code) => parCode.has(code))
+    .map((code) => ({ code, texte: parCode.get(code)! }))
 }
 
 /** Conversations du joueur : dérivées des contacts déjà croisés dans l'historique. */

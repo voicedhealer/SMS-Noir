@@ -209,6 +209,12 @@ export interface SoundPack {
   typing: string | null
 }
 
+/** Une ligne du carnet : un indice trouvé, et ce qu'on en a noté. */
+export interface Clue {
+  code: string
+  texte: string
+}
+
 export interface GetStateResponse {
   story: { slug: string; title: string; tagline: string | null; cover_url: string | null }
   /** Sons de message. Le client décide quand les jouer, jamais le serveur. */
@@ -227,6 +233,14 @@ export interface GetStateResponse {
   history: (ClientMessage & { contact_id: string })[]
   node: ClientNode | null
   chapter_end: ChapterEndState | null
+  /**
+   * Le carnet — indices déjà trouvés, dans l'ordre de découverte.
+   *
+   * Vide tant que le joueur n'a rien trouvé, **jamais un compteur** : pas de
+   * « 3/6 », pas d'emplacement pour un indice manquant. Le carnet documente
+   * l'enquête, il ne mesure pas la progression.
+   */
+  clues: Clue[]
   /** Le nœud courant est un ai_moment : la saisie libre est ouverte (prompt 3). */
   ai_moment_pending: boolean
   /**

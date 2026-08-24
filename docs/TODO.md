@@ -1,5 +1,20 @@
 # TODO.md
 
+## 🟠 Carnet de notes et interaction — 5 phases, ordre d'exécution 4 › 2 › 1 › 3 › 5
+
+Plan : `docs/prompts/prompt-carnet-notes-et-interaction.md`. STOP à chaque phase.
+
+- [x] **Phase 4 — Écrire au N16** (`attente_saisie`, aparté, `advance` par saisie). Serveur + client.
+- [x] **Phase 2 — Le zoom ne passe plus par le « + »** (`choices.declencheur`). Serveur + client.
+- [x] **Phase 1 — Table `clues` + projection `get-state`.** Serveur seul, aucun rebuild nécessaire.
+- [ ] **Phase 3 — La quatrième option discrète** qui remplace le « + » (`DiscreetPlus` existe encore).
+- [ ] **Phase 5 — Écran « Ce qu'on sait »** : icône d'en-tête, état vide « Rien de noté pour
+      l'instant. », **aucun compteur** — une partie ne peut jamais rassembler les 5 indices, les deux
+      relances du N8 s'excluant.
+
+⚠️ **Le téléphone n'est pas rebranché** tant que l'APK n'a pas été reconstruit avec les phases
+2 et 4 (côté client). La phase 1 est serveur : elle est déjà active sans rebuild.
+
 ## 🔴 Addendum transition N20-N9 — TERMINÉ côté code, deux témoins visuels dus à Vivien
 
 Phases A, B et C terminées, vérifiées côté back/tests — voir MEMOIRE.md 2026-08-18/19. Aucun outil

@@ -11,6 +11,7 @@ import { servir, json } from '../_shared/http.ts'
 import {
   chargerHistoire,
   chargerNoeud,
+  carnet,
   chargerOuCreerProgression,
   clientAdmin,
   conversations,
@@ -63,6 +64,7 @@ Deno.serve(servir(async (req) => {
     history: (await historique(db, progression.id)).filter((m) => !seqsAJouer.has(m.seq)),
     node: await etatNoeud(db, progression.current_node_id, progression.variables, progression.node_gate),
     chapter_end: await etatFinDeChapitre(db, progression, noeud?.code ?? null, noeud?.kind ?? null),
+    clues: await carnet(db, histoire.id, progression.variables),
     // Le nœud courant est le moment IA : la saisie libre s'ouvre (exécution au prompt 3).
     ai_moment_pending: noeud?.kind === 'ai_moment',
     // Carte d'entrée (avant l'intronisation) : tant que ni l'un ni l'autre

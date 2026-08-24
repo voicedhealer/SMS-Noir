@@ -334,6 +334,38 @@ def parcours_allie():
              'Léna vous attend. Le chapitre 2 est disponible.')
     verifier('Teaser absent pour l\'instant (contenu à venir)',
              p.etat['chapter_end']['next_chapter_teaser_text'], None)
+
+    # --- Le carnet : une projection, jamais la table -----------------------
+    #
+    # L'ORDRE est celui de la découverte, pas un ordre de contenu : c'est
+    # `variables.indices` qui le porte (append sans doublon), et la projection
+    # s'y aligne. Un tri alphabétique donnerait AUTOCOLLANT en tête.
+    fin = http(f'{API}/functions/v1/get-state', {}, p.token)
+    codes = [c['code'] for c in fin['clues']]
+    # QUATRE, pas cinq : les deux relances du N8 partagent le marqueur
+    # RELANCE_N8 et s'excluent donc mutuellement (verify-graph, contrôle 22).
+    # Une partie ne peut jamais collecter les cinq — c'est voulu, et le carnet
+    # ne doit surtout pas le signaler comme un manque.
+    verifier('Carnet : 4 indices, les 2 relances du N8 s\'excluant',
+             sorted(codes),
+             ['AUTOCOLLANT', 'PLAQUE', 'PROFIL_SUSPECT', 'TELEPHONE'])
+    verifier('Carnet : une seule des deux relances du N8',
+             len({'PROFIL_SUSPECT', 'BORNAGE'} & set(codes)), 1)
+    # L'ordre est celui de la DÉCOUVERTE. Comparé à une liste écrite en dur, et
+    # non à lui-même : la version tautologique de ce contrôle passait quoi qu'il
+    # arrive. Le tri alphabétique donnerait AUTOCOLLANT en tête.
+    verifier('Carnet : ordre de découverte, jamais alphabétique',
+             codes, ['PROFIL_SUSPECT', 'PLAQUE', 'AUTOCOLLANT', 'TELEPHONE'])
+    verifier('Carnet : cet ordre DIFFÈRE bien du tri alphabétique',
+             codes != sorted(codes), True)
+    verifier('Carnet : chaque indice porte son texte',
+             all(c.get('texte') for c in fin['clues']), True)
+    verifier('Carnet : aucun indice non trouvé n\'est exposé',
+             len(fin['clues']) <= 5, True)
+    # Étanchéité : la projection ne doit pas ramener les variables avec elle.
+    brut = json.dumps(fin, ensure_ascii=False)
+    for mot in ('confiance', 'lucidite', 'variables'):
+        verifier(f'Carnet : « {mot} » absent de get-state', mot in brut, False)
     return p
 
 

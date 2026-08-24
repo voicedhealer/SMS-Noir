@@ -390,6 +390,28 @@ select _chk(62, 'Écran noir N19 : le texte finit pile au retour de Léna', 'OK'
           end
    from calcul));
 
+-- Le carnet : tout indice qu'un effect peut accorder doit avoir un texte, et
+-- réciproquement. Un indice sans texte disparaîtrait du carnet en silence ; un
+-- texte sans indice serait du contenu que personne ne peut atteindre.
+select _chk(65, 'Tout indice accordé par le contenu a son texte', '',
+  coalesce((select string_agg(distinct code, ', ') from (
+      select ch.effects->'append'->>'indices' as code
+      from _n n join choices ch on ch.node_id = n.id
+      where ch.effects->'append' ? 'indices'
+    ) t
+    where code not in (select code from clues cl
+                       join stories s on s.id = cl.story_id
+                       where s.slug = 'numero-inconnu')), ''));
+
+select _chk(66, 'Aucun texte d''indice orphelin', '',
+  coalesce((select string_agg(cl.code, ', ' order by cl.code)
+            from clues cl join stories s on s.id = cl.story_id
+            where s.slug = 'numero-inconnu'
+              and cl.code not in (
+                select ch.effects->'append'->>'indices'
+                from _n n join choices ch on ch.node_id = n.id
+                where ch.effects->'append' ? 'indices')), ''));
+
 select _chk(70, 'Séquence d''intronisation : 4 panneaux', '4',
   (select jsonb_array_length(intro_panels)::text from stories where slug = 'numero-inconnu'));
 
