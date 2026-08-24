@@ -487,6 +487,11 @@ from (values
 ('N8', 21, $$Pourquoi cet endroit précisément ?$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Le dernier signal du téléphone de Chloé a borné à 400 mètres de là, et la police m'a dit que ça ne prouvait rien, 400 mètres.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
 ('N8', 22, $$Mais comment avez-vous trouvé cet endroit ?$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "En cherchant pendant des mois, en recoupant des indices, des détails que personne ne voulait recouper avec moi.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
+-- N8 · pause après le message 4
+('N8', 30, $$Je reste avec vous, ne vous inquiétez pas.$$, 4, $$[{"sender": "contact", "content_type": "text", "body": "Ça me touche, sincèrement.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N8', 31, $$Vous avez un plan si ça tourne mal ?$$, 4, $$[{"sender": "contact", "content_type": "text", "body": "Repartir en courant. C'est basique, mais c'est tout ce que j'ai.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N8', 32, $$Vous êtes sûre de vouloir faire ça seule ?$$, 4, $$[{"sender": "contact", "content_type": "text", "body": "Non. Mais je n'ai plus le choix, je crois.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+
 -- N10 · pause après le message 0
 ('N10', 10, $$Ils n'avaient pas le droit de vous dire ça.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Merci, ça fait du bien de l'entendre, j'ai fini par croire que c'était moi le problème.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
 ('N10', 11, $$Ils ont regardé le bornage au moins ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Ils l'ont noté, classé, et rien fait, pour eux ce n'est pas anormal de passer un appel à cet endroit, rien ne les choque ! Un dossier de plus dans une pile de dossiers, ils sont débordés, je peux le comprendre, mais là on n'est pas sur un défaut de stationnement.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
@@ -509,7 +514,7 @@ from (values
 
 -- N16 · pause après le message 1
 ('N16', 10, $$Ne prenez plus de photos, c'est trop risqué.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Je sais bien, mais je voulais au moins avoir le courage de faire ça, ça ne suffira peut-être pas, ou peut-être que si.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N16', 11, $$Il y a un autocollant sur la vitre arrière.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Oui, mais je n'arrive pas à le lire d'ici, et vous ?", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N16', 11, $$Il y a un autocollant sur la vitre arrière.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Oui, mais je n'arrive pas à le lire d'ici, et vous ?", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete", "set": {"question_autocollant": true}}$$),
 ('N16', 12, $$Une plaque à moitié lisible, ça sert à quoi ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "À rien peut-être, ou alors c'est le début d'un indice, on verra bien. J'ai fait mon maximum toute seule, et pourtant j'ai l'impression d'être lâche et de ne pas avoir eu le courage d'affronter ça.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N17 · pause après le message 0

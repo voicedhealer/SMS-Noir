@@ -200,6 +200,11 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 
 **[Léna]** Je vous demande juste une chose, si jamais il m'arrive quelque chose... j'ai peur ! Il faut que quelqu'un sache où je suis.
 
+**MICRO-CHOIX :**
+- 🛡 « Je reste avec vous, ne vous inquiétez pas. » → *« Ça me touche, sincèrement. »*
+- 🔍 « Vous avez un plan si ça tourne mal ? » → *« Repartir en courant. C'est basique, mais c'est tout ce que j'ai. »*
+- 🧠 « Vous êtes sûre de vouloir faire ça seule ? » → *« Non. Mais je n'ai plus le choix, je crois. »*
+
 🔍 **INTERACTION CACHÉE — relance (« + ») :** une seule des deux, mutuellement exclusives.
 - « Vous l'avez déjà vu de près ? » → *« La cinquantaine, toujours seul, il ne parle à personne et personne ne le connaît dans le coin, il regarde toujours autour de lui avant d'ouvrir la porte, c'est vraiment suspect ! Enfin, pour moi... »* *(indices + PROFIL_SUSPECT)*
 - « Et s'il vous a repérée ? » → *« Je fais attention, je change de place à chaque fois, je ne peux pas vous jurer que non... mais je suis encore là, donc il est fort probable que non. »* *(indices + BORNAGE)*

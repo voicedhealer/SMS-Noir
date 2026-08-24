@@ -276,25 +276,11 @@ elle a besoin de ton feu vert, et `chapitre-1-v2.md` devra être patché en mêm
       est destructif et c'est ton média. À trancher avant toute mise en production, où le joueur
       sera en 4G et pas en WiFi local.
 
-- [ ] **Q12 — Trois séquences à 4 bulles consécutives, dont la branche N5.** *(Révisée le 24 août
-      2026 — le relevé du 23 était faux par sous-comptage, voir ci-dessous.)*
-
-      Le balayage du 23 août ne comptait pas la **réplique inline** du micro-choix, alors que c'est
-      une bulle que le joueur lit comme les autres, et qu'aucune action de sa part ne la sépare des
-      suivantes. En la comptant, trois séquences dépassent les 3 bulles :
-
-      | Séquence | Bulles | Remarque |
-      |---|---|---|
-      | `N5` réplique inline → N5#1 → carte → N8#0 → photo N8#1 | 4 (+ carte) | la pire ; c'est la forme qu'avait N7 avant correction |
-      | `N8` réplique inline → N8#3 → N8#4 → N8#5 | 4 | puis choix structurant |
-      | `N18` réplique inline → N18#1 → N19#0 → N19#1 | 4 | **probablement voulu** : c'est l'accélération de la panique, et le N19 est l'exception à fragments assumée (bible §2 révisée) |
-
-      **N7 est désormais propre** (deux blocs ajoutés les 23 et 24 août) et ne figure plus au
-      relevé. Aucune de ces trois séquences n'a été introduite par nos correctifs : elles
-      préexistaient, le relevé d'hier ne les voyait pas.
-
-      À trancher : corriger N5 (même remède que N7, un bloc de micro-choix), corriger aussi N8, et
-      confirmer que N18→N19 est bien un effet voulu qu'on laisse tel quel.
+- [x] ~~**Q12 — Trois séquences à 4 bulles consécutives**~~ — **tranchée le 24 août 2026.**
+      - **N8** : découpé, un bloc de micro-choix ajouté après le message 4. C'était le pire des
+        trois — quatre bulles dont un vrai paragraphe pour finir.
+      - **N5** : laissé tel quel, « la carte de contact la coupe déjà en pratique » (Vivien).
+      - **N18→N19** : laissé tel quel, à rejuger une fois l'effet de tension éprouvé en jeu.
 
 - [ ] **Q9 — Jour J : le 13 ou le 14 août 2026 ?** Tu as indiqué « Jeudi 14 août 2026 », mais le
       14 août 2026 est un **vendredi**. Le chapitre affiche « jeudi — 22h47 » et le suspect vient

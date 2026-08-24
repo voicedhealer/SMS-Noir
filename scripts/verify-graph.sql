@@ -253,7 +253,11 @@ select _chk(44, 'Nombre total de messages', '69',
 -- contact). Le N8 s'ouvrait sur « La police a classé le dossier... » juste
 -- après la révélation du prénom, sans transition — une réponse à une question
 -- que le joueur n'avait pas posée.
-select _chk(45, 'Nombre total de choix', '99',
+--
+-- 99 → 102 le 24 août 2026 : bloc au N8, après le message 4. Quatre bulles s'y
+-- enchaînaient sans respiration, dont un vrai paragraphe pour finir — le pire
+-- des trois cas relevés au balayage de densité (Q12).
+select _chk(45, 'Nombre total de choix', '102',
   (select count(*)::text from _n n join choices ch on ch.node_id = n.id));
 
 select _chk(46, 'Répartition des choix (ignore/interaction/reply)', '0/7/26',

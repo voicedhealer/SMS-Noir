@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-08-24 (11) — Q12 tranchée : le N8 découpé, le N5 laissé
+
+Vivien a lu les deux séquences côte à côte et a tranché différemment pour chacune, ce que le
+relevé chiffré seul ne permettait pas : **N5 reste** (« la carte de contact la coupe déjà en
+pratique »), **N8 se découpe**. Un bloc de micro-choix ajouté après le message 4, entre « j'ai
+peur, il faut que quelqu'un sache où je suis » et le paragraphe d'excuses qui suivait sans
+respiration. **N18→N19 reste** aussi, à rejuger une fois l'effet de tension éprouvé en jeu.
+
+La leçon de méthode : mon balayage donnait « trois séquences à 4 bulles » comme si les trois
+étaient le même défaut. Les lire a montré trois situations différentes — une coupée par une carte,
+une vraiment lourde, une voulue. **Un chiffre identique ne veut pas dire un problème identique.**
+
+`verify-fidelity` 120 → 123, contrôle 45 de `verify-graph` 99 → 102.
+
+
 ## 2026-08-24 (10) — Vidéo recompressée, dépôt nettoyé, TODO de production
 
 **Vidéo N9 : 13,4 Mo → 2,6 Mo** (Q14 refermée). L'export d'origine était à 17,9 Mbps en
