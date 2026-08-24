@@ -4,6 +4,146 @@
 
 ---
 
+## 2026-08-24 (10) — Vidéo recompressée, dépôt nettoyé, TODO de production
+
+**Vidéo N9 : 13,4 Mo → 2,6 Mo** (Q14 refermée). L'export d'origine était à 17,9 Mbps en
+1440×2560, c'est-à-dire quasi sans perte — pas un fichier de diffusion. Recompressée en 1080×1920
+CRF 26 (H.264 High, preset slow, faststart, sans audio) : **3,6 Mbps, 2,6 Mo, 5× plus léger**.
+
+Vérifié avant de valider, pas supposé : extraction d'images à plusieurs instants, dont celle qui
+porte le sous-titre incrusté (« minuit passé ») — le texte reste parfaitement net, et c'est lui le
+plus sensible à la compression. La source 13 Mo reste versionnée à côté, la recompression est donc
+rejouable.
+
+**Dépôt nettoyé** : les deux `.bak` de la conversion audio de l'intro, que j'avais commités un peu
+vite, sont retirés du suivi et du disque ; la sauvegarde `.bak-v1-paysage` aussi ; et
+`heartbeat-x2.5_2.mp3` supprimé après vérification d'empreinte — strictement identique à
+`heartbeat-n19.mp3`, qui EST le fichier de Vivien sous le nom qu'attend le pipeline.
+
+**TODO.md gagne une section « AVANT PRODUCTION »** dédiée, tenue à jour : cleartext, politique de
+confidentialité, test réel des notifications, essai en 4G, configuration IA.
+
+
+## 2026-08-24 (9) — Phase 4 : « Et vous ? » au N16, et le bug qu'elle a évité
+
+Vivien demandait d'abord l'aparté seul, en décrivant le champ comme déjà fonctionnel à ce moment.
+**Il ne l'était pas** — la phase 4 n'était pas entamée — et surtout : écrire là faisait **perdre
+l'indice**. Vérifié en jouant avant de répondre, pas supposé :
+
+```
+N16 : can_continue=True  awaiting_interaction=True
+après avoir « tapé » (advance continue) →  nouveau nœud : N19
+```
+
+Le N16 n'expose aucun `reply`, donc le champ était en mode `continuation`, donc écrire appelait
+`continuer()`. Le joueur sautait au N19 **en croyant avoir répondu**, et perdait AUTOCOLLANT sans
+rien remarquer. Poser l'aparté seul aurait activement invité à ce geste. Arrêt et signalement — la
+bonne décision, confirmée par Vivien.
+
+**Implémenté ensuite en entier.** Un seul concept, une seule colonne : `nodes.attente_saisie`
+= `{conditions, reponse}`, null si le nœud n'attend rien. Le micro-choix 🔍 pose
+`question_autocollant`, les conditions s'y adossent. `advance` accepte `{ saisie: string }` : écrit
+le message du joueur, la réplique de Léna, puis emprunte **exactement le même chemin que le geste**
+(`appliquerChoix` sur l'interaction) — un seul chemin d'effets, pas deux à garder synchronisés.
+
+**Trois décisions de conception qui méritent d'être retenues :**
+
+1. **L'aparté suit les conditions de l'attente.** Il l'annonce : l'afficher avant qu'elle ne
+   s'ouvre promettrait une interaction inexistante. Sans ce filtre il se serait affiché dès la
+   photo, sur les trois branches.
+2. **Le masquage à la frappe est généralisé**, moment IA compris comme demandé — `aparteEnCours`
+   rend `null` dès que le champ n'est plus vide.
+3. **`ATTENTE_SAISIE` retirée du générateur après l'avoir écrite.** Les champs de NŒUD (`aparte`,
+   `ai_system_prompt`) vivent dans la migration ; le générateur ne réécrit que messages et choix.
+   La déclarer là en aurait fait une source de vérité que rien ne lit — **le piège exact qui a
+   ressuscité « amitié » le matin même**. Un commentaire la remplace pour expliquer pourquoi elle
+   n'y est pas.
+
+**Tests validés par l'échec** : en neutralisant la bascule, « écrire déclenche l'interaction » et
+« l'aparté disparaît à la frappe » tombent tous les deux ; restaurés, ils repassent.
+
+**Vérifié** : `flutter analyze` propre, 161/161 tests, `verify-graph` 52/52, `verify-fidelity`
+120 = 120, `simulate-playthrough` vert, plus un parcours réel des trois branches du N16 (🔍 ouvre
+l'attente et l'aparté ; 🛡 et 🧠 les laissent fermés) et trois réponses écrites différentes
+accordant toutes AUTOCOLLANT.
+
+
+## 2026-08-24 (8) — La tension déborde du N19, et la règle d'héritage se précise
+
+Vivien, après test sur appareil : le N14#2 (« mon cœur bat à 200 battements par minute ») décrit
+lui-même l'accélération cardiaque, et l'absence de rouge s'y voyait. **Visuel seul** — le battement
+reste au N19, « un fond sonore qui revient à chaque frayeur cesserait d'en être un ».
+
+**L'architecture n'a pas eu à bouger d'une ligne** : le drapeau étant par message et le son porté
+par une colonne distincte, ajouter la tension sans le son se réduit à une entrée dans `TENSION`
+sans entrée correspondante dans `AMBIANCE`. C'est le bénéfice direct du choix de Vivien de tout
+poser sur le message plutôt que sur le nœud.
+
+**Mais ma règle d'héritage était trop grossière**, et le N14 l'a révélée. Elle disait « toute
+réponse inline d'un nœud à tension hérite » (`any(n == code for n, _ in TENSION)`) : le bloc de
+micro-choix du N14 étant attaché au message 0, ses réponses seraient devenues rouges alors
+qu'elles **précèdent** le seul message tendu du nœud, en position 2. Corrigée en
+`(code, bloc['apres']) in TENSION` — une réponse hérite de la tension du message qu'elle suit, pas
+de son nœud. Même résultat sur le N19 (blocs après 1 et 2, tous deux tendus), résultat correct sur
+le N14. Vérifié par le compte : toujours 3 réponses inline en tension, pas 6.
+
+**Couleur validée** : `#6B2C2C`, voile à 10 %. « Suffisamment pour attirer l'attention et la
+garder, on sent qu'il se passe quelque chose de grave. » La mention « premier essai » retirée de
+`tokens.dart`. DESIGN.md renomme la section (« L'effet de tension », plus « du N19 ») et documente
+que le marqueur s'applique au cas par cas selon le contenu narratif.
+
+**Vérifié** : `flutter analyze` propre, 157/157, `verify-graph` 52/52, `verify-fidelity` 120 = 120.
+
+## 2026-08-24 (7) — Effet de tension du N19 : bordure rouge + battement de cœur
+
+Prompt `docs/prompts/prompt-effet-tension-N19.md`, traité en entier après la phase 0 d'audit.
+
+**Le drapeau est PAR MESSAGE, et c'est tout le sujet.** Le client ne connaît pas le graphe :
+`ClientMessage` ne porte aucune référence au nœud, une bulle ne peut donc pas savoir qu'elle sort
+du N19. Mais le contrat portait déjà des directives de mise en scène par message
+(`phantom_typing_at`, `haptic_at`) — `tension` rejoint cette famille sans rien exposer de la
+structure. Chercher le précédent avant d'inventer un mécanisme a évité d'ouvrir une brèche dans
+l'étanchéité.
+
+**L'URL du son vit sur le message, pas sur le nœud.** J'avais proposé le nœud + recopie sur le
+premier message ; Vivien a tranché l'inverse, avec la bonne raison : le précédent que je venais
+moi-même d'invoquer vit au niveau du message, et le montage nœud + recopie aurait créé deux
+sources de vérité à garder synchronisées. Corrigé avant d'écrire une ligne.
+
+**`IndicateurSonore` était déjà l'abstraction demandée.** Vivien demandait « la bonne abstraction
+pour que les deux lecteurs exposent leur état uniformément » — elle existait, avec sa doc qui le
+disait explicitement (« chaque source s'enregistre avec son propre arrêt… un futur chapitre n'a
+rien à toucher ici »). `SonAmbiance` s'y branche comme les autres. Rien à construire.
+
+### Trois pièges, tous attrapés par une vérification et non par relecture
+
+1. **La régénération a ressuscité « amitié ».** Les variantes tutoiement/vouvoiement du N22 sont
+   déclarées **à la main dans le générateur**, pas lues dans le doc. Ma correction de la veille
+   avait touché doc + migration + base — pas cette quatrième source, dormante jusqu'à ce qu'on
+   régénère. `verify-fidelity` ne pouvait rien voir : il compare doc et base, tous deux corrects à
+   ce moment-là. **Une donnée dupliquée dans un fichier qu'aucun gardien ne lit est un piège à
+   retardement.** Trouvé par diff normalisé avant/après régénération, pas à l'œil.
+2. **Les réponses aux micro-choix du N19 arrivaient sans drapeau** et auraient coupé le battement
+   au milieu du nœud. Corrigé par héritage : une réponse inline hérite de la tension de son nœud.
+3. **Mon câblage coupait la boucle sur les bulles du JOUEUR.** Écrit « tout message sans tension
+   referme », alors que l'écho du choix du joueur porte `tension: false` par construction — le
+   battement s'arrêtait donc dès la première réponse à un micro-choix, au pire moment. Trouvé en
+   jouant réellement jusqu'au N19 par script et en lisant le flux livré, pas en relisant le code.
+   Verrouillé par un test dédié.
+
+**Sur la méthode** : le point 3 n'aurait été trouvé ni par `flutter analyze`, ni par les tests
+unitaires, ni par relecture — seulement en regardant ce que le serveur envoie vraiment, message par
+message. C'est le même réflexe que pour le son de l'intro : aller voir le flux plutôt que raisonner
+dessus.
+
+**Le rouge est un premier essai** (`tensionBordure` `#6B2C2C`, voile à 10 %), documenté comme tel
+dans `tokens.dart` — Vivien veut le voir sur l'appareil avant de le figer.
+
+**Vérifié** : `flutter analyze` propre, 157/157 tests dont 6 nouveaux sur la tension,
+`verify-graph` 52/52, `verify-fidelity` 120 = 120, et un parcours réel jusqu'au N19 confirmant le
+drapeau et l'URL signée sur les bons messages.
+
+
 ## 2026-08-24 (6) — L'esquive du N9 était trop large, et la corriger a coûté quatre tirages
 
 Vivien, en jouant : « comment elle s'appelle déjà ? » → « Chloé. » puis, sans qu'on lui demande

@@ -191,6 +191,27 @@ else
   printf "  ⏳ %-28s absent de media/ — écran d'entrée sans image\n" "cover-numero-inconnu"
 fi
 
+# --- Son d'ambiance du N19 (battement de cœur) ------------------------------
+# Bloc dédié plutôt qu'une entrée dans MEDIAS : `trouver()` y déduirait le code
+# « N19 » du nom, et ramasserait « Écran noir N19 - ….mp3 », la musique de
+# l'écran noir. Deux médias du même nœud, deux rôles opposés — on ne les laisse
+# pas se disputer un préfixe.
+if [ -f "$DOSSIER/heartbeat-n19.mp3" ]; then
+  code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+    "$API_URL/storage/v1/object/$BUCKET/heartbeat-n19.mp3" \
+    -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
+    -H "Content-Type: audio/mpeg" -H "x-upsert: true" \
+    --data-binary "@$DOSSIER/heartbeat-n19.mp3")
+  if [ "$code" = "200" ] || [ "$code" = "201" ]; then
+    printf "  ✅ %-28s → %s  (%s)\n" "heartbeat-n19" "heartbeat-n19.mp3" "tension N19"
+  else
+    printf "  ❌ %-28s téléversement refusé (HTTP %s)\n" "heartbeat-n19" "$code"
+    exit 1
+  fi
+else
+  printf "  ⏳ %-28s absent — le N19 restera silencieux\n" "heartbeat-n19"
+fi
+
 # --- Sons de message --------------------------------------------------------
 # Repérés par mot-clé dans le nom : « reception » / « recu » et « envoi ».
 sonner() { # $1 = motif, $2 = colonne, $3 = libellé

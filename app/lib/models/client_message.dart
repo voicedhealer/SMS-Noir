@@ -55,6 +55,8 @@ class ClientMessage {
     required this.pushText,
     this.phantomTypingAt,
     this.hapticAt,
+    this.tension = false,
+    this.ambienceSoundUrl,
     this.isLocalDecorative = false,
   });
 
@@ -83,6 +85,17 @@ class ClientMessage {
   /// Voir docs/LOGIQUE.md § Mise en scène d'une attente.
   final int? phantomTypingAt;
   final int? hapticAt;
+
+  /// Ce message porte le renforcement sensoriel du N19 : bulle bordée de
+  /// rouge. **Le client ne sait pas de quel nœud vient la bulle** — il n'a
+  /// que ce drapeau, et c'est suffisant. Persiste en relecture, contrairement
+  /// aux autres directives de mise en scène.
+  final bool tension;
+
+  /// Son d'ambiance à jouer en boucle à partir de ce message. Chemin signé
+  /// relatif, comme [mediaUrl]. Renseigné sur le message déclencheur seul, et
+  /// jamais en relecture.
+  final String? ambienceSoundUrl;
 
   /// Message décoratif saisi par le joueur : local, jamais envoyé, jamais
   /// délivré. Voir DESIGN.md § Champ de saisie.
@@ -123,6 +136,8 @@ class ClientMessage {
         pushText: json['push_text'] as String?,
         phantomTypingAt: (json['phantom_typing_at'] as num?)?.toInt(),
         hapticAt: (json['haptic_at'] as num?)?.toInt(),
+        tension: json['tension'] as bool? ?? false,
+        ambienceSoundUrl: json['ambience_sound_url'] as String?,
       );
 
   static ContentType _contentType(String? brut) => switch (brut) {

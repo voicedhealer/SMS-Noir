@@ -32,6 +32,7 @@ class Composer extends StatefulWidget {
     required this.onEnvoyer,
     this.choixPresents = false,
     this.onFocusRecu,
+    this.onSaisieChange,
     this.focusNode,
   });
 
@@ -52,6 +53,11 @@ class Composer extends StatefulWidget {
   /// geste DÉLIBÉRÉ du joueur (il a tapé pour écrire), pas une livraison
   /// spontanée — donc ça peut faire défiler même s'il était remonté relire.
   final VoidCallback? onFocusRecu;
+
+  /// Le champ passe de vide à non vide, ou l'inverse. Sert à masquer l'aparté
+  /// dès que le joueur commence à écrire : l'invite a fait son travail, la
+  /// laisser affichée par-dessus sa propre réponse n'a plus de sens.
+  final void Function(bool ecrit)? onSaisieChange;
 
   /// Fourni par l'appelant quand il a besoin de connaître l'état du focus au-
   /// delà du seul instant où il est gagné — ici, pour continuer à ajuster le
@@ -77,7 +83,10 @@ class _ComposerState extends State<Composer> {
     _focus.canRequestFocus = !widget.choixPresents;
     _controleur.addListener(() {
       final vide = _controleur.text.trim().isEmpty;
-      if (vide != _vide) setState(() => _vide = vide);
+      if (vide != _vide) {
+        setState(() => _vide = vide);
+        widget.onSaisieChange?.call(!vide);
+      }
     });
     _focus.addListener(() {
       if (_focus.hasFocus) widget.onFocusRecu?.call();

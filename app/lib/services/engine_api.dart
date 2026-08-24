@@ -96,6 +96,14 @@ class EngineApi {
   Future<AdvanceResult> advanceContinue() =>
       _avancerUneSeuleFois(const {'continue': true}, rejouable: false);
 
+  /// Le joueur répond par écrit à une question du dialogue (N16, « et vous ? »).
+  ///
+  /// **Rejouable** : contrairement à `continue`, le serveur refuse la seconde
+  /// tentative avec `aucune_attente` une fois l'interaction consommée — une
+  /// retransmission après réponse perdue ne peut donc pas déclencher deux fois.
+  Future<AdvanceResult> advanceSaisie(String texte) =>
+      _avancerUneSeuleFois({'saisie': texte}, rejouable: true);
+
   Future<AdvanceResult> _avancerUneSeuleFois(
     Map<String, dynamic> corps, {
     required bool rejouable,

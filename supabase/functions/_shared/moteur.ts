@@ -14,6 +14,7 @@ import {
 import type {
   ChapterEndState,
   ClientChoice,
+  Conditions,
   ClientConversation,
   ClientMessage,
   ClientNode,
@@ -72,6 +73,7 @@ interface NoeudBrut {
   effects: Record<string, unknown>
   chapter_id: string
   aparte: string | null
+  attente_saisie: { conditions?: unknown; reponse?: string } | null
   ai_refus_node_id: string | null
 }
 
@@ -103,7 +105,8 @@ export interface Progression {
 }
 
 const CHAMPS_NOEUD = 'id, code, kind, next_node_id, ai_fallback_node_id, '
-  + 'ai_system_prompt, ai_max_exchanges, effects, chapter_id, aparte, ai_refus_node_id'
+  + 'ai_system_prompt, ai_max_exchanges, effects, chapter_id, aparte, ai_refus_node_id, '
+  + 'attente_saisie'
 const CHAMPS_PROGRESSION = 'id, user_id, story_id, current_node_id, variables, '
   + 'chapter_unlocked_at, last_choice_id, last_choice_seq, ai_exchanges, '
   + 'ai_consent_at, ai_consent_refuse, node_cursor, node_gate'
@@ -203,6 +206,10 @@ interface AEcrire {
   push_text: string | null
   phantom_typing_at: number | null
   haptic_at: number | null
+  /** Renforcement sensoriel — voir migration 20260824150000_tension_n19.sql. */
+  tension: boolean
+  /** Son d'ambiance en boucle, sur le message déclencheur seul. */
+  ambience_sound_url: string | null
 }
 
 /**
@@ -223,8 +230,11 @@ async function ecrire(db: SupabaseClient, progressId: string, lignes: AEcrire[])
       body: l.body,
       media_url: l.media_url,
       source: l.source,
+      // Seule directive de mise en scène PERSISTÉE : les bulles du N19 doivent
+      // rester bordées de rouge quand le joueur remonte le fil plus tard.
+      tension: l.tension,
     })))
-    .select('seq, contact_id, sender, content_type, body, media_url')
+    .select('seq, contact_id, sender, content_type, body, media_url, tension')
   if (error) throw new ErreurMoteur(500, 'ecriture_impossible', error.message)
 
   const inseres = (data ?? []).sort((a, b) => Number(a.seq) - Number(b.seq))
@@ -241,6 +251,8 @@ async function ecrire(db: SupabaseClient, progressId: string, lignes: AEcrire[])
     push_text: lignes[i].push_text,
     phantom_typing_at: lignes[i].phantom_typing_at,
     haptic_at: lignes[i].haptic_at,
+    tension: lignes[i].tension,
+    ambience_sound_url: lignes[i].ambience_sound_url,
   }))
 }
 
@@ -256,6 +268,9 @@ export async function ecrireMessageJoueur(
     media_url: null, source, delay_seconds: 0, typing_seconds: 0,
     push_notification: false, push_text: null,
     phantom_typing_at: null, haptic_at: null,
+    // Jamais de tension sur une bulle du joueur : l'effet ne concerne que
+    // Léna (prompt effet-tension-N19 § « pas les bulles du joueur »).
+    tension: false, ambience_sound_url: null,
   }])
 }
 
@@ -280,6 +295,11 @@ export async function ecrireInlineResponse(
     push_text: null,
     phantom_typing_at: null,
     haptic_at: null,
+    // Portée par le contenu : sans ça, la réponse à un micro-choix du N19
+    // arriverait sans tension et couperait le battement au milieu du nœud.
+    // Jamais sur une bulle du joueur, quoi que dise le contenu.
+    tension: m.sender !== 'player' && m.tension === true,
+    ambience_sound_url: null,
   }))
   return await ecrire(db, progressId, lignes)
 }
@@ -469,7 +489,7 @@ async function ecrireMessagesDuNoeud(
 ): Promise<{ messages: MessageEcrit[]; finPosition: number }> {
   const { data, error } = await db
     .from('messages')
-    .select('position, contact_id, content_type, body, media_url, delay_seconds, typing_seconds, push_notification, push_text, phantom_typing_at, haptic_at, conditions')
+    .select('position, contact_id, content_type, body, media_url, delay_seconds, typing_seconds, push_notification, push_text, phantom_typing_at, haptic_at, conditions, tension, ambience_sound_url')
     .eq('node_id', nodeId).order('position')
   if (error) throw new ErreurMoteur(500, 'erreur_base', error.message)
 
@@ -494,6 +514,8 @@ async function ecrireMessagesDuNoeud(
     push_text: m.push_text,
     phantom_typing_at: m.phantom_typing_at,
     haptic_at: m.haptic_at,
+    tension: m.tension === true,
+    ambience_sound_url: m.ambience_sound_url,
   })))
   return { messages, finPosition }
 }
@@ -547,6 +569,9 @@ export async function etatNoeud(
 
   const reponses = ouverts.filter((c) => c.kind !== 'interaction').map(visible)
   const interactions = ouverts.filter((c) => c.kind === 'interaction').map(visible)
+  // Une attente de saisie n'a de sens que s'il reste une interaction à
+  // déclencher : une fois le zoom fait, écrire ne doit plus rien déclencher.
+  const attenteOuverte = interactions.length > 0 && attenteSaisieOuverte(noeud, vars)
 
   return {
     code: noeud.code,
@@ -555,11 +580,29 @@ export async function etatNoeud(
     awaiting_interaction: reponses.length === 0 && interactions.length > 0,
     can_continue: reponses.length === 0 && pauseCourante === null &&
       (noeud.kind === 'ai_moment' ? noeud.ai_fallback_node_id !== null : noeud.next_node_id !== null),
+    // Le nœud attend-il une réponse ÉCRITE, ici et maintenant ? Évalué contre
+    // les variables : au N16 l'attente ne s'ouvre qu'après le micro-choix 🔍,
+    // qui pose `question_autocollant`. Ailleurs la colonne est nulle.
+    attend_saisie: attenteOuverte,
     // Le CLIENT décide quand l'afficher (ni déroulé, ni typing) : le serveur
     // ne connaît pas cet état de lecture, purement local aux timers du
     // PlaybackEngine. Il transmet juste la valeur telle quelle.
-    aparte: noeud.aparte ?? null,
+    //
+    // Une exception : sur un nœud qui porte une attente de saisie, l'aparté
+    // ANNONCE cette attente — l'afficher avant qu'elle ne s'ouvre promettrait
+    // une interaction qui n'existe pas encore. Il suit donc les mêmes
+    // conditions.
+    aparte: (noeud.attente_saisie && !attenteOuverte) ? null : (noeud.aparte ?? null),
   }
+}
+
+/** Le nœud attend-il une réponse écrite, compte tenu des variables ? */
+export function attenteSaisieOuverte(
+  noeud: { attente_saisie: { conditions?: unknown } | null }, vars: Variables,
+): boolean {
+  const a = noeud.attente_saisie
+  if (!a) return false
+  return evaluerConditions(vars, (a.conditions ?? {}) as Conditions)
 }
 
 /** Conversations du joueur : dérivées des contacts déjà croisés dans l'historique. */
@@ -645,7 +688,9 @@ async function signerMedias<T extends { media_url: string | null }>(
 ): Promise<T[]> {
   const chemins = [...new Set(
     messages
-      .map((m) => m.media_url)
+      // Le son d'ambiance vit dans le même bucket privé que les photos et les
+      // vocaux : il se signe par le même chemin, sans traitement à part.
+      .flatMap((m) => [m.media_url, m.ambience_sound_url])
       .filter((u): u is string => !!u && !u.startsWith('placeholder://')),
   )]
   if (chemins.length === 0) return messages
@@ -670,11 +715,15 @@ async function signerMedias<T extends { media_url: string | null }>(
       .filter((d) => d.signedUrl)
       .map((d) => [d.path ?? '', relativiser(d.signedUrl!)]),
   )
-  return messages.map((m) =>
-    m.media_url && parChemin.has(m.media_url)
-      ? { ...m, media_url: parChemin.get(m.media_url)! }
-      : m
-  )
+  return messages.map((m) => ({
+    ...m,
+    media_url: m.media_url && parChemin.has(m.media_url)
+      ? parChemin.get(m.media_url)!
+      : m.media_url,
+    ambience_sound_url: m.ambience_sound_url && parChemin.has(m.ambience_sound_url)
+      ? parChemin.get(m.ambience_sound_url)!
+      : m.ambience_sound_url,
+  }))
 }
 
 /** « http://kong:8000/storage/v1/… » -> « /storage/v1/… ». */
@@ -701,7 +750,7 @@ export async function historique(
 ): Promise<MessageEcrit[]> {
   const { data, error } = await db
     .from('player_messages')
-    .select('seq, contact_id, sender, content_type, body, media_url')
+    .select('seq, contact_id, sender, content_type, body, media_url, tension')
     .eq('progress_id', progressId).order('seq')
   if (error) throw new ErreurMoteur(500, 'erreur_base', error.message)
 
@@ -719,6 +768,10 @@ export async function historique(
     push_text: null,
     phantom_typing_at: null,
     haptic_at: null,
+    // La bordure rouge survit à la relecture, le son non : rejouer un
+    // battement de cœur en remontant le fil serait absurde.
+    tension: m.tension === true,
+    ambience_sound_url: null,
   }))
   return await signerMedias(db, messages)
 }

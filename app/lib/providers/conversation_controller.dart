@@ -13,6 +13,7 @@ import '../services/engine_api.dart';
 import '../services/engine_exception.dart';
 import '../services/fiction_clock.dart';
 import '../services/musique_narrative.dart';
+import '../services/son_ambiance.dart';
 import '../services/notifications_locales.dart';
 import '../services/local_store.dart';
 import '../services/playback.dart';
@@ -47,6 +48,7 @@ class ConversationState {
     this.storyTagline,
     this.storyCoverUrl,
     this.consentDecide = false,
+    this.joueurEcrit = false,
     this.musiqueNarration,
     this.musiqueFin,
   });
@@ -99,6 +101,9 @@ class ConversationState {
   /// [musiqueNarration] : jamais gouverné par `introVue`.
   final String? musiqueFin;
 
+  /// Le joueur est en train d'écrire dans le champ (texte non vide).
+  final bool joueurEcrit;
+
   /// L'écran de consentement doit s'afficher.
   final bool consentementRequis;
   final String? erreur;
@@ -137,6 +142,10 @@ class ConversationState {
   /// attente déjà en train de se refermer.
   String? get aparteEnCours {
     if (enDeroule || typing != TypingState.aucun) return null;
+    // Le joueur a commencé à écrire : l'invite a fait son travail. La laisser
+    // au-dessus de sa propre réponse en cours de frappe n'apporte plus rien —
+    // et vaut pour TOUS les apartés, moment IA compris.
+    if (joueurEcrit) return null;
     return node?.aparte;
   }
 
@@ -243,6 +252,7 @@ class ConversationState {
     String? storyTagline,
     String? storyCoverUrl,
     bool? consentDecide,
+    bool? joueurEcrit,
     String? musiqueNarration,
     String? musiqueFin,
   }) => ConversationState(
@@ -264,6 +274,7 @@ class ConversationState {
     storyTagline: storyTagline ?? this.storyTagline,
     storyCoverUrl: storyCoverUrl ?? this.storyCoverUrl,
     consentDecide: consentDecide ?? this.consentDecide,
+    joueurEcrit: joueurEcrit ?? this.joueurEcrit,
     musiqueNarration: musiqueNarration ?? this.musiqueNarration,
     musiqueFin: musiqueFin ?? this.musiqueFin,
   );
@@ -293,6 +304,16 @@ class ConversationController extends AsyncNotifier<ConversationState> {
 
   /// Voir `ConversationState.consentDecide`.
   bool _consentDecide = false;
+
+  /// Voir `ConversationState.joueurEcrit`.
+  bool _joueurEcrit = false;
+
+  /// Le champ est passé de vide à non vide, ou l'inverse.
+  void signalerSaisie(bool ecrit) {
+    if (_joueurEcrit == ecrit) return;
+    _joueurEcrit = ecrit;
+    _publier();
+  }
 
   /// Messages du nœud d'entrée, mis de côté le temps de l'intro.
   List<ClientMessage> _aJouerApresIntro = const [];
@@ -352,6 +373,24 @@ class ConversationController extends AsyncNotifier<ConversationState> {
         // quatre interdits de SoundEffects.pour() par construction : pas de
         // séparateur, pas de système, pas de carte, pas de décoratif. Et rien
         // pendant le silence du N19, sans condition supplémentaire à tenir.
+        // Ambiance en boucle (battement du N19). Pilotée par le drapeau du
+        // message, jamais par le nœud : le client ne connaît pas le graphe.
+        // Le message DÉCLENCHEUR porte l'url ; les suivants portent seulement
+        // `tension`, et laissent donc la boucle tourner. Le premier message
+        // sans tension la coupe — ici l'écran noir, qui a sa propre musique.
+        if (m.tension) {
+          final url = m.ambienceSoundUrl;
+          if (url != null) {
+            unawaited(SonAmbiance.instance.demarrer('${Env.supabaseUrl}$url'));
+          }
+        } else if (m.sender == MessageSender.contact) {
+          // Seule une réplique de Léna peut refermer la séquence. Les bulles
+          // du joueur portent `tension: false` par construction — les laisser
+          // couper la boucle l'aurait arrêtée dès la première réponse à un
+          // micro-choix, c'est-à-dire au moment le plus tendu du nœud.
+          unawaited(SonAmbiance.instance.arreter());
+        }
+
         final effet = SoundEffects.pour(m);
         final reglages = ref.read(reglagesProvider);
         // Sons coupés dans les Réglages : c'est exactement le même chemin que
@@ -527,6 +566,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     storyTagline: _storyTagline,
     storyCoverUrl: _storyCoverUrl,
     consentDecide: _consentDecide,
+    joueurEcrit: _joueurEcrit,
     musiqueNarration: _musiqueNarration,
     musiqueFin: _musiqueFin,
   );
@@ -669,6 +709,36 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     final contactId = _conversations.firstOrNull?.contactId;
     if (contactId == null) return;
 
+    // Le nœud attend une VRAIE réponse (N16, « et vous ? ») : écrire déclenche
+    // l'interaction disponible au lieu de faire avancer le nœud.
+    //
+    // Traité AVANT tout le reste : en mode continuation — celui du N16 — écrire
+    // appelait `continuer()`, ce qui sautait au N19 et faisait perdre
+    // AUTOCOLLANT sans que le joueur s'en aperçoive, puisqu'il croyait avoir
+    // répondu. Repéré le 24 août 2026 avant d'annoncer l'attente au joueur.
+    //
+    // Le message provisoire n'est PAS persisté ici, contrairement au décoratif
+    // ci-dessous : le serveur va écrire le vrai, avec son `seq`. Même mécanique
+    // qu'au moment IA.
+    if (_node?.attendSaisie ?? false) {
+      final provisoire = ClientMessage.decorative(
+        contactId: contactId,
+        texte: texte,
+        ancreSeq: _fil.isEmpty ? 0 : _fil.last.seq,
+      );
+      _fil.add(provisoire);
+      _publier();
+      try {
+        final r = await _api.advanceSaisie(texte);
+        _fil.remove(provisoire);
+        await _appliquerAvance(r);
+      } on EngineException catch (e) {
+        _fil.remove(provisoire);
+        await _traiter(e);
+      }
+      return;
+    }
+
     // Le texte s'affiche toujours — décoratif, local, jamais délivré.
     final decoratif = ClientMessage.decorative(
       contactId: contactId,
@@ -791,6 +861,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     // déjà la précédente, mais ne rien laisser tourner pendant l'aller-retour
     // réseau évite toute superposition.
     await MusiqueNarrative.instance.arreter();
+    await SonAmbiance.instance.arreter();
     _moteur.interrompre();
     // Un rappel de déblocage pouvait avoir été programmé pour le chapitre
     // qu'on efface : le laisser courir sonnerait plus tard pour une partie

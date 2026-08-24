@@ -118,6 +118,57 @@ TYPING_LONG = {('N2', 0), ('N13', 0)}
 PUSH = {('N4', 1), ('N6', 2), ('N11', 3), ('N14', 2), ('N19', 1), ('N20', 1)}
 PUSH_TEXTE = {('N11', 3): 'Léna : 1 nouveau message'}
 
+#: Renforcement sensoriel — bulles bordées de rouge et battement de cœur.
+#:
+#: Le pic de tension physique du chapitre : Denis sort, croise le regard de
+#: Léna. Le drapeau est posé PAR MESSAGE et non par nœud, parce que le client
+#: ne connaît pas le graphe : c'est la même famille de directive que PUSH ou
+#: `phantom_typing_at`, pas une information de structure.
+#:
+#: Bornes exactes : du premier message du N19 jusqu'à « merde » (position 3).
+#: **Pas la position 4**, qui est l'écran noir narratif — il a déjà son propre
+#: traitement (musique, machine à écrire) et le prompt interdit d'y prolonger
+#: la tension.
+TENSION = {
+    # Le pic du chapitre : Denis sort, croise le regard de Léna. Du premier
+    # message jusqu'à « merde » (3) — **pas** la position 4, l'écran noir, qui a
+    # déjà son traitement.
+    ('N19', 0), ('N19', 1), ('N19', 2), ('N19', 3),
+    # Premier usage HORS N19 : « mon cœur bat à 200 battements par minute ».
+    # Le texte décrit lui-même l'accélération cardiaque, et l'absence de rouge
+    # s'y voyait en jouant. Visuel seul — aucune entrée dans AMBIANCE : le
+    # battement reste réservé au N19.
+    ('N14', 2),
+}
+
+#: Son d'ambiance en boucle, posé sur le message DÉCLENCHEUR seul.
+#:
+#: Il démarre à la livraison de ce message et se coupe au premier message sans
+#: tension — ici l'écran noir. Sur le message plutôt que sur le nœud : le son
+#: doit partir avec la première bulle, or à cet instant le nœud exposé au
+#: client peut encore être le précédent. Voir la migration
+#: 20260824150000_tension_n19.sql.
+AMBIANCE = {('N19', 0): 'heartbeat-n19.mp3'}
+
+#: Effets supplémentaires portés par un micro-choix précis, en plus de son
+#: motif. Déclarés ici et pas dans le doc : le document décrit ce que le joueur
+#: lit, pas la mécanique qui s'accroche dessous.
+#:
+#: Le 🔍 du N16 est le seul aujourd'hui. Il pose le drapeau qui ouvre l'attente
+#: de saisie : Léna vient de demander « et vous ? », donc à partir de là — et
+#: seulement là — une réponse écrite déclenche le zoom. Sur 🛡 ou 🧠 elle ne
+#: pose pas la question, et l'indice reste accessible par le seul geste.
+#: (nœud, axe) -> effets
+EFFETS_MICRO = {
+    ('N16', 'enquete'): {'set': {'question_autocollant': True}},
+}
+
+#: ⚠️ `nodes.attente_saisie` n'est PAS déclaré ici, volontairement : comme
+#: `aparte` et `ai_system_prompt`, c'est un champ de NŒUD, et le générateur ne
+#: réécrit que les blocs messages et choix. Le déclarer ici en ferait une
+#: source de vérité que rien ne lit — le piège exact qui a ressuscité « amitié »
+#: le 24 août. Il vit dans la migration, à côté de l'aparté qu'il gouverne.
+
 MEDIA = {
     'capture du mail de classement sans suite': ('image', 'photo-N10-recepisse.png'),
     'photo de la 508': ('image', 'photo-N16-plaque.png'),
@@ -350,12 +401,12 @@ VARIANTES = {
         ({'eq': {'refus': False}},
          "Je t'explique, il n'en existe que deux au monde, je les avais fait "
          "graver pour nous deux, un pour elle et un pour moi, lors d'un "
-         "voyage où on était en vacances. Ça symbolisait notre amitié, nous "
+         "voyage où on était en vacances. Ça symbolisait notre lien, nous "
          "quoi !"),
         ({'eq': {'refus': True}},
          "Je vous explique, il n'en existe que deux au monde, je les avais "
          "fait graver pour nous deux, un pour elle et un pour moi, lors d'un "
-         "voyage où on était en vacances. Ça symbolisait notre amitié, nous "
+         "voyage où on était en vacances. Ça symbolisait notre lien, nous "
          "quoi !"),
     ],
 }
@@ -408,8 +459,12 @@ def sql_messages(noeuds):
                 ptxt = PUSH_TEXTE.get((code, pos))
                 p = f'$${ptxt}$$' if ptxt else f'null{cast}'
                 cj = json.dumps(cond, ensure_ascii=False)
+                tens = 'true' if (code, pos) in TENSION else 'false'
+                amb = AMBIANCE.get((code, pos))
+                a = f'$${amb}$$' if amb else f'null{cast}'
                 lignes.append(
-                    f"('{code}', {pos}, '{ct}', {b}, {media}, {d}, {ty}, {push}, {p}, $${cj}$$),")
+                    f"('{code}', {pos}, '{ct}', {b}, {media}, {d}, {ty}, {push}, {p}, "
+                    f"$${cj}$$, {tens}, {a}),")
                 premier = False
     lignes[-1] = lignes[-1][:-1]
     return '\n'.join(lignes) + '\n'
@@ -421,12 +476,21 @@ def sql_micro(noeuds):
         for i, bloc in enumerate(noeuds[code]['micro']):
             lignes.append(f"\n-- {code} · pause après le message {bloc['apres']}")
             for j, o in enumerate(bloc['options']):
-                eff = {'motif': o['axe'], **o['effets']}
+                eff = {'motif': o['axe'], **o['effets'],
+                       **EFFETS_MICRO.get((code, o['axe']), {})}
                 cast = '::text' if premier else ''
                 if o['reponse']:
+                    # La réponse hérite de la tension du message qu'elle suit
+                    # — pas de son nœud. Sans héritage du tout, elle couperait
+                    # le battement au milieu du N19 ; avec un héritage à
+                    # l'échelle du nœud, les micro-choix du N14 (attachés au
+                    # message 0) deviendraient rouges alors qu'ils précèdent le
+                    # seul message tendu de ce nœud, en position 2.
+                    tendu = (code, bloc['apres']) in TENSION
                     charge = [{'sender': 'contact', 'content_type': 'text',
                                'body': o['reponse'], 'delay_seconds': 4,
-                               'typing_seconds': 3}]
+                               'typing_seconds': 3,
+                               **({'tension': True} if tendu else {})}]
                     inline = '$$' + json.dumps(charge, ensure_ascii=False) + '$$'
                 else:
                     inline = f'null{cast}'
@@ -578,7 +642,7 @@ if __name__ == '__main__':
     seed = source.read_text()
     seed = remplacer(
         seed, 'insert into messages', 'from (values\n',
-        '\n) as v(node, pos, ctype, body, media, delay, typing, push, push_text, conditions)',
+        '\n) as v(node, pos, ctype, body, media, delay, typing, push, push_text, conditions, tension, ambiance)',
         sql_messages(noeuds))
     seed = remplacer(
         seed, 'insert into choices (node_id, position, label, kind, next_node_id',

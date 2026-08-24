@@ -93,6 +93,7 @@ class StoryNode {
     required this.choices,
     required this.awaitingInteraction,
     required this.canContinue,
+    this.attendSaisie = false,
     this.aparte,
   });
 
@@ -108,6 +109,12 @@ class StoryNode {
 
   /// `advance {continue:true}` est recevable sur ce nœud.
   final bool canContinue;
+
+  /// Le nœud attend une réponse **écrite** : taper déclenche l'interaction
+  /// disponible au lieu de faire avancer le nœud. Au N16, seulement après le
+  /// micro-choix 🔍 — c'est le serveur qui en décide, le client ne connaît pas
+  /// le graphe. Voir DESIGN.md § « Et vous ? ».
+  final bool attendSaisie;
 
   /// Ligne de contexte discrète, générique — voir docs/LOGIQUE.md § L'aparté.
   /// Null = ce nœud n'en porte pas. C'est `ConversationState.aparteEnCours`
@@ -135,6 +142,7 @@ class StoryNode {
             .toList(),
         awaitingInteraction: json['awaiting_interaction'] as bool? ?? false,
         canContinue: json['can_continue'] as bool? ?? false,
+        attendSaisie: json['attend_saisie'] as bool? ?? false,
         aparte: json['aparte'] as String?,
       );
 }

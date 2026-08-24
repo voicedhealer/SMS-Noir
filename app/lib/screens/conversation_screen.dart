@@ -322,6 +322,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               // livraison spontanée, ce n'est pas lui voler sa position, c'est
               // répondre à son geste.
               onFocusRecu: _revelerPourClavier,
+              onSaisieChange: ctrl.signalerSaisie,
               focusNode: _focusChamp,
             ),
           ],

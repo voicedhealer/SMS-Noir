@@ -4,6 +4,10 @@
 //          POST { continue: true }    franchit une transition automatique
 //                                     (nœud en pause sur interaction, ou nœud
 //                                      sans choix que le joueur veut quitter)
+//          POST { saisie: string }    le joueur RÉPOND par écrit à une question
+//                                     du dialogue (N16, « et vous ? »). Le
+//                                     texte n'est jamais examiné : seul le
+//                                     geste compte. Voir repondreParEcrit.
 // Sortie : AdvanceResponse (voir _shared/types.ts)
 //
 // Séquence : valider -> écrire le message joueur -> appliquer les effects du
@@ -19,6 +23,7 @@ import {
   chargerHistoire,
   chargerNoeud,
   chargerOuCreerProgression,
+  attenteSaisieOuverte,
   clientAdmin,
   contactDuNoeud,
   conversations,
@@ -41,9 +46,13 @@ Deno.serve(servir(async (req) => {
   const userId = await utilisateurCourant(req)
   const db = clientAdmin()
 
-  const corps = await req.json().catch(() => ({})) as { choice_id?: string; continue?: boolean }
-  if (!corps.choice_id && corps.continue !== true) {
-    throw new ErreurMoteur(400, 'requete_invalide', 'choice_id ou continue attendu')
+  const corps = await req.json().catch(() => ({})) as {
+    choice_id?: string
+    continue?: boolean
+    saisie?: string
+  }
+  if (!corps.choice_id && corps.continue !== true && typeof corps.saisie !== 'string') {
+    throw new ErreurMoteur(400, 'requete_invalide', 'choice_id, continue ou saisie attendu')
   }
 
   const histoire = await chargerHistoire(db)
@@ -54,7 +63,9 @@ Deno.serve(servir(async (req) => {
   }
   const noeudCourant = await chargerNoeud(db, initiale.current_node_id)
 
-  const resultat = corps.continue === true
+  const resultat = typeof corps.saisie === 'string'
+    ? await repondreParEcrit(db, initiale, noeudCourant, corps.saisie)
+    : corps.continue === true
     ? await franchirTransition(db, initiale, noeudCourant)
     : await appliquerChoix(db, initiale, noeudCourant, corps.choice_id!)
 
@@ -85,6 +96,8 @@ interface NoeudCourant {
   kind: 'scripted' | 'ai_moment' | 'chapter_end'
   next_node_id: string | null
   ai_fallback_node_id: string | null
+  /** Voir `repondreParEcrit` et la migration 20260824160000_attente_saisie.sql. */
+  attente_saisie: { conditions?: unknown; reponse?: string } | null
 }
 
 // ---------------------------------------------------------------------------
@@ -119,6 +132,67 @@ async function franchirTransition(
 }
 
 /** Applique un choix : validations, effects, écriture, transition. */
+/**
+ * Le joueur répond par écrit à une question posée dans le dialogue.
+ *
+ * **Le contenu du texte n'est jamais examiné.** « Sentinel Pro », une faute de
+ * frappe, une devinette fausse ou « je sais pas » déclenchent identiquement
+ * l'interaction disponible du nœud : ce qui compte narrativement est le geste
+ * de répondre à Léna comme à un interlocuteur, pas l'exactitude du mot. Exiger
+ * la bonne réponse pénaliserait les fautes de frappe sans aucun bénéfice, et
+ * imposerait de valider du texte libre côté serveur — ce qu'on s'est toujours
+ * interdit pour ce champ.
+ *
+ * Le zoom sur la photo reste ouvert en parallèle : écrire est une voie de
+ * plus, jamais un passage obligé.
+ */
+async function repondreParEcrit(
+  db: SupabaseClient,
+  progression: Progression,
+  noeud: NoeudCourant,
+  texte: string,
+): Promise<Resultat> {
+  if (!attenteSaisieOuverte(noeud, progression.variables)) {
+    throw new ErreurMoteur(409, 'aucune_attente', 'Ce nœud n\'attend pas de réponse écrite')
+  }
+  const propre = texte.trim()
+  if (!propre) throw new ErreurMoteur(400, 'requete_invalide', 'saisie vide')
+  if (propre.length > 500) throw new ErreurMoteur(400, 'message_trop_long', 'Message trop long')
+
+  // L'interaction que la réponse déclenche : celle qui est ouverte au point où
+  // le déroulé s'est arrêté. Sans elle, l'attente n'aurait rien à déclencher —
+  // `etatNoeud` ne l'ouvre d'ailleurs jamais dans ce cas.
+  const ouvertes = (await chargerChoix(db, noeud.id)).filter((c) =>
+    c.kind === 'interaction' &&
+    (c.after_position ?? null) === (progression.node_gate ?? null) &&
+    evaluerConditions(progression.variables, c.conditions))
+  const cible = ouvertes[0]
+  if (!cible) {
+    throw new ErreurMoteur(409, 'aucune_interaction', 'Plus rien à déclencher ici')
+  }
+
+  const contact = await contactDuNoeud(db, noeud.id)
+  const messages: MessageEcrit[] = []
+
+  // Ce que le joueur a écrit s'affiche, comme au moment IA — et comme là-bas,
+  // c'est le serveur qui l'écrit, le client retirant sa version provisoire.
+  messages.push(...await ecrireMessageJoueur(db, progression.id, contact, propre, 'player_free'))
+
+  // L'accusé de réception de Léna, porté par le contenu du nœud : elle
+  // remercie l'effort sans jamais se prononcer sur la justesse.
+  const reponse = noeud.attente_saisie?.reponse
+  if (reponse) {
+    messages.push(...await signerMedias(db, await ecrireInlineResponse(
+      db, progression.id, contact,
+      [{ sender: 'contact', content_type: 'text', body: reponse,
+         delay_seconds: 3, typing_seconds: 2 }])))
+  }
+
+  // Puis exactement le même chemin que le geste : mêmes effects, même suite.
+  const suite = await appliquerChoix(db, progression, noeud, cible.id)
+  return { ...suite, messages: [...messages, ...suite.messages] }
+}
+
 async function appliquerChoix(
   db: SupabaseClient,
   progression: Progression,

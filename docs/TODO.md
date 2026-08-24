@@ -72,25 +72,26 @@ remplir, et moins l'invention se distingue du souvenir.
 Aucun détecteur mécanique n'attrapera ça. À chaque nouveau moment IA :
 **relire les tirages de `probe-lena.py`**, pas seulement regarder s'il sort vert.
 
-## 🔴 Bloquant avant mise en production
+## 🚀 AVANT PRODUCTION — la liste à vider avant toute publication
 
-- [ ] **`android:usesCleartextTraffic="true"` à réévaluer** (`AndroidManifest.xml`). Posé le
-      22 août 2026 pour que les lecteurs natifs (just_audio/ExoPlayer, video_player) puissent
-      lire les médias du Supabase **local** de développement, qui est en `http://`. Le Supabase
-      hébergé est en `https`, donc le flag n'est pas nécessaire en production — mais tant qu'il
-      est là, il autorise n'importe quel trafic non chiffré. Deux sorties possibles : le retirer
-      purement et simplement une fois qu'on ne teste plus contre le local, ou le restreindre à
-      l'IP de développement via un `network_security_config.xml`. Ne pas expédier sur les stores
-      sans avoir tranché. Voir MEMOIRE.md 2026-08-22 (3).
+*Section dédiée, tenue à jour à mesure. Rien ici n'est bloquant pour tester en local ;
+tout l'est pour publier.*
 
-- [ ] **Deux champs de la politique de confidentialité** : identité du
-      responsable de traitement, et adresse de contact. Marqués « À COMPLÉTER »
-      dans `app/lib/screens/privacy_text.dart`. Je ne les invente pas — un
-      document qui désigne un responsable fictif ne protège personne et
-      tromperait le joueur sur qui détient ses données.
+| | Quoi | Pourquoi |
+|---|---|---|
+| 🔴 | **Retirer `android:usesCleartextTraffic="true"`** (`AndroidManifest.xml`) | Posé le 22 août pour lire les médias du Supabase **local** (en `http`). Le projet hébergé est en `https` : le flag devient inutile, mais tant qu'il est là il autorise n'importe quel trafic non chiffré. Le retirer, ou le restreindre via `network_security_config.xml`. |
+| 🔴 | **Deux champs de la politique de confidentialité** | Identité du responsable de traitement et adresse de contact, marqués « À COMPLÉTER » dans `privacy_text.dart`. Ne s'inventent pas : un document qui désigne un responsable fictif ne protège personne. |
+| 🔴 | **Tester les notifications sur un vrai appareil** | Jamais fait. Permission, programmation réelle, survie au redémarrage, et l'annulation par « Effacer ma progression ». Aucun test automatisé ne peut couvrir ça. |
+| 🟡 | **Rejouer le chapitre en 4G, pas en WiFi local** | La vidéo du N9 (2,6 Mo depuis la recompression du 24 août) et les trois musiques doivent se charger assez vite pour que les scènes tiennent leur timing. |
+| 🟡 | **`AI_PROVIDER` et la clé Mistral** | Vérifier qu'aucune configuration de développement (fournisseur simulé, clé locale) ne parte en production. |
 
-- [x] ~~Politique de confidentialité (`PRIVACY_URL`)~~ — levé : le texte est
-      désormais **embarqué** dans l'app, section Confidentialité des Réglages.
+## Bloquant avant mise en production — *fusionné*
+
+Les entrées de cette section vivent désormais dans **§ AVANT PRODUCTION** ci-dessus, pour ne pas
+tenir deux listes de la même chose. Conservé ici, l'historique de ce qui a été levé :
+
+- [x] ~~Politique de confidentialité (`PRIVACY_URL`)~~ — levé : le texte est désormais **embarqué**
+      dans l'app, section Confidentialité des Réglages.
 
 ## 📊 Coût IA — mesurer par PARTIE, pas par échange
 

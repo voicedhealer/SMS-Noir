@@ -46,7 +46,22 @@ class AppColors {
   /// lit sans y penser depuis quinze ans. La réinventer coûterait plus cher que
   /// l'entorse — et elle est désaturée, elle n'égaie rien.
   static const presenceEnLigne = Color(0xFF4E8C6A);
+
   static const presenceHorsLigne = Color(0xFF4A5058);
+
+  /// Tension narrative — les bulles où quelque chose de grave se joue.
+  ///
+  /// **Validé sur appareil le 24 août 2026** : « suffisamment pour attirer
+  /// l'attention et la garder, on sent qu'il se passe quelque chose de
+  /// grave. » Rouge brique sourd et désaturé, qui tient dans une palette
+  /// nocturne sans virer au rouge d'alerte système — ce n'est pas une erreur
+  /// qu'on signale, c'est une peur qu'on fait sentir.
+  static const tensionBordure = Color(0xFF6B2C2C);
+
+  /// Même teinte, posée en voile à l'intérieur de la bulle. L'opacité est
+  /// délibérément basse : **le texte doit rester parfaitement lisible**, c'est
+  /// la contrainte qui prime sur l'effet. Verrouillée sous 12 % par un test.
+  static const tensionVoile = Color(0x1A6B2C2C);
 
   /// Media absent (`placeholder://`). Neutre, jamais alarmant : le joueur ne
   /// doit pas croire à une panne.

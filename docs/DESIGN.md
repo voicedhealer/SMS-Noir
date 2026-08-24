@@ -589,6 +589,90 @@ deux pistes d'enquête en clair ; au N17, l'indice lui-même.
 
 ---
 
+## « Et vous ? » — quand une question attend une vraie réponse
+
+Certaines questions du dialogue attendent une réponse **écrite**. Au N16, sur la branche 🔍, Léna
+demande déjà « Oui, mais je n'arrive pas à le lire d'ici, et vous ? » — la question existait dans le
+contenu sans aucune suite fonctionnelle.
+
+**N'importe quel texte déclenche l'interaction du nœud.** « Sentinel Pro », une faute de frappe,
+une devinette fausse ou « je sais pas » : identiques. Ce qui compte narrativement est le geste de
+répondre à Léna comme à un interlocuteur, pas l'exactitude du mot — et valider du texte libre côté
+serveur est précisément ce qu'on s'interdit pour ce champ. Léna accuse réception sans se prononcer
+sur la justesse (« Merci d'avoir essayé, ça compte pour moi que vous cherchiez avec moi. »).
+
+**Le zoom reste ouvert en parallèle.** Écrire est une voie de plus vers l'indice, jamais un passage
+obligé — et sur les branches 🛡 et 🧠, où Léna ne pose pas la question, c'est même la seule.
+
+**L'apparence du champ ne change jamais**, conformément à la règle qui gouverne tout le reste : ce
+qui change est ce que le geste produit, pas ce qu'il montre.
+
+⚠️ **Avant cette mécanique, écrire à ce moment faisait perdre l'indice.** Le N16 n'expose aucun
+`reply` et `can_continue` y est vrai : le champ était donc en mode `continuation`, et y écrire
+appelait `advance {continue}` — le joueur sautait au N19 **en croyant avoir répondu**. Un bug
+invisible en jouant, puisque rien ne signalait l'échec. `envoyerTexte` teste donc l'attente
+**avant** le mode continuation.
+
+**L'aparté annonce l'attente, et suit exactement ses conditions.** Posé sur le nœud
+(`nodes.aparte`), il ne s'affiche que lorsque `attente_saisie` est ouverte : sans ce filtre il
+apparaîtrait dès l'arrivée de la photo, sur les trois branches, en annonçant une attente qui
+n'existe pas encore. **Et il disparaît dès que le joueur écrit** — l'invite a fait son travail,
+la laisser au-dessus de sa propre réponse n'apporte plus rien. Vaut pour tous les apartés, moment
+IA compris.
+
+**Réutilisable tel quel** : un nœud des ch. 3-5 qui pose une question ouverte dans son dialogue n'a
+besoin que d'un `attente_saisie` renseigné — conditions, réplique d'accusé de réception — et de
+l'interaction que la réponse déclenche. Rien à écrire côté client.
+
+## L'effet de tension — bordure rouge, et parfois un battement
+
+**Un marqueur par message, pas une propriété de nœud.** `tension` se pose au cas par cas, sur la
+bulle dont le contenu le justifie — pas sur une scène entière décrétée « tendue ». Le N19 en est
+l'usage le plus dense, mais il n'en a pas l'exclusivité.
+
+| | Traitement |
+|---|---|
+| Bulles de Léna en tension | Bordure fine `tensionBordure` + voile `tensionVoile` de la même teinte, à l'intérieur |
+| Bulles du joueur, séparateurs, présence | **Rien**, jamais |
+| Fond sonore | Seulement là où un message porte une URL d'ambiance — voir plus bas |
+
+**Où il s'applique aujourd'hui :**
+
+| Message | Visuel | Son |
+|---|---|---|
+| N19 #0 → #3, micro-choix compris | ✅ | `heartbeat-n19.mp3` en boucle, 30 %, coupure nette |
+| N14 #2 — « mon cœur bat à 200 battements par minute » | ✅ | **aucun** |
+
+Le N14 est le premier usage hors N19, et il illustre la règle : le texte décrivait lui-même
+l'accélération cardiaque, et l'absence de rouge s'y voyait en jouant. **Le visuel et le son sont
+deux décisions séparées** — le battement reste réservé au N19, parce qu'un fond sonore qui revient
+à chaque frayeur cesserait d'en être un.
+
+**Fixe, jamais clignotant ni pulsé.** Une animation détournerait la lecture dans un moment déjà
+chargé en urgence. Et le voile reste sous 12 % d'opacité : **le texte doit rester parfaitement
+lisible**, c'est la contrainte qui prime sur l'effet.
+
+Le rouge `#6B2C2C` a été **validé sur appareil** le 24 août 2026 : « suffisamment pour attirer
+l'attention et la garder, on sent qu'il se passe quelque chose de grave. »
+
+**Le client ne sait pas de quel nœud sort une bulle, et n'a pas à le savoir.** Chaque message porte
+un drapeau `tension`, de la même famille que `phantom_typing_at` ou `haptic_at` : une directive de
+mise en scène, jamais une information de graphe. C'est précisément ce qui permet d'en poser un sur
+le N14 sans rien changer au code. Le message déclencheur porte en plus l'URL du son ; les
+suivants laissent la boucle tourner, et **la première réplique de Léna sans tension la referme**.
+Une bulle du joueur ne referme jamais rien — sinon le battement s'arrêterait dès la première
+réponse à un micro-choix.
+
+**La bordure survit à la relecture, le son non.** `player_messages.tension` est la seule directive
+de mise en scène persistée : remonter le fil plus tard montre toujours les bulles rouges, « c'est
+cohérent avec ce qui s'est vraiment passé à ce moment de l'histoire ». Rejouer un battement de
+cœur en relisant, en revanche, n'aurait aucun sens.
+
+**`SonAmbiance` est un lecteur séparé de `MusiqueNarrative`**, et volontairement générique : les
+chapitres suivants auront d'autres nappes à poser sous une scène. La musique narrative coupe
+systématiquement ce qui jouait avant — une ambiance, elle, se superpose. Les deux s'enregistrent
+auprès du même `IndicateurSonore`, qui coupe tout d'un tap sans avoir à savoir qui joue.
+
 ## Le silence du N19 — occuper sans remplir
 
 90 secondes, le plus long silence du chapitre. **Le silence est le contenu de la scène : l'expliquer

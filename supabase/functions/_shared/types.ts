@@ -86,6 +86,20 @@ export interface ClientMessage {
    */
   phantom_typing_at: number | null
   haptic_at: number | null
+  /**
+   * Renforcement sensoriel de CE message : bulle bordée de rouge (voir
+   * DESIGN.md § L'effet de tension). Directive de mise en scène, de la même
+   * famille que `phantom_typing_at` — **jamais une information de graphe**.
+   * Le client ne sait pas de quel nœud vient une bulle, et n'a pas à le
+   * savoir : il lui suffit de ce drapeau.
+   */
+  tension: boolean
+  /**
+   * Son d'ambiance à jouer EN BOUCLE à partir de ce message, et jusqu'au
+   * premier message sans `tension`. Chemin signé relatif, comme `media_url`.
+   * Renseigné sur le message déclencheur seul — jamais rejoué en relecture.
+   */
+  ambience_sound_url: string | null
 }
 
 /** Un choix proposé. Aucune trace de sa cible ni de ses effets. */
@@ -141,6 +155,12 @@ export interface ClientNode {
    * null si ce nœud n'en porte pas.
    */
   aparte: string | null
+  /**
+   * Le nœud attend une réponse **écrite** : taper dans le champ déclenche
+   * l'interaction disponible au lieu de faire avancer le nœud, et le contenu
+   * du texte n'est jamais examiné. Voir DESIGN.md § « Et vous ? ».
+   */
+  attend_saisie: boolean
 }
 
 export interface ChapterEndState {

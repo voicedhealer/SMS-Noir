@@ -25,6 +25,10 @@ class MessageBubble extends StatelessWidget {
 
   bool get _duJoueur => message.sender == MessageSender.player;
 
+  /// Renforcement sensoriel du N19. Le drapeau vient du message lui-même : la
+  /// bulle n'a aucune idée du nœud dont elle sort, et n'en a pas besoin.
+  bool get _tendu => message.tension && !_duJoueur;
+
   @override
   Widget build(BuildContext context) {
     final largeurMax = MediaQuery.sizeOf(context).width * AppSpacing.largeurMaxBulle;
@@ -46,7 +50,22 @@ class MessageBubble extends StatelessWidget {
                   : AppColors.bulleJoueur)
               : AppColors.bulleContact,
           borderRadius: BorderRadius.circular(AppSpacing.rayonBulle),
+          // Tension du N19 : bordure rouge sourde et voile de la même teinte.
+          // Jamais sur une bulle du joueur — le serveur pose déjà `tension:
+          // false` sur les siennes, la garde ici est une seconde barrière.
+          //
+          // Fixe, jamais clignotant ni pulsé : le prompt l'interdit, et une
+          // animation détournerait la lecture dans un moment déjà chargé.
+          border: _tendu
+              ? Border.all(color: AppColors.tensionBordure, width: 1)
+              : null,
         ),
+        foregroundDecoration: _tendu
+            ? BoxDecoration(
+                color: AppColors.tensionVoile,
+                borderRadius: BorderRadius.circular(AppSpacing.rayonBulle),
+              )
+            : null,
         // Plus rien sous le texte : l'heure vivait ici, et forçait la bulle à
         // s'élargir au-delà de ses mots. « Disparu comment ? » occupait deux
         // fois la place nécessaire, avec un vide en dessous. La bulle épouse
