@@ -15,6 +15,7 @@ import 'package:numero_inconnu/screens/intro_screen.dart';
 import 'package:numero_inconnu/screens/root_screen.dart';
 import 'package:numero_inconnu/services/engine_api.dart';
 import 'package:numero_inconnu/theme/app_theme.dart';
+import 'package:numero_inconnu/theme/tokens.dart';
 import 'package:numero_inconnu/widgets/composer.dart';
 import 'package:numero_inconnu/widgets/message_widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -77,6 +78,7 @@ Future<void> monter(
   Map<String, Object> prefs = const {},
   bool racine = false,
   void Function(Map<String, dynamic> corps)? surAiChat,
+  void Function(Map<String, dynamic> corps)? surAdvance,
   // `false` quand la carte d'entrée est encore à l'écran (consentement pas
   // décidé) : sa respiration boucle indéfiniment (voir EntryCardScreen),
   // donc `pumpAndSettle` n'y termine jamais.
@@ -93,7 +95,11 @@ Future<void> monter(
         surAiChat?.call(jsonDecode(requete.body) as Map<String, dynamic>);
         return http.Response.bytes(utf8.encode(jsonEncode(aiChat!)), 200);
       }
-      final corps = requete.url.path.endsWith('advance') ? advance! : getState;
+      final versAdvance = requete.url.path.endsWith('advance');
+      if (versAdvance) {
+        surAdvance?.call(jsonDecode(requete.body) as Map<String, dynamic>);
+      }
+      final corps = versAdvance ? advance! : getState;
       return http.Response.bytes(utf8.encode(jsonEncode(corps)), 200);
     }),
   );
@@ -518,7 +524,7 @@ void main() {
     expect(find.byType(MessageBubble), findsNothing);
   });
 
-  testWidgets('« Ignorer » est proposé, mais aucune interaction ne devient un bouton',
+  testWidgets('« Ignorer » est proposé, mais une interaction par geste ne devient jamais un bouton',
       (tester) async {
     await monter(tester, getState: {
       'story': {'slug': 's', 'title': 'T'},
@@ -527,12 +533,14 @@ void main() {
       'node': noeud(choix: [
         {'id': 'a', 'position': 0, 'label': 'NON. Restez où vous êtes', 'kind': 'reply'},
         {'id': 'b', 'position': 1, 'label': 'Ignorer', 'kind': 'ignore'},
-        // Au N17, ce label EST l'indice. L'afficher le donnerait gratuitement.
+        // Le cas du N17 : ce label EST l'indice, et l'interaction se provoque
+        // en RÉÉCOUTANT le vocal. C'est le déclencheur `geste` qui la tient
+        // hors de la liste — les options atténuées ne portent que du `texte`.
         {
           'id': 'c',
           'position': 2,
           'label': 'C\'est quoi ce bruit derrière vous ?',
-          'kind': 'interaction', 'declencheur': 'texte'
+          'kind': 'interaction', 'declencheur': 'geste'
         },
       ]),
       'chapter_end': null,
@@ -542,7 +550,7 @@ void main() {
     expect(find.text('NON. Restez où vous êtes'), findsOneWidget);
     expect(find.text('Ignorer'), findsOneWidget);
     expect(find.text('C\'est quoi ce bruit derrière vous ?'), findsNothing,
-        reason: 'protection de mécanique : une interaction n\'est JAMAIS un bouton');
+        reason: 'protection de mécanique : un GESTE n\'est JAMAIS un bouton');
   });
 
   testWidgets('pendant le déroulé, les choix disparaissent puis reviennent', (tester) async {
@@ -693,7 +701,7 @@ void main() {
   });
 
   group('Interactions cachées', () {
-    testWidgets('sur un nœud à média, aucun « + » : le geste est sur la photo',
+    testWidgets('sur un nœud à média, aucune option atténuée : le geste est sur la photo',
         (tester) async {
       await monter(tester, getState: {
         'story': {'slug': 's', 'title': 'T'},
@@ -711,9 +719,17 @@ void main() {
       expect(find.text('Zoomer sur l\'autocollant'), findsNothing);
     });
 
-    testWidgets('sans média, les répliques passent par le « + » — jamais en clair',
+    testWidgets('les répliques sont des options atténuées, après les réponses',
         (tester) async {
-      await monter(tester, getState: {
+      Map<String, dynamic>? envoye;
+      await monter(tester, surAdvance: (c) => envoye = c, advance: {
+        'story': {'slug': 's', 'title': 'T'},
+        'conversations': [conversation()],
+        'history': const [],
+        'node': noeud(),
+        'chapter_end': null,
+        'ai_moment_pending': false,
+      }, getState: {
         'story': {'slug': 's', 'title': 'T'},
         'conversations': [conversation()],
         'history': [message(seq: 1, body: 'T\'as rien demandé, je sais.')],
@@ -726,18 +742,43 @@ void main() {
         'ai_moment_pending': false,
       });
 
-      expect(find.byIcon(Icons.add), findsOneWidget);
-      // Les deux pistes d'enquête ne sont pas affichées tant qu'on n'ouvre pas.
-      expect(find.text('C\'est qui, ce type ?'), findsNothing);
-      expect(find.text('Pourquoi cet entrepôt ?'), findsNothing);
-
-      // Le « + » répond après un court silence de lecture — voir
-      // « le tap est ignoré pendant le silence de lecture » plus bas.
-      await tester.pump(const Duration(seconds: 2));
-      await tester.tap(find.byIcon(Icons.add));
-      await tester.pumpAndSettle();
+      // Plus de feuille à ouvrir : elles sont là, simplement moins en avant.
+      expect(find.byIcon(Icons.add), findsNothing);
       expect(find.text('C\'est qui, ce type ?'), findsOneWidget);
       expect(find.text('Pourquoi cet entrepôt ?'), findsOneWidget);
+
+      // Atténuées : plus petites et plus sourdes que la réponse au-dessus.
+      TextStyle style(String t) => tester.widget<Text>(find.text(t)).style!;
+      final reponse = style('Ok. Je garde mon téléphone');
+      final discret = style('C\'est qui, ce type ?');
+      expect(discret.fontSize! < reponse.fontSize!, isTrue,
+          reason: 'corps plus petit que celui d\'une réponse');
+      expect(discret.color, AppColors.texteTertiaire);
+      expect(reponse.color, AppColors.textePrincipal);
+
+      // Et elles restent des interactions : le tap les déclenche.
+      await tester.pump(const Duration(seconds: 2));
+      await tester.tap(find.text('C\'est qui, ce type ?'));
+      await tester.pumpAndSettle();
+      expect(envoye?['choice_id'], 'i1');
+    });
+
+    testWidgets('elles arrivent APRÈS les réponses, jamais avant', (tester) async {
+      await monter(tester, getState: {
+        'story': {'slug': 's', 'title': 'T'},
+        'conversations': [conversation()],
+        'history': [message(seq: 1, body: 'T\'as rien demandé, je sais.')],
+        'node': noeud(code: 'N8', choix: [
+          {'id': 'a', 'position': 0, 'label': 'Ok. Je garde mon téléphone', 'kind': 'reply'},
+          {'id': 'i1', 'position': 3, 'label': 'C\'est qui, ce type ?', 'kind': 'interaction', 'declencheur': 'texte'},
+        ]),
+        'chapter_end': null,
+        'ai_moment_pending': false,
+      });
+      final yReponse = tester.getTopLeft(find.text('Ok. Je garde mon téléphone')).dy;
+      final yDiscret = tester.getTopLeft(find.text('C\'est qui, ce type ?')).dy;
+      expect(yDiscret > yReponse, isTrue,
+          reason: 'une option de plus au bas de la liste, pas une concurrente');
     });
   });
 

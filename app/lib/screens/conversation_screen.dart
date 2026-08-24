@@ -237,17 +237,6 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             // logique de visibilité (ni déroulé, ni typing) — rien à
             // dupliquer ici.
             if (etat.aparteEnCours case final texte?) Aparte(texte: texte),
-            if (!etat.enDeroule && etat.interactionsParlees.isNotEmpty)
-              // « + » discret : les interactions que le joueur *dit* (relance
-              // du N8, insistance du N13). Jamais leur libellé en clair — il
-              // peut être l'indice lui-même.
-              DiscreetPlus(
-                choix: [
-                  for (final c in etat.interactionsParlees) (id: c.id, label: c.label),
-                ],
-                onChoisir: ctrl.declencherInteraction,
-                verrouille: _choixVerrouilles,
-              ),
             if (!etat.enDeroule)
               ChoiceArea(
                 choix: [
@@ -255,13 +244,22 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                     (id: c.id, label: c.label, estIgnore: c.kind == ChoiceKind.ignore),
                 ],
                 onChoisir: ctrl.choisir,
+                // Les interactions que le joueur *dit* : une option de plus,
+                // atténuée, au même endroit que les réponses. Elles n'ont plus
+                // de « + » qui les cache — leur libellé est la réplique
+                // elle-même, jamais l'indice, celui-ci vivant toujours
+                // derrière un `geste`.
+                discrets: [
+                  for (final c in etat.interactionsParlees) (id: c.id, label: c.label),
+                ],
+                onDiscret: ctrl.declencherInteraction,
                 verrouille: _choixVerrouilles,
               ),
           ];
 
-          // Même condition que celle qui peuple `DiscreetPlus`/`ChoiceArea`
-          // ci-dessus : le champ se verrouille exactement quand ils
-          // apparaissent, jamais avant, jamais après. Le moment IA reste
+          // Même condition que celle qui peuple `ChoiceArea` ci-dessus — ses
+          // deux listes, réponses et options atténuées : le champ se verrouille
+          // exactement quand elles apparaissent, jamais avant, jamais après. Le moment IA reste
           // toujours exempté — c'est le seul mode où le champ sert vraiment.
           final choixPresents = etat.mode != ComposerMode.aiInput &&
               !etat.enDeroule &&

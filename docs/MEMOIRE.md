@@ -4,6 +4,37 @@
 
 ---
 
+## 2026-08-24 (14) — Phase 3 : le « + » devient une option atténuée
+
+Le « + » intriguait sans rien faire et se confondait avec un bouton de pièce jointe — repéré par
+Vivien en jouant. Supprimé. Les interactions `texte` sont maintenant des options de plus dans
+`ChoiceArea`, **après** les réponses : ni fond ni bordure, corps 13 au lieu de 15, couleur
+tertiaire. Plus effacées qu'« Ignorer », qui garde taille et couleur secondaire.
+
+**La raison d'être du « + » avait déjà disparu, sans qu'on le remarque.** Il existait pour cacher
+un libellé qui pouvait être l'indice lui-même — le N17, « C'est quoi ce bruit derrière vous ? ».
+Or depuis la phase 2, le N17 est un `geste` : il ne peut plus figurer dans cette liste. Ne restent
+que les deux relances du N8 et l'insistance du N13, dont les libellés sont les répliques du joueur.
+Afficher un libellé qui n'était plus dangereux derrière une feuille modale, c'était payer une
+protection devenue sans objet.
+
+**Règle de contenu que ça installe :** le libellé d'une interaction `texte` est **lu en clair**.
+Tout ce qui ne doit pas être lu avant d'être trouvé se déclare `geste`. Le contrôle 64 (4 gestes /
+3 textes) casse si on bascule le N17 — la règle est donc tenue par un gardien, pas par la vigilance.
+
+**Deux listes séparées dans `ChoiceArea`** (`choix` et `discrets`) plutôt qu'un drapeau sur une
+seule : une interaction par `geste` n'a aucune porte d'entrée vers l'affichage, pas même par erreur.
+
+**Le N13 n'a aucune réponse** : l'option atténuée y est seule à l'écran. Signalé plutôt que masqué
+— une option isolée qui dit ce qu'elle propose vaut mieux qu'un « + » isolé qui intrigue. Au N8
+elles sont deux après trois réponses : cinq lignes, le bloc le plus chargé du chapitre.
+
+**Les deux nouveaux tests ont été validés en les faisant échouer** — style non atténué, puis ordre
+inversé. `monter()` gagne un `surAdvance` (miroir de `surAiChat`) pour vérifier *quelle*
+interaction part au tap, et pas seulement qu'une requête part.
+
+---
+
 ## 2026-08-24 (13) — Phase 1 du carnet : la table `clues` et la projection `get-state`
 
 Les cinq indices du chapitre n'existaient que comme **codes** poussés dans `variables.indices`

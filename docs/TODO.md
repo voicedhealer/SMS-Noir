@@ -7,7 +7,7 @@ Plan : `docs/prompts/prompt-carnet-notes-et-interaction.md`. STOP à chaque phas
 - [x] **Phase 4 — Écrire au N16** (`attente_saisie`, aparté, `advance` par saisie). Serveur + client.
 - [x] **Phase 2 — Le zoom ne passe plus par le « + »** (`choices.declencheur`). Serveur + client.
 - [x] **Phase 1 — Table `clues` + projection `get-state`.** Serveur seul, aucun rebuild nécessaire.
-- [ ] **Phase 3 — La quatrième option discrète** qui remplace le « + » (`DiscreetPlus` existe encore).
+- [x] **Phase 3 — L'option atténuée** remplace le « + » (`DiscreetPlus` supprimé). Client seul.
 - [ ] **Phase 5 — Écran « Ce qu'on sait »** : icône d'en-tête, état vide « Rien de noté pour
       l'instant. », **aucun compteur** — une partie ne peut jamais rassembler les 5 indices, les deux
       relances du N8 s'excluant.

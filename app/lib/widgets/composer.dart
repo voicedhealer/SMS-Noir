@@ -186,75 +186,6 @@ class _ComposerState extends State<Composer> {
   }
 }
 
-/// Le « + » discret.
-///
-/// Il ne dit jamais ce qu'il contient : son libellé est un simple « + », et les
-/// répliques ne s'ouvrent qu'au tap. Au N8 elles porteraient sinon les deux
-/// pistes d'enquête ; au N17, l'indice lui-même.
-///
-/// Il ne se distingue pas d'un bouton d'ajout de pièce jointe, ce qu'une vraie
-/// messagerie a toujours — c'est exactement ce qu'on veut qu'il ait l'air d'être.
-class DiscreetPlus extends StatelessWidget {
-  const DiscreetPlus({
-    super.key,
-    required this.choix,
-    required this.onChoisir,
-    this.verrouille = false,
-  });
-
-  final List<({String id, String label})> choix;
-  final void Function(String id) onChoisir;
-
-  /// Même verrou temporisé que `ChoiceArea`, pour la même raison : laisser le
-  /// temps de lire avant de pouvoir agir. Le bouton reste visible et identique
-  /// — seul le geste ne fait rien tant que le verrou tient.
-  final bool verrouille;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        width: double.infinity,
-        color: AppColors.surface,
-        padding: const EdgeInsets.only(left: AppSpacing.l, top: AppSpacing.s),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: GestureDetector(
-            onTap: verrouille ? null : () => _ouvrir(context),
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.s),
-              child: Icon(Icons.add, size: 20, color: AppColors.texteTertiaire),
-            ),
-          ),
-        ),
-      );
-
-  void _ouvrir(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.l)),
-      ),
-      builder: (contexte) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final c in choix)
-              ListTile(
-                title: Text(c.label,
-                    style: AppText.libelleChoix.copyWith(color: AppColors.textePrincipal)),
-                onTap: () {
-                  Navigator.of(contexte).pop();
-                  onChoisir(c.id);
-                },
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// Zone de choix. Masquée pendant un déroulé.
 class ChoiceArea extends StatelessWidget {
   const ChoiceArea({
@@ -262,19 +193,28 @@ class ChoiceArea extends StatelessWidget {
     required this.choix,
     required this.onChoisir,
     required this.verrouille,
+    this.discrets = const [],
+    this.onDiscret,
   });
 
-  /// Uniquement des `reply`/`ignore` — jamais d'interaction. Le filtrage se
-  /// fait en amont : c'est une protection de mécanique, pas de mise en page.
+  /// Uniquement des `reply`/`ignore`. Le filtrage se fait en amont : c'est une
+  /// protection de mécanique, pas de mise en page.
   final List<({String id, String label, bool estIgnore})> choix;
   final void Function(String id) onChoisir;
+
+  /// Les interactions que le joueur **dit** (`declencheur: texte`), rendues
+  /// après les réponses dans un style atténué. Deux listes séparées plutôt
+  /// qu'un drapeau sur une seule : une interaction par `geste` ne peut pas se
+  /// glisser ici par inadvertance, elle n'a pas de porte d'entrée.
+  final List<({String id, String label})> discrets;
+  final void Function(String id)? onDiscret;
 
   /// Un choix est déjà parti : on ne double-tape pas.
   final bool verrouille;
 
   @override
   Widget build(BuildContext context) {
-    if (choix.isEmpty) return const SizedBox.shrink();
+    if (choix.isEmpty && discrets.isEmpty) return const SizedBox.shrink();
     return Container(
       width: double.infinity,
       color: AppColors.surface,
@@ -308,6 +248,41 @@ class ChoiceArea extends StatelessWidget {
                       c.label,
                       style: AppText.libelleChoix.copyWith(
                         color: c.estIgnore ? AppColors.texteSecondaire : AppColors.textePrincipal,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          // L'option atténuée, en dernier. Ni fond, ni bordure, corps plus
+          // petit, couleur tertiaire : plus effacée encore qu'« Ignorer », qui
+          // est déjà transparent mais garde la taille et la couleur secondaire.
+          // Elle se présente comme une option parmi d'autres, simplement moins
+          // mise en avant — rien ne dit qu'elle débloque quoi que ce soit.
+          for (final c in discrets)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.s),
+              child: SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed:
+                      verrouille || onDiscret == null ? null : () => onDiscret!(c.id),
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.m),
+                      side: const BorderSide(color: Colors.transparent),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.l, vertical: AppSpacing.s),
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      c.label,
+                      style: AppText.libelleChoix.copyWith(
+                        fontSize: 13,
+                        color: AppColors.texteTertiaire,
                       ),
                     ),
                   ),

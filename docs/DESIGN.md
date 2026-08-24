@@ -393,7 +393,7 @@ Boutons empilés en bas, au-dessus de la barre de saisie.
 Le mode se déduit **entièrement du contrat serveur**. Le client ne connaît pas le graphe.
 
 **Le verrouillage du champ est une notion à part, orthogonale au mode** : dès qu'un `reply`/`ignore`
-ou une interaction relancée (« + » discret) sont **affichés à l'écran**, le champ ignore tout geste —
+ou une interaction relancée (option atténuée) sont **affichés à l'écran**, le champ ignore tout geste —
 voir § Verrouillage ci-dessous. `decorative` couvre donc deux situations différentes à ce niveau :
 choix affichés (verrouillé) et silence sans rien à proposer, comme le N19 (toujours actif). Le
 mode, lui, ne distingue pas les deux — seule la présence de choix compte.
@@ -419,7 +419,7 @@ verrouillage change l'interactivité, jamais l'aspect.
 ### Verrouillage — quand des choix sont affichés
 
 **Correction de Vivien (2026-08-21) sur la version précédente de cette règle.** Le champ ignore
-tout geste dès que `ChoiceArea` ou `DiscreetPlus` affichent quelque chose à l'écran — plus de focus,
+tout geste dès que `ChoiceArea` affiche quelque chose à l'écran — réponses ou options atténuées — plus de focus,
 plus de clavier, plus de curseur clignotant. Avant ce correctif, le champ restait cliquable :
 le curseur s'activait et clignotait sans ouvrir le clavier, un geste parasite qui cassait
 l'immersion sans rien apporter, puisqu'un choix visible est déjà la vraie réponse attendue.
@@ -546,12 +546,18 @@ Six au chapitre 1. Elles sont **découvertes, jamais annoncées**.
 ### ⚠️ Protection de mécanique, pas confort de lecture
 
 Le serveur renvoie les interactions dans le **même tableau `choices`** que les réponses, distinguées
-par `kind: 'interaction'`. **Le client doit impérativement les filtrer.**
+par `kind: 'interaction'`. **Le client doit impérativement les trier par déclencheur.**
 
 Ce n'est pas une question de mise en page. Au **N17**, le label de l'interaction vaut
-« C'est quoi ce bruit derrière vous ? » — soit l'indice lui-même. L'afficher comme un bouton
-donnerait au joueur l'incohérence audio qu'il est censé repérer seul, et détruirait la mécanique
-de `lucidite`. Une interaction ne devient **jamais** un bouton.
+« C'est quoi ce bruit derrière vous ? » — soit l'indice lui-même. L'afficher donnerait au joueur
+l'incohérence audio qu'il est censé repérer seul, et détruirait la mécanique de `lucidite`. C'est
+son déclencheur `geste` qui l'en protège : **une interaction par geste n'est jamais un libellé.**
+
+> **Règle de contenu qui en découle.** Le libellé d'une interaction `texte` est **affiché en
+> clair** — c'est la réplique que le joueur va dire, il doit pouvoir la lire avant de la choisir.
+> Tout ce qui ne doit pas être lu avant d'avoir été trouvé se déclare donc `geste`, jamais `texte`.
+> Le contrôle **64** de `verify-graph.sql` fige la répartition 4 gestes / 3 textes : basculer le
+> N17 en `texte` casse le compte avant d'atteindre l'écran.
 
 ### Comment elles se déclenchent — une règle, pas une liste
 
@@ -589,12 +595,26 @@ contenu où une interaction n'en déclare pas.
 Seul le **dernier média du fil** est actif : zoomer une vieille photo ne déclenche rien, et ne
 signale rien non plus.
 
-### Le « + » discret
+### L'option atténuée
 
-Une icône `+` à gauche, couleur tertiaire, à l'emplacement où une vraie messagerie met son bouton
-de pièce jointe — c'est exactement ce qu'on veut qu'il ait l'air d'être. **Il n'annonce jamais son
-contenu** : les répliques ne s'ouvrent qu'au tap, dans une feuille. Au N8 il porterait sinon les
-deux pistes d'enquête en clair ; au N17, l'indice lui-même.
+Les interactions `texte` sont des **options de plus dans la liste des choix**, au même endroit que
+les réponses, après elles, dans un style effacé : ni fond ni bordure, corps 13 au lieu de 15,
+couleur tertiaire — plus discrètes encore qu'« Ignorer », qui garde la taille et la couleur
+secondaire. Rien ne les annonce comme spéciales : elles se présentent comme une option parmi
+d'autres, simplement moins mise en avant, ce qui invite sans révéler qu'elles débloquent quoi que
+ce soit. Le mécanisme est inchangé — usage unique, filtrage serveur ; seul l'habillage bouge.
+
+⚠️ **Avant, c'était un « + »** à gauche, à l'emplacement du bouton de pièce jointe d'une vraie
+messagerie, ouvrant une feuille au tap. Vivien l'a signalé en jouant : il intrigue sans rien faire,
+et se confond avec un ajout de pièce jointe. Le « + » avait une raison d'être — cacher un libellé
+qui pouvait être l'indice lui-même, cas du N17. **Cette raison a disparu avec `declencheur` :** le
+N17 est un `geste`, structurellement absent de cette liste. Ne restent que les deux relances du N8
+et l'insistance du N13, dont les libellés sont les répliques du joueur, pas les réponses de Léna.
+
+**Au N13, l'option est seule** — ce nœud n'a aucune réponse. Une option atténuée isolée reste
+préférable à un « + » isolé : elle dit ce qu'elle propose au lieu d'intriguer. **Au N8, il y en a
+deux** (les deux relances, mutuellement exclusives), après trois réponses : cinq lignes en tout,
+le bloc le plus chargé du chapitre — celui que couvre le test de débordement au clavier.
 
 ### Règles communes
 
@@ -789,7 +809,7 @@ chapitre encore en écriture), seul le teaser reste absent tant que `teaser_text
 | Séquence d'intronisation | `screens/intro_screen.dart` | ✅ |
 | Aiguillage d'entrée | `screens/root_screen.dart` | ✅ |
 | Carte d'entrée (couverture, icône, titre, accroche, consentement, animations) | `screens/entry_card_screen.dart` | ✅ |
-| Interactions cachées (geste et « + ») | `widgets/composer.dart`, `conversation_screen.dart` | ✅ |
+| Interactions cachées (geste et option atténuée) | `widgets/composer.dart`, `conversation_screen.dart` | ✅ |
 | Liste des conversations | `screens/conversation_list_screen.dart` | ✅ |
 | Écran de fin de chapitre | `screens/chapter_end_screen.dart` | ✅ |
 
@@ -1007,7 +1027,7 @@ plusieurs messages.
 **Rien à l'écran ne distingue le silence de l'état normal.** Pas de grisé, pas d'icône d'attente :
 `TextButton.styleFrom` fixe la même couleur pour tous les états, verrouillé ou non. Le joueur se
 sent juste moins bousculé — il ne doit jamais pouvoir repérer mécaniquement pourquoi. Même règle
-pour le « + » des interactions cachées : verrouillé pendant le même silence.
+pour les options atténuées des interactions cachées : verrouillées pendant le même silence.
 
 ## Le fil ne vole jamais la position de lecture
 
