@@ -15,6 +15,26 @@ Plan : `docs/prompts/prompt-carnet-notes-et-interaction.md`. STOP à chaque phas
 ⚠️ **Le téléphone n'est pas rebranché** tant que l'APK n'a pas été reconstruit avec les phases
 2 et 4 (côté client). La phase 1 est serveur : elle est déjà active sans rebuild.
 
+## 🔴 La chaîne de migrations n'est plus rejouable depuis zéro
+
+`20260818174043_contenu_chapitre_1.sql` écrit dans quatre colonnes — `messages.tension`,
+`messages.ambience_sound_url`, `nodes.attente_saisie`, `choices.declencheur` — créées par des
+migrations **postérieures** (`20260824150000`, `160000`, `170000`). Un `supabase db reset` sur une
+base vierge rejoue les fichiers par ordre de version : le contenu passe avant les DDL et échoue sur
+« column does not exist ».
+
+Invisible jusqu'ici parce que la base locale n'a pas été remise à zéro depuis : les colonnes y ont
+été ajoutées par les ALTER, puis le contenu modifié en place.
+
+**Sans effet sur la synchronisation du distant**, qui pousse le schéma d'abord et ne rejoue le
+contenu qu'ensuite (procédure du 19/08). Mais la propriété « les migrations sont la source de
+vérité rejouable » est perdue tant que ce n'est pas corrigé.
+
+- [ ] **Corriger l'ordre.** Piste la plus simple : préambule DDL idempotent (`add column if not
+      exists`, identique aux migrations dédiées, qui le sont déjà) en tête de la migration de
+      contenu, pour la rendre autoportante. Puis **valider par un vrai `db reset` local** — c'est
+      le seul test qui prouve la propriété.
+
 ## 🔴 Addendum transition N20-N9 — TERMINÉ côté code, deux témoins visuels dus à Vivien
 
 Phases A, B et C terminées, vérifiées côté back/tests — voir MEMOIRE.md 2026-08-18/19. Aucun outil
