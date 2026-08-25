@@ -147,9 +147,29 @@ async function chargerChoix(db: SupabaseClient, nodeId: string): Promise<ChoixBr
   return (data ?? []) as ChoixBrut[]
 }
 
+/** Nœud d'entrée du chapitre 1. Lu avant toute écriture : un chapitre sans
+ *  entrée doit échouer sans avoir rien créé. */
+async function noeudEntree(db: SupabaseClient, storyId: string): Promise<string> {
+  const { data: chapitre, error } = await db
+    .from('chapters').select('id, entry_node_id')
+    .eq('story_id', storyId).eq('position', 1).single()
+  if (error || !chapitre?.entry_node_id) {
+    throw new ErreurMoteur(500, 'chapitre_incomplet', 'Le chapitre 1 n\'a pas de nœud d\'entrée')
+  }
+  return chapitre.entry_node_id as string
+}
+
 /**
  * Progression du joueur, créée à la première visite.
  * La création positionne le nœud d'entrée et déroule sa chaîne.
+ *
+ * ⚠️ Une progression EXISTANTE peut n'avoir aucun nœud courant : la migration
+ * de contenu remet les parties à zéro avant de remplacer les nœuds (« on
+ * réinitialise, on n'efface pas »). Sans le traitement ci-dessous, ces comptes
+ * restaient morts pour toujours — la ligne existe, donc la branche de création
+ * ne s'exécute jamais, et rien ne les ramène au nœud d'entrée : `node: null`,
+ * historique vide, aucun message à jouer. Repartir de l'entrée est exactement
+ * ce que « réinitialiser » veut dire.
  */
 export async function chargerOuCreerProgression(
   db: SupabaseClient,
@@ -162,18 +182,16 @@ export async function chargerOuCreerProgression(
     .eq('user_id', userId).eq('story_id', storyId).maybeSingle()
 
   if (existante) {
-    return {
-      progression: { ...existante, variables: normaliserVariables(existante.variables) } as Progression,
-      messagesInitiaux: [],
-    }
+    const progression = {
+      ...existante, variables: normaliserVariables(existante.variables),
+    } as Progression
+    if (progression.current_node_id) return { progression, messagesInitiaux: [] }
+
+    const resultat = await entrerDansNoeud(db, progression, await noeudEntree(db, storyId))
+    return { progression: resultat.progression, messagesInitiaux: resultat.messages }
   }
 
-  const { data: chapitre, error: eChap } = await db
-    .from('chapters').select('id, entry_node_id')
-    .eq('story_id', storyId).eq('position', 1).single()
-  if (eChap || !chapitre?.entry_node_id) {
-    throw new ErreurMoteur(500, 'chapitre_incomplet', 'Le chapitre 1 n\'a pas de nœud d\'entrée')
-  }
+  const entree = await noeudEntree(db, storyId)
 
   const { data: creee, error } = await db
     .from('player_progress')
@@ -185,7 +203,7 @@ export async function chargerOuCreerProgression(
   const progression = { ...creee, variables: normaliserVariables(creee.variables) } as Progression
 
   // Première visite : on entre dans le nœud d'entrée et on déroule sa chaîne.
-  const resultat = await entrerDansNoeud(db, progression, chapitre.entry_node_id)
+  const resultat = await entrerDansNoeud(db, progression, entree)
   return { progression: resultat.progression, messagesInitiaux: resultat.messages }
 }
 

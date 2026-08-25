@@ -578,6 +578,51 @@ CHEMIN_ALLIE = ['Bonsoir, qui', "Quelqu'un qui a reçu", "D'accord, je garde mon
                 'Prenez la plaque', "Zoomer sur l'auto", 'Il faut porter']
 
 
+def reprise_apres_remise_a_zero():
+    """Une partie remise à zéro par un rejeu de contenu doit REPARTIR.
+
+    La migration de contenu réinitialise les progressions avant de remplacer
+    les nœuds (« on réinitialise, on n'efface pas »). La ligne survit, sans
+    nœud courant. Le moteur n'avait aucun chemin de retour : la branche de
+    création ne s'exécute pas puisque la ligne existe, et rien ne ramenait au
+    nœud d'entrée — compte définitivement mort, historique vide, node null.
+
+    Trouvé en production après la synchronisation du 25/08 : dix-sept parties,
+    dont celle de Vivien sur son Samsung, étaient dans cet état.
+    """
+    print('\n' + '=' * 78)
+    print('  REPRISE APRÈS REMISE À ZÉRO PAR UN REJEU DE CONTENU')
+    print('=' * 78)
+
+    email = 'reprise-remise-a-zero@test.local'
+    token = nouveau_joueur(email)
+    etat = http(f'{API}/functions/v1/get-state', {}, token)
+    verifier('Partie neuve : le nœud d\'entrée est posé',
+             (etat.get('node') or {}).get('code'), 'N1')
+
+    uid = next(u['id'] for u in http(f'{API}/auth/v1/admin/users?per_page=1000', None,
+                                     SERVICE, 'GET', {'apikey': SERVICE})['users']
+               if u['email'] == email)
+    entetes = {'apikey': SERVICE, 'Authorization': f'Bearer {SERVICE}',
+               'Content-Type': 'application/json', 'Prefer': 'return=minimal'}
+    pid = http(f'{API}/rest/v1/player_progress?user_id=eq.{uid}&select=id', None,
+               SERVICE, 'GET', {'apikey': SERVICE})[0]['id']
+
+    # Exactement ce que fait la migration de contenu, sans rien inventer.
+    http(f'{API}/rest/v1/player_messages?progress_id=eq.{pid}', None, None, 'DELETE', entetes)
+    http(f'{API}/rest/v1/player_progress?id=eq.{pid}',
+         {'current_node_id': None, 'node_cursor': 0, 'node_gate': None,
+          'last_choice_id': None, 'last_choice_seq': None, 'ai_exchanges': 0},
+         None, 'PATCH', entetes)
+
+    etat = http(f'{API}/functions/v1/get-state', {}, token)
+    verifier('Après remise à zéro : la partie repart du nœud d\'entrée',
+             (etat.get('node') or {}).get('code'), 'N1')
+    verifier('Après remise à zéro : les messages d\'ouverture sont rejoués',
+             len(etat.get('new_messages') or []) > 0, True)
+    print()
+
+
 def parcours_postures():
     """Le même chemin narratif, joué avec trois postures différentes.
 
@@ -638,6 +683,7 @@ if __name__ == '__main__':
     n6 = parcours_branche_n6()
     parcours_carte()
     parcours_postures()
+    reprise_apres_remise_a_zero()
     erreurs_et_idempotence()
 
     print('\n' + '=' * 78)

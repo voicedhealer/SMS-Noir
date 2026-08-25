@@ -15,6 +15,14 @@ Plan : `docs/prompts/prompt-carnet-notes-et-interaction.md`. STOP à chaque phas
 ⚠️ **Le téléphone n'est pas rebranché** tant que l'APK n'a pas été reconstruit avec les phases
 2 et 4 (côté client). La phase 1 est serveur : elle est déjà active sans rebuild.
 
+## 🔴 À DÉPLOYER — correctif de reprise après remise à zéro
+
+`supabase functions deploy` **n'a pas encore été lancé** avec le correctif de
+`chargerOuCreerProgression` (une progression sans nœud courant repart de l'entrée). Tant qu'il ne
+l'est pas, les 17 progressions du distant restent mortes et l'app ouvre sur un fil vide.
+
+- [ ] `supabase functions deploy` puis vérifier en jouant depuis le téléphone.
+
 ## 🔴 La chaîne de migrations n'est plus rejouable depuis zéro
 
 `20260818174043_contenu_chapitre_1.sql` écrit dans quatre colonnes — `messages.tension`,

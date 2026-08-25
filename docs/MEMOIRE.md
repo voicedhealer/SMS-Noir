@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-08-25 (15) — Synchronisation du distant, et le compte mort qu'elle a révélé
+
+Le Supabase hébergé était resté au 19/08 : 5 migrations jamais poussées, la migration de contenu
+modifiée dix fois depuis son dernier push, 5 fonctions jamais redéployées. Vivien a joué le
+chapitre entier sur son Samsung **sans le savoir** — l'ancienne version, sans aucune correction de
+la soirée. Leçon de méthode : tout mon travail était vérifié contre le **local**, où les gardiens
+passent ; rien ne surveillait l'écart local ↔ distant.
+
+**L'ordre de la remise à niveau n'est pas cosmétique.** La migration de contenu écrit dans quatre
+colonnes créées par des migrations postérieures : la rejouer avant elles échoue. La procédure du
+19/08 (pousser le schéma, PUIS `repair` + rejeu du contenu) contourne ça — mais la chaîne reste
+non rejouable depuis zéro, c'est au TODO.
+
+**Le vrai défaut était ailleurs.** La migration de contenu remet les parties à zéro avant de
+remplacer les nœuds — « on réinitialise, on n'efface pas ». Or `chargerOuCreerProgression` ne pose
+le nœud d'entrée **qu'à la création** : la ligne existant déjà, elle était renvoyée telle quelle,
+sans nœud courant et sans historique. `node: null`, zéro message, écran vide **définitivement**.
+Les 17 progressions du distant étaient dans cet état, dont celle de Vivien.
+
+Une progression sans nœud courant repart maintenant du nœud d'entrée — c'est ce que
+« réinitialiser » a toujours voulu dire, le moteur ne le faisait simplement pas.
+
+**Validé en le faisant échouer** : le même contrôle, sur le code d'avant, donne `node = None` et
+zéro message. Ajouté en permanence à `simulate-playthrough.py` — ce défaut ne se voit qu'en
+rejouant du contenu sur une partie existante, un cas qu'aucun parcours neuf ne traversait.
+
+---
+
 ## 2026-08-24 (14) — Phase 3 : le « + » devient une option atténuée
 
 Le « + » intriguait sans rien faire et se confondait avec un bouton de pièce jointe — repéré par
