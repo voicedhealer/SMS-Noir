@@ -5,6 +5,7 @@ import 'package:video_player/video_player.dart';
 
 import '../config/env.dart';
 import '../models/client_message.dart';
+import '../services/indicateur_sonore.dart';
 import '../services/musique_narrative.dart';
 
 /// Transition vidéo plein écran — Léna rentre chez elle (addendum transition
@@ -29,6 +30,7 @@ class VideoTransitionScreen extends StatefulWidget {
 
 class _VideoTransitionScreenState extends State<VideoTransitionScreen> {
   VideoPlayerController? _controleur;
+  VoidCallback? _desinscrireSonore;
 
   @override
   void initState() {
@@ -50,10 +52,17 @@ class _VideoTransitionScreenState extends State<VideoTransitionScreen> {
     _controleur = controleur;
     unawaited(controleur.initialize().then((_) {
       if (!mounted) return;
-      // Le fichier est déjà muet à la source (audio retiré au traitement) ;
-      // couper le volume aussi côté lecteur ne coûte rien et n'en dépend pas.
-      unawaited(controleur.setVolume(0));
+      // Le son NATIF du plan — pas de Léna, ambiance : ses pas, la porte de
+      // l'immeuble. Il avait été retiré au traitement, et le lecteur le coupait
+      // une seconde fois par-dessus ; Vivien a signalé son absence en jouant.
+      // Restauré depuis la source (piste AAC intacte), remuxé sans réencoder.
       unawaited(controleur.setLooping(false));
+      // Comme tout ce qui sonne : le tap sur l'indicateur doit pouvoir le
+      // couper net. Un plan de six secondes qu'on ne peut pas faire taire
+      // serait le seul son du chapitre à échapper à cette règle.
+      _desinscrireSonore = IndicateurSonore.instance.signaler(
+        () => unawaited(controleur.pause()),
+      );
       unawaited(controleur.play());
       setState(() {});
     }));
@@ -61,6 +70,7 @@ class _VideoTransitionScreenState extends State<VideoTransitionScreen> {
 
   @override
   void dispose() {
+    _desinscrireSonore?.call();
     _controleur?.dispose();
     super.dispose();
   }

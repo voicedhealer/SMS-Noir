@@ -758,8 +758,18 @@ l'appareil, donc un cadrage validé sur un téléphone ne prouve rien sur un aut
 ⚠️ **Règle générale que ça pose : tout texte incrusté dans un média impose `contain`.** Le
 recadrage n'est acceptable que sur une image dont aucun bord ne porte d'information.
 
-**La vidéo est muette**, et deux fois plutôt qu'une : la piste audio a été retirée du fichier, et
-le lecteur force `setVolume(0)`. Aucune musique ne tourne non plus pendant ce plan.
+**Le plan garde son son natif** — pas de voix, de l'ambiance : les pas de Léna, la porte de
+l'immeuble. Il avait disparu deux fois plutôt qu'une, la piste ayant été retirée du fichier livré
+et le lecteur forçant `setVolume(0)` par-dessus. Vivien a signalé l'absence en jouant ; la piste
+AAC était intacte dans la source, elle a été remuxée sans réencoder la vidéo (+147 Ko).
+
+Aucune musique ne tourne pendant ce plan : le son du plan est le seul son.
+
+⚠️ **Il est nettement plus bas que le reste** — −34 dB de moyenne, contre −26 pour le battement du
+N19 et −22 pour le vocal du N17. C'est cohérent pour de l'ambiance urbaine, mais à vérifier au
+haut-parleur : si c'est inaudible, c'est un gain à appliquer, pas un défaut de lecture.
+
+Comme tout ce qui sonne, il s'enregistre auprès de l'indicateur sonore : un tap le coupe net.
 
 ## Écran 3 — Fin de chapitre
 

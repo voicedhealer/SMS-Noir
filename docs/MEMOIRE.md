@@ -4,6 +4,31 @@
 
 ---
 
+## 2026-08-26 (16) — Premier retour de test réel : la vidéo de transition
+
+Deux défauts sur le même plan, signalés par Vivien capture à l'appui.
+
+**Le carton était rogné.** « Léna rentre chez elle. » est incrusté dans le fichier, en 1080×1920.
+L'écran était en `BoxFit.cover` : sur un Galaxy S23 Ultra (1440×3088, plus étroit que du 9:16),
+remplir la hauteur rogne 297 px de large, ~8 % de chaque côté — le « L » et le « e » y passaient.
+Passé en `contain`. Règle générale posée : **tout média avec du texte incrusté impose `contain`**,
+et `cover` rogne d'une quantité qui dépend de l'appareil, donc un cadrage validé sur un téléphone
+ne prouve rien sur un autre.
+
+**Le son natif avait disparu deux fois.** La piste avait été retirée du fichier livré au
+traitement, et le lecteur forçait `setVolume(0)` par-dessus — un commentaire affirmait même que le
+silence était une décision de Vivien. C'est lui qui a corrigé : « la vidéo avait un son natif ».
+La piste AAC était intacte dans la source `Lena rentre a son domicile - V3.mp4`, remuxée sans
+réencoder la vidéo : +147 Ko. Le lecteur s'enregistre maintenant auprès de l'indicateur sonore,
+comme tout le reste — c'était le seul son du chapitre qu'un tap n'aurait pas pu couper.
+
+**Ce que ça dit sur la méthode.** Aucun gardien ne pouvait voir ces deux-là : le cadrage dépend de
+la taille de l'écran réel, et la piste manquante était documentée comme voulue. Il a fallu jouer
+sur l'appareil. Le premier retour de test réel a produit deux vrais défauts en un seul plan de six
+secondes.
+
+---
+
 ## 2026-08-25 (15) — Synchronisation du distant, et le compte mort qu'elle a révélé
 
 Le Supabase hébergé était resté au 19/08 : 5 migrations jamais poussées, la migration de contenu
