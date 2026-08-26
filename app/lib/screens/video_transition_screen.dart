@@ -73,10 +73,21 @@ class _VideoTransitionScreenState extends State<VideoTransitionScreen> {
       // Pas encore prête (ou pas encore téléversée) : fond noir, jamais une
       // erreur visible — même principe que MediaPlaceholder pour les autres
       // médias.
+      // `contain`, pas `cover`. Le carton « Léna rentre chez elle. » est
+      // incrusté dans le fichier, en 1080×1920 : sur un écran plus étroit que
+      // du 9:16 — le Galaxy S23 Ultra fait 1440×3088 — `cover` remplit la
+      // hauteur et rogne 297 px de large, soit ~8 % de chaque côté. Assez pour
+      // couper le « L » et le « e » du carton, constaté en jouant par Vivien.
+      //
+      // Le cadre entier est donc préservé, quitte à border de noir : le fond
+      // de l'écran EST noir, et la vidéo a des bords sombres, donc la bande se
+      // lit comme un cadrage de cinéma, pas comme un défaut. C'est aussi le
+      // seul choix qui tienne sur tous les formats d'écran — `cover` rogne
+      // d'une quantité qui dépend de l'appareil.
       body: (controleur != null && controleur.value.isInitialized)
           ? SizedBox.expand(
               child: FittedBox(
-                fit: BoxFit.cover,
+                fit: BoxFit.contain,
                 child: SizedBox(
                   width: controleur.value.size.width,
                   height: controleur.value.size.height,

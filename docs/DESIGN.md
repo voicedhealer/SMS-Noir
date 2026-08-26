@@ -740,6 +740,27 @@ un bug — c'est tout l'argument en faveur de cet emplacement.
 
 ---
 
+## La vidéo de transition — un plan, cadré en entier
+
+Entre le N20 et le N9, Léna rentre chez elle : six secondes plein écran, sans en-tête ni chrome de
+messagerie, contrairement au noir narratif qui garde la barre de titre pour vendre l'absence.
+
+**`BoxFit.contain`, jamais `cover`.** Le carton « Léna rentre chez elle. » est **incrusté dans le
+fichier**, en 1080×1920. Sur un écran plus étroit que du 9:16 — le Galaxy S23 Ultra fait 1440×3088
+— `cover` remplit la hauteur et rogne 297 px de large, ~8 % de chaque côté : assez pour couper le
+« L » et le « e » du carton. Constaté en jouant par Vivien, capture à l'appui.
+
+Le cadre entier est donc préservé, quitte à border de noir. Le fond de l'écran **est** noir et la
+vidéo a des bords sombres : la bande se lit comme un cadrage de cinéma, pas comme un défaut. C'est
+aussi le seul choix qui tienne sur tous les formats — `cover` rogne d'une quantité qui dépend de
+l'appareil, donc un cadrage validé sur un téléphone ne prouve rien sur un autre.
+
+⚠️ **Règle générale que ça pose : tout texte incrusté dans un média impose `contain`.** Le
+recadrage n'est acceptable que sur une image dont aucun bord ne porte d'information.
+
+**La vidéo est muette**, et deux fois plutôt qu'une : la piste audio a été retirée du fichier, et
+le lecteur force `setVolume(0)`. Aucune musique ne tourne non plus pendant ce plan.
+
 ## Écran 3 — Fin de chapitre
 
 Sortie du fil, plein écran, contenu **centré verticalement** — jamais plaqué en haut, refonte
