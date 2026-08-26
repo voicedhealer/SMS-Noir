@@ -847,6 +847,30 @@ chapitre encore en écriture), seul le teaser reste absent tant que `teaser_text
 Le lecteur audio simule la lecture : les fichiers n'existent pas encore. Son signal de **réécoute**
 est en revanche réel — c'est lui qui portera l'interaction cachée du N17 en Phase 3.
 
+## Normalisation des niveaux — une cible par rôle
+
+Signalé par Vivien en jouant : « le battement de cœur est peu audible ». La mesure a montré un
+problème plus large que ce seul son — **20 dB d'écart** entre les extrêmes, et la musique jouait
+**au-dessus** de la voix, ce qui est l'inverse de ce qu'il faut.
+
+| Rôle | Cible | Pourquoi |
+|---|---|---|
+| **Voix** (vocal N17) | **−16 LUFS** | C'est le contenu : rien ne doit passer devant |
+| **Bruitage** (battement N19, ambiance vidéo) | **−18 LUFS** | Se sentir sans masquer une réplique |
+| **Musique** (intro, narration, fin) | **−20 LUFS** | Un lit, qui passe sous tout le reste |
+
+Plafond de crête **−1,5 dBTP** partout. `Unmarked_Evidence.mp3` écrêtait à **+0,7 dBTP** — une
+distorsion garantie sur la musique de fin de chapitre, jamais repérée jusque-là.
+
+**Le cas du battement est le plus parlant.** Au N19 il joue **par-dessus** la musique de narration.
+Avant : −25,3 contre −13,9, soit 11,4 dB **sous** le lit musical — inaudible par construction, quel
+que soit le volume du téléphone. Après : −18,7 contre −20,0, soit 1,3 dB **au-dessus**. Un
+basculement de près de 13 dB, obtenu sans toucher au fichier lui-même.
+
+⚠️ **Normaliser en deux passes, jamais au gain simple.** La mesure (`loudnorm`) précède
+l'application, sinon le résultat rate sa cible. Les originaux sont récupérables par git — tous les
+médias y sont suivis.
+
 ## Le son — deux usages, deux politiques
 
 Elles ne sont pas interchangeables : une note vocale et une musique d'ambiance n'ont pas les mêmes
