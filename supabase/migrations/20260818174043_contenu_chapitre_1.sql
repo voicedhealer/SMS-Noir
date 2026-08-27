@@ -419,7 +419,7 @@ join contacts ct on ct.story_id = s.id and ct.code = 'lena';
 -- ---------------------------------------------------------------------------
 -- MICRO-CHOIX — la grammaire des trois axes (V3.1)
 --
--- Vingt et un blocs de trois options, toujours dans le même ordre : protéger,
+-- Vingt-quatre blocs de trois options, toujours dans le même ordre : protéger,
 -- enquêter, raisonner. L'ordre crée une habitude inconsciente ; les icônes du
 -- document de contenu ne sont JAMAIS affichées au joueur.
 --
@@ -456,6 +456,11 @@ from (values
 ('N5', 10, $$Je suis désolé pour vous.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Merci, c'est déjà plus que ce que j'entends d'habitude.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
 ('N5', 11, $$Disparu comment ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Un soir elle était là, le lendemain non, plus aucun message, plus rien.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
 ('N5', 12, $$Et la police n'a rien fait ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "J'y viens, et croyez-moi, vous allez comprendre pourquoi je fais ça toute seule.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
+
+-- N5 · pause après le message 2
+('N5', 20, $$Vous êtes seule à supporter cette situation ? Personne ne vous aide ?$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Personne, non... on me dit de passer à autre chose, de faire mon deuil. Mais c'est totalement impossible pour moi !", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
+('N5', 21, $$Vous en avez parlé à la police ou à la gendarmerie ?$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Ahhh la police... un moment difficile...", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N5', 22, $$Ça fait combien de temps que vous cherchez seule ?$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Trop longtemps pour que ce soit sain, je crois.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N6 · pause après le message 2
 ('N6', 10, $$Je vous écoute.$$, 2, $$[{"sender": "contact", "content_type": "text", "body": "Merci, vraiment.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),

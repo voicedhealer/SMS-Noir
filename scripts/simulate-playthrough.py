@@ -318,6 +318,12 @@ def parcours_allie():
     # c'est la grammaire des trois axes qui s'applique.
     verifier('confiance', v['confiance'], 9)
     verifier('lucidite', v['lucidite'], 1)
+    # ⚠️ Épinglé, et pas décoratif : l'apport de posture vaut
+    # round(3 · n/(n+3)) — il ne bouge qu'au palier n = 15. Un bloc de
+    # micro-choix ajouté ailleurs dans le chapitre changerait donc `n` sans
+    # changer `confiance`, et ce parcours resterait vert en mesurant autre
+    # chose que ce qu'il croit. Voir LOGIQUE.md § Ajouter un micro-choix.
+    verifier('micro-choix traversés', v['micro']['n'], 13)
     verifier('refus', v['refus'], False)
     verifier('branche_ch1', v['branche_ch1'], 'allié')
     verifier('indices', sorted(v['indices']),
@@ -425,8 +431,16 @@ def parcours_refus():
     v = etat['variables']
     print()
     verifier('refus posé par le nœud N11', v['refus'], True)
-    verifier('confiance ÉCRÊTÉE à 6 (vaudrait 7 sans le plafond)', v['confiance'], 6)
+    verifier('confiance ÉCRÊTÉE à 6 (vaudrait 10 sans le plafond)', v['confiance'], 6)
     verifier('lucidite', v['lucidite'], 4)
+    # ⚠️ CE PARCOURS NE TIENT QUE PAR L'ÉCRÊTAGE, et c'est le plus fragile des
+    # deux : 6 est un plafond, pas une somme. Sa valeur brute est structurel 7
+    # + apport 3 = 10 — il reste donc à 6 qu'on ajoute ou qu'on retire un bloc
+    # de micro-choix, y compris quand l'apport bascule de 2 à 3 (palier n=15,
+    # franchi le 27 août 2026 par le bloc ajouté au N5, sans qu'aucun contrôle
+    # ne s'allume). Les deux lignes ci-dessous épinglent ce qui bouge vraiment.
+    verifier('micro-choix traversés', v['micro']['n'], 15)
+    verifier('part structurelle de confiance', v['structurel']['confiance'], 7)
     verifier('branche_ch1', v['branche_ch1'], 'empathie')
     verifier('indices', sorted(v['indices']), ['TELEPHONE'])
     verifier('Fin de chapitre atteinte', p.noeud['code'], 'N22')

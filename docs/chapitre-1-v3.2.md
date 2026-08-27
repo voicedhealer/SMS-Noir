@@ -117,6 +117,12 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 **[Léna]** Moi c'est Léna, au passage. Puisqu'on en est là.
 
 *(→ carte d'enregistrement du contact · révélation d'identité)*
+
+**MICRO-CHOIX :**
+- 🛡 « Vous êtes seule à supporter cette situation ? Personne ne vous aide ? » → *« Personne, non... on me dit de passer à autre chose, de faire mon deuil. Mais c'est totalement impossible pour moi ! »*
+- 🔍 « Vous en avez parlé à la police ou à la gendarmerie ? » → *« Ahhh la police... un moment difficile... »*
+- 🧠 « Ça fait combien de temps que vous cherchez seule ? » → *« Trop longtemps pour que ce soit sain, je crois. »*
+
 → **N8**
 
 ---

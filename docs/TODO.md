@@ -34,6 +34,19 @@ base vierge rejoue les fichiers par ordre de version : le contenu passe avant le
 Invisible jusqu'ici parce que la base locale n'a pas été remise à zéro depuis : les colonnes y ont
 été ajoutées par les ALTER, puis le contenu modifié en place.
 
+**Deuxième face du même défaut, constatée le 27 août 2026 — celle-ci frappe le développement
+quotidien.** Rejouer la migration de contenu **seule** sur une base existante (le geste normal
+après une régénération) fait `delete from chapters`, et efface au passage
+`chapters.notification_text`, posé par la migration **postérieure** `20260821120000`. Le bouton
+« Me prévenir » de l'écran de fin devient alors inerte, sans erreur nulle part.
+`simulate-playthrough.py` l'attrape — c'est lui qui l'a signalé — mais il faut y penser :
+
+- [ ] **Après tout `psql < …_contenu_chapitre_1.sql`, rejouer les `update` des migrations
+      postérieures** qui écrivent dans `stories` / `chapters` / `nodes` / `messages` / `choices`.
+      Aujourd'hui il n'y en a qu'une (`20260821120000`, `notification_text`). Le préambule DDL
+      idempotent proposé ci-dessous ne suffira pas à régler ce sens-là : il faudra soit déplacer ce
+      contenu dans la migration de contenu, soit rendre la migration de teaser rejouable seule.
+
 **Sans effet sur la synchronisation du distant**, qui pousse le schéma d'abord et ne rejoue le
 contenu qu'ensuite (procédure du 19/08). Mais la propriété « les migrations sont la source de
 vérité rejouable » est perdue tant que ce n'est pas corrigé.
@@ -42,6 +55,26 @@ vérité rejouable » est perdue tant que ce n'est pas corrigé.
       exists`, identique aux migrations dédiées, qui le sont déjà) en tête de la migration de
       contenu, pour la rendre autoportante. Puis **valider par un vrai `db reset` local** — c'est
       le seul test qui prouve la propriété.
+
+## 🔴 `test-micro-choix.py` — le contrôle de la formule ne mesure plus rien
+
+Constaté le 27 août 2026, **préexistant** : vérifié en réappliquant le contenu d'avant l'ajout du
+bloc au N5, l'échec est identique au mot près.
+
+« Une posture nette se voit » échoue, et ses deux voisins passent pour la mauvaise raison. Le
+contrôle écrit `micro` directement en base (`n = 20` puis `60`, à 80 % « raisonner »), puis compte
+sur un `franchir_pauses()` pour provoquer un tour de moteur qui redérive les axes. Ce franchissement
+ne trouve plus aucune pause ouverte à cet endroit du parcours : aucun `advance` n'est appelé,
+`deriverAxes` n'est jamais rejouée, et le script relit la valeur d'AVANT son écriture forcée. D'où
+`lucidite = 1` pour 20 comme pour 60 — la même valeur périmée deux fois, ce qui fait passer
+« 20 et 60 donnent la même lucidité » sans rien prouver.
+
+La formule, elle, est juste : 49/63 lissé donne bien un apport de 2.
+
+- [ ] **Réparer le déclencheur de redérivation**, pas la formule. Le plus simple est probablement
+      d'appeler `appliquerPlafonds` par un vrai `advance` garanti (un micro-choix connu, pas
+      « la prochaine pause qui traînera »), ou de poser le décompte AVANT d'aller au N8 plutôt
+      qu'après.
 
 ## 🔴 Addendum transition N20-N9 — TERMINÉ côté code, deux témoins visuels dus à Vivien
 
@@ -339,6 +372,9 @@ elle a besoin de ton feu vert, et `chapitre-1-v2.md` devra être patché en mêm
       - **N8** : découpé, un bloc de micro-choix ajouté après le message 4. C'était le pire des
         trois — quatre bulles dont un vrai paragraphe pour finir.
       - **N5** : laissé tel quel, « la carte de contact la coupe déjà en pratique » (Vivien).
+        ⚠️ Ne pas confondre avec l'ajout du 27 août 2026 : le N5 a bien reçu un bloc depuis, mais
+        pour un **défaut de transition** vers le N8, pas pour sa densité. La décision ci-dessus
+        reste valable telle quelle.
       - **N18→N19** : laissé tel quel, à rejuger une fois l'effet de tension éprouvé en jeu.
 
 - [ ] **Q9 — Jour J : le 13 ou le 14 août 2026 ?** Tu as indiqué « Jeudi 14 août 2026 », mais le

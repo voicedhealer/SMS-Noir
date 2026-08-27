@@ -351,6 +351,28 @@ dans la variable publique. Sans ça, la part de posture — recalculée à chaqu
 micro-choix — se cumulerait à elle-même et la variable dériverait à chaque tour.
 `deriverAxes()` est **idempotente** : elle ne lit jamais la valeur publique.
 
+### ⚠️ Ajouter un micro-choix déplace tous les parcours qui le traversent
+
+L'apport de posture ne dépend pas seulement de **ce que** le joueur choisit, mais de **combien** de
+micro-choix il a rencontrés : pour un joueur mono-axe il vaut `round(amplitude · n/(n+3))`. Sur
+`confiance` et `lucidite` (amplitude 3), le palier tombe à **n = 15** — à 14 micro-choix l'apport
+vaut 2, à 15 il vaut 3. Ajouter un bloc quelque part change donc la valeur finale de **tous** les
+parcours qui passent par ce nœud, sans qu'une ligne de contenu ait bougé sur le reste de leur
+chemin.
+
+**Et le parcours « refus » de `simulate-playthrough.py` ne le dira pas.** Il vérifie
+`confiance = 6`, mais 6 est le **plafond** de la branche refus (bible §6), pas une somme : la
+valeur brute vaut aujourd'hui 10 (structurel 7 + apport 3). Ce contrôle reste donc vert qu'on
+ajoute ou qu'on retire un bloc — il continue de passer, pour une autre raison que celle qu'il croit
+vérifier. C'est arrivé le 27 août 2026 : le bloc ajouté au N5 a fait passer ce parcours de 14 à 15
+micro-choix, donc son apport de 2 à 3, sans que rien ne s'allume.
+
+**Le garde-fou est donc explicite** : les deux parcours simulés épinglent `micro.n`
+(`verifier('micro-choix traversés', …)`), et le parcours refus épingle en plus sa part
+structurelle. C'est cette assertion-là qui doit tomber quand on touche aux micro-choix — pas la
+valeur d'une variable écrêtée. **Son échec veut dire « recalcule les valeurs attendues », jamais
+« recopie ce que le moteur vient de renvoyer ».**
+
 ## L'écran noir narratif (`content_type = 'narration'`)
 
 Pendant les 60 s où Léna ne répond plus (N19), l'app quitte la conversation et

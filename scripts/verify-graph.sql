@@ -272,7 +272,14 @@ select _chk(44, 'Nombre total de messages', '69',
 -- 99 → 102 le 24 août 2026 : bloc au N8, après le message 4. Quatre bulles s'y
 -- enchaînaient sans respiration, dont un vrai paragraphe pour finir — le pire
 -- des trois cas relevés au balayage de densité (Q12).
-select _chk(45, 'Nombre total de choix', '102',
+--
+-- 102 → 105 le 27 août 2026 : le même bloc que celui du N7, recopié au N5.
+-- Le défaut de transition vers le N8 n'avait été corrigé que sur une des deux
+-- branches qui y entrent sans choix structurant — le N5 (branche empathie)
+-- enchaînait toujours la révélation du prénom sur « La police a classé le
+-- dossier... ». Le N6 n'est pas concerné : son choix structurant sépare déjà
+-- les deux, et l'une de ses trois options nomme la police.
+select _chk(45, 'Nombre total de choix', '105',
   (select count(*)::text from _n n join choices ch on ch.node_id = n.id));
 
 select _chk(46, 'Répartition des choix (ignore/interaction/reply)', '0/7/26',

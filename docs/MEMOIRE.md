@@ -4,6 +4,78 @@
 
 ---
 
+## 2026-08-27 (18) — Le N5 entrait dans le N8 sans transition, comme le N7 avant lui
+
+La correction du 24 août n'avait été appliquée qu'à **une** des deux branches qui entrent dans le
+N8 sans choix structurant. Signalé par Vivien : au N5 comme au N7, la révélation du prénom et la
+carte de contact étaient suivies directement de « La police a classé le dossier... » — une réponse
+à une question que le joueur n'avait jamais posée.
+
+**Le même bloc, recopié tel quel.** Trois options fournies par Vivien, identiques à celles du
+N7#30-32, posées après la carte de contact (`after_position = 2`). Le contenu n'a pas été
+reformulé — il est écrit dans `docs/chapitre-1-v3.2.md`, et la migration en est **régénérée**
+(`scripts/generate-seed-content.py`), jamais éditée à la main : le générateur n'a produit que les
+3 lignes attendues, ce qui prouve au passage que le fichier était en phase avec le document avant
+l'ajout.
+
+**Le N6 n'a PAS le même défaut, et n'a rien reçu.** C'est la troisième branche vers le N8, mais la
+seule à s'y rendre par un **choix structurant** : le joueur y dit « D'accord, je vous écoute. »
+avant que Léna n'enchaîne. Une prise de parole du joueur sépare donc déjà la révélation du prénom
+du sujet de la police — et l'une des trois options de ce choix, « Appelez la police, pas un
+inconnu. », nomme littéralement le sujet qui suit. Y ajouter un micro-choix aurait empilé deux
+blocs de choix sans un seul message entre eux, ce qui n'existe nulle part ailleurs dans le
+chapitre. La bonne lecture n'est pas « trois branches convergentes » mais **« deux branches qui
+entrent sans choix » (N5, N7) et une qui entre par un choix (N6)** — et c'est cette distinction-là
+qui décide, pas le nombre de branches.
+
+**À ne pas confondre avec la décision Q12** (24 août) : là, le N5 avait été « laissé tel quel » au
+balayage de **densité**, parce que la carte de contact coupe déjà la suite de bulles. C'est vrai,
+et ça reste vrai — la densité et la transition sont deux défauts différents au même endroit.
+
+**Vérifications.** Le contrôle 45 de `verify-graph.sql` passe de 102 à 105 choix, avec sa ligne
+d'historique comme les trois précédentes. Le compte de blocs en tête du bloc MICRO-CHOIX de la
+migration était resté à « Vingt et un » depuis le 17 août — corrigé à vingt-quatre (il vit dans la
+migration, pas dans le générateur, et survit donc aux régénérations).
+
+**Vérifié pour de vrai, stack locale relancée.** `verify-graph.sql` 56/56 · `verify-fidelity.py`
+123 répliques identiques des deux côtés · `simulate-playthrough.py` intégralement vert ·
+`flutter test` 173/173. Les décomptes relevés en base confirment le calcul fait avant de pouvoir
+l'exécuter :
+
+| parcours | `micro.n` avant | après | apport de posture | résultat |
+|---|---|---|---|---|
+| allié (N1→N3→N5→N8→N12→N14→N16→N19→N20→N9→N21→N22) | 12 | **13** | 2 (inchangé) | `confiance` 9 ✅ |
+| refus (…→N10→N11→N14→N17→…) | 14 | **15** | 2 → **3** | `confiance` 6 — écrêtée par le plafond ✅ |
+| postures (CHEMIN_ALLIE) | 10 | **11** | 2 (inchangé) | seuils et comparaisons ✅ |
+
+**Le parcours « refus » ne tenait que par son écrêtage — corrigé.** Sa valeur brute est passée de 9
+à 10 pendant que le contrôle affichait toujours 6 : il serait resté vert pour un bloc ajouté comme
+pour un bloc retiré. Signalé par Vivien. Les deux parcours épinglent désormais `micro.n`
+explicitement, et le parcours refus sa part structurelle — c'est cette assertion-là qui doit tomber
+quand on touche aux micro-choix, pas la valeur d'une variable plafonnée. Le libellé du contrôle
+mentait aussi : « vaudrait 7 sans le plafond » alors qu'il vaut 10. Règle et raisonnement dans
+LOGIQUE.md § Ajouter un micro-choix déplace tous les parcours qui le traversent.
+
+**Un rouge PRÉEXISTANT, laissé tel quel.** `test-micro-choix.py` échoue sur « Une posture nette se
+voit » — vérifié en réappliquant le contenu d'AVANT dans la base : le même échec, au mot près. Rien
+à voir avec ce bloc, donc, mais il ne fallait pas le laisser sans diagnostic pour le prochain qui
+le rencontrera. Le contrôle force `micro` directement en base, puis compte sur un
+`franchir_pauses()` pour faire redériver le moteur. Ce franchissement ne trouve aujourd'hui plus
+aucune pause ouverte à cet endroit du parcours : aucun tour de moteur n'a lieu, `deriverAxes` n'est
+jamais rappelée, et la valeur lue est celle d'avant l'écriture forcée (`lucidite` 1, alors que la
+formule donne bien 2 sur 49/63). Les deux contrôles voisins passent pour la même mauvaise raison —
+ils comparent deux fois la même valeur périmée. C'est le déclencheur de redérivation qu'il faut
+réparer, pas la formule. Noté au TODO.
+
+**Au passage, l'autre face de la chaîne de migrations non rejouable.** Rejouer la migration de
+contenu seule sur une base existante fait `delete from chapters`, ce qui efface
+`chapters.notification_text` — posé par `20260821120000`, une migration **postérieure**. Le TODO ne
+décrivait jusqu'ici que le sens « base vierge » (le contenu passe avant les DDL) ; celui-ci frappe
+la base de développement à chaque régénération de contenu. C'est la simulation qui l'a attrapé,
+avec le bon message. Valeur restaurée à la main, TODO complété.
+
+---
+
 ## 2026-08-27 (17) — La musique jouait dans la poche du joueur
 
 Signalé par Vivien sur l'écran de fin : la musique continuait en arrière-plan, et seul un
