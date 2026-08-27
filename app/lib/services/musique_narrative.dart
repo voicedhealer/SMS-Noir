@@ -5,6 +5,7 @@ import 'package:just_audio/just_audio.dart';
 
 import 'audio_session_config.dart';
 import 'indicateur_sonore.dart';
+import 'veille_audio.dart';
 
 /// Musique d'intronisation.
 ///
@@ -21,6 +22,10 @@ import 'indicateur_sonore.dart';
 /// Ici, [demarrer] coupe systématiquement ce qui jouait avant. Il ne peut donc
 /// jamais y avoir deux musiques en même temps, quel que soit le cycle de vie
 /// des écrans.
+///
+/// **En arrière-plan, la musique est coupée et ne revient pas.** C'est
+/// [VeilleAudio] qui la coupe, via l'indicateur ; le retour au premier plan ne
+/// la relance pas — voir docs/DESIGN.md § Le son s'arrête avec l'app.
 class MusiqueNarrative {
   MusiqueNarrative._();
   static final MusiqueNarrative instance = MusiqueNarrative._();
@@ -44,6 +49,10 @@ class MusiqueNarrative {
   /// Démarre la musique en fondu montant. Coupe toujours la précédente.
   Future<void> demarrer(String url) async {
     await arreter();
+    // Une musique lancée alors que le joueur n'est plus là ne serait entendue
+    // par personne, et resterait à jouer dans sa poche : `couperTout()` est
+    // déjà passé, ce lecteur-ci n'existait pas encore. Voir VeilleAudio.
+    if (!VeilleAudio.instance.avantPlan) return;
     final generation = ++_generation;
     try {
       // Catégorie « ambient » : respecte le mode silencieux du téléphone et ne
@@ -58,7 +67,15 @@ class MusiqueNarrative {
       await lecteur.setUrl(url);
       await lecteur.setVolume(0);
       await lecteur.setLoopMode(LoopMode.off); // une seule lecture, jamais en boucle
+      // Second contrôle, et pas une redite du premier : le chargement du
+      // fichier passe par le réseau, le joueur a eu tout le temps de quitter
+      // l'app entre-temps. C'est ici, juste avant `play()`, que la fenêtre se
+      // referme vraiment.
       if (generation != _generation) return;
+      if (!VeilleAudio.instance.avantPlan) {
+        await arreter();
+        return;
+      }
       _desinscrireSonore = IndicateurSonore.instance.signaler(() => unawaited(arreter()));
       unawaited(lecteur.play());
       await _monter(lecteur, generation);

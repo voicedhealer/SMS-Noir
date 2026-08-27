@@ -60,6 +60,11 @@ class _VideoTransitionScreenState extends State<VideoTransitionScreen> {
       // Comme tout ce qui sonne : le tap sur l'indicateur doit pouvoir le
       // couper net. Un plan de six secondes qu'on ne peut pas faire taire
       // serait le seul son du chapitre à échapper à cette règle.
+      //
+      // Cette inscription sert deux fois : c'est elle aussi qui coupe le son
+      // du plan quand l'app passe en arrière-plan (`VeilleAudio`). L'image
+      // s'arrête avec lui et ne repart pas — le sas dure six secondes, et le
+      // déroulé qui reprend en dessous le referme de toute façon.
       _desinscrireSonore = IndicateurSonore.instance.signaler(
         () => unawaited(controleur.pause()),
       );

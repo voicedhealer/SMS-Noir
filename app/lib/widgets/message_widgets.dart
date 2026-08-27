@@ -433,6 +433,14 @@ class _AudioBubbleState extends State<AudioBubble> {
           if (enLecture) {
             // Couper depuis l'indicateur global équivaut à taper pause ici :
             // même geste que le joueur aurait fait sur la bulle elle-même.
+            //
+            // C'est aussi, par la même inscription, ce qui fait taire le vocal
+            // quand l'app passe en arrière-plan (`VeilleAudio`) — il n'y a rien
+            // de plus à câbler ici. Et `pause`, pas `stop` : la position est
+            // conservée, le joueur reprend d'un tap où il en était. Jamais de
+            // reprise automatique au retour dans l'app — aucune messagerie ne
+            // se remet à parler toute seule quand on déverrouille son
+            // téléphone.
             _desinscrireSonore = IndicateurSonore.instance.signaler(() => lecteur.pause());
           } else {
             _desinscrireSonore?.call();

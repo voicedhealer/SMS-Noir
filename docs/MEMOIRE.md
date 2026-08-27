@@ -4,6 +4,55 @@
 
 ---
 
+## 2026-08-27 (17) — La musique jouait dans la poche du joueur
+
+Signalé par Vivien sur l'écran de fin : la musique continuait en arrière-plan, et seul un
+processus tué la faisait taire.
+
+**La cause.** Personne n'observait le cycle de vie de l'app côté son. Le `dispose()` de l'écran ne
+pouvait pas servir de filet : il se déclenche au démontage de l'écran, jamais quand le joueur
+quitte l'app — l'écran de fin restait monté, son lecteur avec. Rien dans Flutter ne coupe un
+lecteur audio en arrière-plan, et l'`AndroidAudioUsage.media` que nous demandons l'y autorise
+explicitement.
+
+**Le défaut était partout, pas seulement là.** Les quatre sources narratives avaient le même trou :
+`MusiqueNarrative`, `SonAmbiance`, le vocal d'`AudioBubble` et la vidéo de transition. Il ne s'était
+manifesté que sur l'écran de fin parce que c'est le seul endroit où l'on reste longtemps sur une
+musique — ailleurs, un écran suivant coupait avant qu'on ait le temps de sortir de l'app.
+
+**La correction tient en une ligne, et c'est le point intéressant.** `VeilleAudio`
+(`services/veille_audio.dart`) observe le cycle de vie et appelle `IndicateurSonore.couperTout()`.
+Il ne connaît **aucun** lecteur : le registre construit pour l'indicateur sonore sait déjà qui joue
+et comment le couper, donc chaque source reçoit l'arrêt qu'elle a elle-même enregistré — coupure
+nette pour une musique, `pause` pour un vocal ou une vidéo. Un registre écrit pour un tap sur une
+icône a résolu un problème de cycle de vie sans qu'on y touche. Toute future source narrative est
+couverte du seul fait qu'elle s'y inscrit.
+
+**Sur `hidden`/`paused`, jamais sur `inactive`.** `inactive` est transitoire : bannière de
+notification, centre de contrôle, appel entrant. Y couper aurait fait de chaque notification reçue
+une coupure de mise en scène — un second bug à la place du premier.
+
+**La fenêtre que l'observateur seul ne ferme pas.** `demarrer()` est asynchrone : une musique
+lancée juste avant le départ commencerait à jouer *après* le passage de `couperTout()`, sans
+s'être enregistrée nulle part. D'où un garde `VeilleAudio.avantPlan` dans `MusiqueNarrative` et
+`SonAmbiance`, avant et après le chargement réseau. C'est aussi la seule partie testable sans
+plateforme réelle — elle rend la main avant de créer le moindre lecteur.
+
+**Décision de Vivien, étendue par moi aux autres lecteurs : rien ne repart au retour.** Le joueur
+qui revient sur l'écran de fin a déjà lu le cliffhanger. Pour l'intro et le N19, ce sont des pièces
+écrites pour un moment précis : les reprendre en cours ou les relancer du début désynchronise le
+son du texte dans les deux cas. Le déroulé, lui, reprend — asymétrie assumée : une phrase peut
+attendre le joueur, une musique non. Le vocal ne fait que se mettre en pause, position conservée,
+et c'est un tap qui le reprend. Table complète dans DESIGN.md § Le son s'arrête avec l'app ; deux
+cas où une autre règle se défendrait sont posés en questions ouvertes (TODO Q15, Q16).
+
+**Test.** `test/veille_audio_test.dart`, 7 cas, sans plateforme : le message de cycle de vie est
+envoyé par le canal `flutter/lifecycle`, donc Flutter génère lui-même les états intermédiaires et
+le test exerce la vraie séquence `inactive` → `hidden` → `paused`. Vérifié qu'il échoue sans la
+correction (4 cas sur 7 tombent).
+
+---
+
 ## 2026-08-26 (16) — Premier retour de test réel : la vidéo de transition
 
 Deux défauts sur le même plan, signalés par Vivien capture à l'appui.

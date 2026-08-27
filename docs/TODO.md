@@ -319,6 +319,22 @@ elle a besoin de ton feu vert, et `chapitre-1-v2.md` devra être patché en mêm
       est destructif et c'est ton média. À trancher avant toute mise en production, où le joueur
       sera en 4G et pas en WiFi local.
 
+- [ ] **Q15 — Le battement du N19 ne revient pas après un aller-retour dans l'app.** Règle posée le
+      27 août 2026 : quitter l'app coupe tout son narratif, et rien ne repart au retour (DESIGN.md
+      § Le son s'arrête avec l'app). Pour l'écran de fin c'est ta décision et elle est nette. Pour
+      le N19 c'est le seul cas qui frotte : la **scène**, elle, reprend là où elle en était (le
+      déroulé est gelé puis relancé), et elle finirait donc sans son fond sonore. Une boucle n'a pas
+      de position — la relancer serait inaudible comme raccord. À trancher : uniformité (rien ne
+      repart) ou reprise du seul `SonAmbiance` avec la scène ? **Non fait de notre initiative** :
+      c'est de la mise en scène.
+
+- [ ] **Q16 — La vidéo de transition reste figée sur son image après un aller-retour.** Même règle,
+      même conséquence, mais sur l'image cette fois : un aller-retour pendant les 6 s du sas laisse
+      un plan arrêté jusqu'à ce que le déroulé referme l'écran. Techniquement c'est une reprise
+      triviale (`play()` au retour, l'écran a déjà son propre `State`). La question est de savoir si
+      un plan qui redémarre au milieu vaut mieux qu'une image fixe — dans les deux cas le sas a
+      perdu sa durée.
+
 - [x] ~~**Q12 — Trois séquences à 4 bulles consécutives**~~ — **tranchée le 24 août 2026.**
       - **N8** : découpé, un bloc de micro-choix ajouté après le message 4. C'était le pire des
         trois — quatre bulles dont un vrai paragraphe pour finir.

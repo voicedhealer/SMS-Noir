@@ -978,9 +978,13 @@ présence continue, pas un clignotement. Tapable : coupe tout net, sans passer p
 téléphone.
 
 **Ce que « son narratif » couvre précisément** : tout ce qui passe par `MusiqueNarrative` (musique
-d'intronisation, écran noir du N19, écran de fin) et la note vocale (`AudioBubble`). Rien d'autre —
-en particulier jamais les sons de `SoundEffects` (réception, envoi, frappe), qui restent muets pour
-cet indicateur comme pour la recommandation ci-dessus.
+d'intronisation, écran noir du N19, écran de fin), la boucle d'ambiance (`SonAmbiance` — le
+battement du N19), la note vocale (`AudioBubble`) et le son natif de la vidéo de transition. Rien
+d'autre — en particulier jamais les sons de `SoundEffects` (réception, envoi, frappe), qui restent
+muets pour cet indicateur comme pour la recommandation ci-dessus.
+
+Cette liste est aussi, mot pour mot, celle de ce que le passage en arrière-plan fait taire : les
+deux mécanismes passent par le même registre (§ Le son s'arrête avec l'app).
 
 **Générique et transversal, pas propre à un écran** : monté une seule fois au niveau de l'app
 (`MaterialApp.builder`, `main.dart`), au-dessus de tout le reste — un écran noir narratif et une
@@ -994,6 +998,59 @@ s'enregistrer au bon moment, comme `MusiqueNarrative` et `AudioBubble` le font d
 **Le tap coupe, ne met jamais juste en pause** : le registre vide sa liste immédiatement (avant même
 d'appeler les arrêts), pour que l'icône disparaisse sans attendre qu'une source asynchrone confirme
 qu'elle s'est bien arrêtée.
+
+## Le son s'arrête avec l'app
+
+**Quitter l'app fait taire tout son narratif.** Rien, dans Flutter, ne le fait à notre place :
+`just_audio` et `video_player` continuent de jouer en arrière-plan, et l'`AndroidAudioUsage.media`
+que nous demandons les y autorise explicitement. Le `dispose()` d'un écran ne rattrape rien — il se
+déclenche au démontage de l'écran, jamais quand le joueur quitte l'app. Constaté sur l'écran de
+fin : la musique jouait toujours, téléphone rangé, jusqu'à ce que le processus soit tué. Le même
+défaut existait sur **tous** les lecteurs ; il ne s'était juste pas encore fait remarquer ailleurs.
+
+`VeilleAudio` (`services/veille_audio.dart`), installé une fois depuis `main.dart`, observe le cycle
+de vie et appelle `couperTout()` sur l'indicateur. **Il ne connaît aucun lecteur** : le registre
+sait déjà qui joue et comment le couper, donc chaque source reçoit exactement l'arrêt qu'elle a
+elle-même enregistré. Une future source narrative sera couverte du seul fait qu'elle s'y inscrit,
+comme elle l'est déjà pour le tap sur l'indicateur.
+
+**Sur `hidden` et `paused`, jamais sur `inactive`.** `inactive` est transitoire et ne veut pas dire
+« parti » : une bannière de notification, le centre de contrôle, un appel entrant le déclenchent
+sans que le joueur ait quitté quoi que ce soit. Y couper la musique ferait de chaque notification
+reçue une coupure de mise en scène. Le vrai départ, c'est `hidden` puis `paused` — Flutter émet
+toujours les deux sur mobile, et l'app n'est déjà plus visible au premier des deux.
+
+**Et rien ne démarre pendant ce temps.** `demarrer()` est asynchrone : une musique lancée juste
+avant le départ commencerait à jouer *après* le passage de `couperTout()`, sans s'être enregistrée
+nulle part — l'observateur ne peut pas couper ce qui n'existe pas encore. `MusiqueNarrative` et
+`SonAmbiance` vérifient donc `VeilleAudio.avantPlan` avant de jouer, et une seconde fois après le
+chargement réseau.
+
+### Au retour, rien ne repart tout seul
+
+C'est une décision, pas un oubli. Chaque lecteur garde la sémantique de son propre arrêt :
+
+| Source | Au départ | Au retour |
+|---|---|---|
+| `MusiqueNarrative` (intro, N19, écran de fin) | coupure nette, lecteur détruit | **ne revient pas** |
+| `SonAmbiance` (battement du N19) | coupure nette de la boucle | **ne revient pas** |
+| Note vocale (`AudioBubble`) | `pause`, position conservée | reste en pause — un tap la reprend où elle en était |
+| Vidéo de transition | `pause`, image figée | reste figée ; le déroulé referme le sas de toute façon |
+
+**Pourquoi la musique ne revient pas.** Sur l'écran de fin, le joueur qui revient a déjà lu le
+cliffhanger : la musique par-dessus ne serait plus une mise en scène, juste une surprise. Sur
+l'intro et le N19, ce sont des pièces écrites pour un moment précis, avec leur fondu d'entrée et
+leur coupure nette — les reprendre en cours ou les relancer du début désynchronise le son du texte
+à l'écran dans les deux cas. Le déroulé, lui, reprend (§ Pause automatique ci-dessous) : c'est
+volontairement asymétrique, une phrase peut attendre le joueur, une musique ne le peut pas.
+
+**Pourquoi le vocal, lui, ne fait que se mettre en pause.** Aucune messagerie ne se remet à parler
+toute seule quand on déverrouille son téléphone. La position est conservée, et c'est un tap du
+joueur qui la reprend — le même geste qu'il aurait fait sur la bulle.
+
+Les bips de `SoundEffects` ne sont pas concernés, par la même règle qui les exclut de l'indicateur :
+ils durent moins de 200 ms et ne s'enregistrent nulle part. Un bip qui finirait de sonner pendant
+que l'écran s'éteint ne se distingue pas d'un bip normal.
 
 ## Pause automatique — sans bouton
 

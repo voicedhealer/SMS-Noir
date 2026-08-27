@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config/env.dart';
 import 'services/audio_session_config.dart';
+import 'services/veille_audio.dart';
 import 'screens/root_screen.dart';
 import 'theme/app_theme.dart';
 import 'widgets/sound_indicator.dart';
@@ -17,6 +18,11 @@ Future<void> main() async {
   // mode silencieux. Seule la note vocale, tapée explicitement, bascule en
   // `playback` — voir AudioSessionConfig.
   await AudioSessionConfig.ambiance();
+
+  // Le son s'arrête quand l'app quitte l'avant-plan. Installé ici, une fois
+  // pour toutes : aucun écran ne peut le faire à sa place — son `dispose()` ne
+  // se déclenche pas quand le joueur quitte l'app. Voir VeilleAudio.
+  VeilleAudio.instance.installer();
 
   await Supabase.initialize(
     url: Env.supabaseUrl,

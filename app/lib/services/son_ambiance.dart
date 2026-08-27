@@ -5,6 +5,7 @@ import 'package:just_audio/just_audio.dart';
 
 import 'audio_session_config.dart';
 import 'indicateur_sonore.dart';
+import 'veille_audio.dart';
 
 /// Son d'ambiance **en boucle**, superposé au fil de la conversation.
 ///
@@ -22,6 +23,11 @@ import 'indicateur_sonore.dart';
 /// Les deux s'enregistrent en revanche auprès du **même** [IndicateurSonore] :
 /// un tap sur l'indicateur coupe tout ce qui joue, sans avoir à savoir qui
 /// joue. C'est déjà ce que ce registre sait faire — rien à y ajouter.
+///
+/// **En arrière-plan, la boucle est coupée et ne revient pas.** [VeilleAudio]
+/// la coupe via l'indicateur, comme tout le reste ; la scène, elle, reprend où
+/// elle en était — pas son fond sonore. Voir docs/DESIGN.md § Le son s'arrête
+/// avec l'app.
 ///
 /// **Aucune méthode ne lève jamais** : une ambiance absente ou illisible ne
 /// doit pas empêcher la scène de se jouer. Mais jamais silencieuse pour
@@ -50,6 +56,9 @@ class SonAmbiance {
   Future<void> demarrer(String url) async {
     if (_url == url && joue) return;
     await arreter();
+    // Rien ne démarre pour une salle vide : le joueur est parti, `couperTout()`
+    // est déjà passé, ce lecteur-ci n'existait pas encore. Voir VeilleAudio.
+    if (!VeilleAudio.instance.avantPlan) return;
     _url = url;
     try {
       // Même politique que la musique narrative : `ambient` respecte le mode
@@ -63,6 +72,13 @@ class SonAmbiance {
       // suivi d'un `seek(0)` laisserait entendre à chaque tour.
       await lecteur.setLoopMode(LoopMode.one);
       await lecteur.setVolume(_volume);
+      // Second contrôle après le chargement réseau, comme dans
+      // `MusiqueNarrative` : c'est juste avant `play()` que la fenêtre se
+      // referme vraiment.
+      if (!VeilleAudio.instance.avantPlan) {
+        await arreter();
+        return;
+      }
       _desinscrireSonore =
           IndicateurSonore.instance.signaler(() => unawaited(arreter()));
       unawaited(lecteur.play());
