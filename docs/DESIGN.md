@@ -1109,6 +1109,41 @@ La politique est **embarquée et pas liée** : lisible hors ligne, impossible à
 page morte, versionnée avec le code qu'elle décrit. C'est aussi ce qui lève le blocage
 `PRIVACY_URL` — l'écran de consentement du moment IA a enfin quelque chose à montrer.
 
+## Le carnet — « Ce qu'on sait »
+
+Trouver un indice caché ne laissait aucune trace : rien n'encourageait donc à chercher. Le carnet
+donne un dépôt visible à l'exploration, **sans devenir un objet de jeu**.
+
+**Accessible depuis l'en-tête de la CONVERSATION** — une icône sobre, à droite du nom. Jamais
+depuis la liste : là-bas vit l'icône Réglages, et les deux ne doivent pas pouvoir se confondre.
+C'est le miroir exact de la règle des Réglages ci-dessus, dans l'autre sens.
+
+**L'icône est là dès le départ, carnet vide compris.** Une icône qui apparaîtrait à la première
+trouvaille annoncerait qu'il vient de se passer quelque chose — et rien ici n'a le droit de faire
+ça. Aucune pastille, aucun point, aucun compte dessus.
+
+Contenu : les textes des indices trouvés, **seuls**, dans l'ordre où le joueur les a découverts.
+Pas de code, pas de numéro, pas d'horodatage : ce sont des notes prises à la volée, pas des fiches.
+Le ton des textes suit — bref et factuel.
+
+**Rien de trouvé** : « Rien de noté pour l'instant. » Une phrase, centrée, et c'est tout. Surtout
+pas « 0/6 » — c'est un compteur — ni « Continuez à chercher ! » — c'est un objet de jeu qui souffle
+au joueur qu'il y a quelque chose à faire. L'écran constate, il n'encourage pas.
+
+**Les trois interdits** (règles serveur détaillées dans LOGIQUE.md § Le carnet) :
+
+- **aucun compteur**, nulle part — pas de « 3/6 », pas de total, pas de pastille. Une partie ne peut
+  de toute façon jamais rassembler les cinq indices, les deux relances du N8 s'excluant : un
+  compteur annoncerait un complet inatteignable ;
+- **aucun emplacement vide** pour un indice non trouvé. Le serveur n'envoie que les trouvés, donc
+  l'écran ne peut même pas en dessiner un — la contrainte est tenue par le contrat, pas par la
+  vigilance ;
+- **l'enquête, pas la relation.** Ni moments IA, ni doutes narratifs, ni variables.
+
+Le carnet reçoit une **copie** de la liste à l'ouverture : un carnet qui se remplirait sous les yeux
+du joueur pendant qu'il le lit ferait de la trouvaille un événement d'interface. Il la retrouvera à
+la prochaine ouverture, comme un carnet.
+
 ## Le clavier ne masque jamais les choix
 
 Les choix (structurants, micro-choix, interactions cachées) vivent **dans la

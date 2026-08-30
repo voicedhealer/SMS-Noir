@@ -14,6 +14,7 @@ import '../widgets/composer.dart';
 import '../widgets/message_widgets.dart';
 import 'chapter_end_screen.dart';
 import 'consent_screen.dart';
+import 'carnet_screen.dart';
 import 'narration_screen.dart';
 import 'video_transition_screen.dart';
 
@@ -429,6 +430,30 @@ class _EnTete extends StatelessWidget implements PreferredSizeWidget {
           ),
         ],
       ),
+      actions: [
+        // « Ce qu'on sait ». Dans l'en-tête de la CONVERSATION, jamais dans
+        // celui de la liste : là-bas vit l'icône Réglages, et les deux ne
+        // doivent pas pouvoir se confondre.
+        //
+        // Toujours présente, même carnet vide — c'est justement à ce
+        // moment-là qu'elle dit le moins : une icône qui apparaîtrait à la
+        // première trouvaille signalerait qu'il vient de se passer quelque
+        // chose, et rien ici n'a le droit de faire ça. Aucune pastille, aucun
+        // compte : voir CarnetScreen.
+        if (etat != null)
+          IconButton(
+            icon: const Icon(Icons.description_outlined, size: 21),
+            color: AppColors.texteSecondaire,
+            tooltip: 'Ce qu\'on sait',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              // L'écran reçoit une COPIE de la liste au moment de l'ouverture.
+              // Un carnet qui se remplirait sous les yeux du joueur pendant
+              // qu'il le lit ferait de la trouvaille un événement d'interface ;
+              // il la retrouvera à la prochaine ouverture, comme un carnet.
+              builder: (_) => CarnetScreen(clues: etat!.clues),
+            )),
+          ),
+      ],
     );
   }
 }

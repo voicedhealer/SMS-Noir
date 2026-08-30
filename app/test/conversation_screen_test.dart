@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:numero_inconnu/providers/conversation_controller.dart';
 import 'package:numero_inconnu/providers/session_providers.dart';
+import 'package:numero_inconnu/screens/carnet_screen.dart';
 import 'package:numero_inconnu/screens/chapter_end_screen.dart';
 import 'package:numero_inconnu/screens/consent_screen.dart';
 import 'package:numero_inconnu/screens/conversation_screen.dart';
@@ -442,6 +443,37 @@ void main() {
       expect(find.text('C\'est bon.'), findsOneWidget);
       expect(find.text('Qui ça, « elle » ?'), findsOneWidget);
       expect(find.text('Ignorer'), findsOneWidget);
+    });
+
+    // Le carnet est accessible depuis l'en-tête de la CONVERSATION, jamais
+    // depuis celui de la liste — là-bas vit l'icône Réglages, et confondre les
+    // deux ferait entrer un objet d'application dans le fil avec Léna.
+    testWidgets('l\'icône du carnet ouvre « Ce qu\'on sait » avec ce qui est trouvé',
+        (tester) async {
+      await monter(tester, getState: {
+        ...etatAvecIntro(),
+        'clues': [
+          {'code': 'PLAQUE', 'texte': 'Une Peugeot 508 grise.'},
+        ],
+      }, prefs: {'flutter.intro_vue:joueur-test': true});
+
+      await tester.tap(find.byTooltip('Ce qu\'on sait'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CarnetScreen), findsOneWidget);
+      expect(find.text('Une Peugeot 508 grise.'), findsOneWidget);
+    });
+
+    // Présente dès le départ, carnet vide : une icône qui APPARAÎTRAIT à la
+    // première trouvaille annoncerait qu'il vient de se passer quelque chose.
+    testWidgets('l\'icône est là même quand rien n\'a été trouvé', (tester) async {
+      await monter(tester, getState: etatAvecIntro(),
+          prefs: {'flutter.intro_vue:joueur-test': true});
+
+      await tester.tap(find.byTooltip('Ce qu\'on sait'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Rien de noté pour l\'instant.'), findsOneWidget);
     });
 
     testWidgets('4 s de silence total avant que quoi que ce soit n\'arrive', (tester) async {

@@ -24,6 +24,7 @@ import {
   chargerNoeud,
   chargerOuCreerProgression,
   attenteSaisieOuverte,
+  carnet,
   clientAdmin,
   contactDuNoeud,
   conversations,
@@ -79,6 +80,9 @@ Deno.serve(servir(async (req) => {
     node: await etatNoeud(db, progression.current_node_id, progression.variables, progression.node_gate),
     conversations: await conversations(db, progression.id, histoire.id, progression.variables),
     chapter_end: await etatFinDeChapitre(db, progression, noeudFinal?.code ?? null, noeudFinal?.kind ?? null),
+    // C'est CE coup qui vient peut-être d'accorder un indice : le carnet est
+    // renvoyé à jour, sinon il ne l'apprendrait qu'au prochain démarrage.
+    clues: await carnet(db, histoire.id, progression.variables),
     ai_moment_pending: noeudFinal?.kind === 'ai_moment',
     idempotent_replay: rejeu,
   }

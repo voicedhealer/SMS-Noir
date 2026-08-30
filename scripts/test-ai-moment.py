@@ -425,8 +425,18 @@ def etancheite():
     for mot in interdits:
         verifier(f'« {mot} » absent de la réponse', mot in brut, False)
 
+    # Liste FIGÉE, et à tenir à la main : c'est un fil-piège, pas un reflet.
+    # Son échec veut dire « un champ est apparu dans la projection du nœud —
+    # confirme qu'il est bien destiné au client », jamais « recopie ce que le
+    # serveur renvoie ».
+    #
+    # `attend_saisie` ajouté le 30 août 2026 : il datait de la phase 4 du
+    # carnet (migration 20260824160000) et le contrôle était rouge depuis,
+    # sans rapport avec le travail en cours. Il est bien public — le client en
+    # a besoin pour ouvrir le champ au N16.
     verifier('Le nœud n\'expose que ce qu\'il faut', sorted(r['node'].keys()),
-             ['aparte', 'awaiting_interaction', 'can_continue', 'choices', 'code', 'kind'])
+             ['aparte', 'attend_saisie', 'awaiting_interaction', 'can_continue',
+              'choices', 'code', 'kind'])
 
     # Le joueur ne peut pas écrire directement dans player_messages.
     try:

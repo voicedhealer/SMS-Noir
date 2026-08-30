@@ -258,6 +258,18 @@ export interface AdvanceResponse {
   node: ClientNode | null
   conversations: ClientConversation[]
   chapter_end: ChapterEndState | null
+  /**
+   * Le carnet, tel qu'il est APRÈS ce coup.
+   *
+   * Renvoyé ici et pas seulement par `get-state` parce que c'est `advance` qui
+   * accorde les indices (`effects.append.indices`) : sans lui, le carnet
+   * n'apprendrait la trouvaille qu'au prochain démarrage de l'app, et le
+   * joueur qui l'ouvre juste après avoir zoomé le verrait vide.
+   *
+   * Même projection, mêmes règles : les indices trouvés seulement, dans
+   * l'ordre de découverte, jamais un compteur.
+   */
+  clues: Clue[]
   ai_moment_pending: boolean
   /** true si l'appel était un rejeu : rien n'a été réappliqué. */
   idempotent_replay: boolean

@@ -49,6 +49,7 @@ class ConversationState {
     this.consentDecide = false,
     this.joueurEcrit = false,
     this.musiqueFin,
+    this.clues = const [],
   });
 
   final List<ClientMessage> fil;
@@ -98,6 +99,15 @@ class ConversationState {
   /// `media_url` de son message, qui arrive par le fil et ne dépend d'aucun
   /// état d'intronisation.
   final String? musiqueFin;
+
+  /// Le carnet — les indices déjà trouvés, dans l'ordre de découverte.
+  ///
+  /// Tenu à jour par `advance` autant que par `get-state` : c'est un coup qui
+  /// accorde un indice, et le joueur peut ouvrir le carnet juste après.
+  ///
+  /// **Jamais un compteur.** Le serveur n'envoie que les trouvés — rien ici ne
+  /// dit combien il en reste, et c'est la règle du carnet.
+  final List<Clue> clues;
 
   /// Le joueur est en train d'écrire dans le champ (texte non vide).
   final bool joueurEcrit;
@@ -261,6 +271,7 @@ class ConversationState {
     bool? consentDecide,
     bool? joueurEcrit,
     String? musiqueFin,
+    List<Clue>? clues,
   }) => ConversationState(
     fil: fil ?? this.fil,
     node: viderNode ? null : (node ?? this.node),
@@ -282,6 +293,7 @@ class ConversationState {
     consentDecide: consentDecide ?? this.consentDecide,
     joueurEcrit: joueurEcrit ?? this.joueurEcrit,
     musiqueFin: musiqueFin ?? this.musiqueFin,
+    clues: clues ?? this.clues,
   );
 }
 
@@ -305,6 +317,10 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   /// Voir `ConversationState.musiqueFin` : jamais nullé avec `_intro`, sinon
   /// plus aucun son après la première intronisation.
   String? _musiqueFin;
+
+  /// Le carnet. Remplacé — jamais fusionné — par ce que le serveur renvoie :
+  /// lui seul sait ce qui a été trouvé, et il l'envoie toujours en entier.
+  List<Clue> _clues = const [];
 
   /// Voir `ConversationState.consentDecide`.
   bool _consentDecide = false;
@@ -473,6 +489,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     // l'écran de fin a besoin de sa musique à chaque passage, pas seulement à
     // la toute première ouverture de l'app.
     _musiqueFin = etat.intro.musiqueFin;
+    _clues = etat.clues;
 
     // L'historique se rejoue d'un bloc : le déjà-vu n'a pas de timers.
     final enAttente = _store.enAttente;
@@ -571,6 +588,7 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     consentDecide: _consentDecide,
     joueurEcrit: _joueurEcrit,
     musiqueFin: _musiqueFin,
+    clues: _clues,
   );
 
   /// Le mode se déduit entièrement du contrat : le client ne connaît pas le graphe.
@@ -843,6 +861,9 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     _node = r.node;
     _conversations = r.conversations;
     _chapterEnd = r.chapterEnd;
+    // Posé AVANT le déroulé : le joueur peut ouvrir le carnet pendant que les
+    // messages tombent, et l'indice vient d'être accordé par ce coup-là.
+    _clues = r.clues;
     await _store.poserEnAttente(r.newMessages);
     await _jouer(r.newMessages);
     await _store.poserEnAttente(const []);

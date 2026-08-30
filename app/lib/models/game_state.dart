@@ -321,6 +321,7 @@ class GameState {
     required this.chapterEnd,
     required this.aiMomentPending,
     required this.aiConsentDecided,
+    required this.clues,
   });
 
   final String storySlug;
@@ -355,6 +356,11 @@ class GameState {
   /// jamais un état local qui ne prouverait rien.
   final bool aiConsentDecided;
 
+  /// Le carnet — les indices déjà trouvés, dans l'ordre de découverte. Vide
+  /// tant que rien n'a été trouvé, **jamais un compteur** : le serveur
+  /// n'envoie que les trouvés, donc rien ici ne dit ce qui manque.
+  final List<Clue> clues;
+
   factory GameState.fromJson(Map<String, dynamic> json) {
     final story = json['story'] as Map<String, dynamic>? ?? const {};
     return GameState(
@@ -381,7 +387,40 @@ class GameState {
           : ChapterEnd.fromJson(json['chapter_end'] as Map<String, dynamic>),
       aiMomentPending: json['ai_moment_pending'] as bool? ?? false,
       aiConsentDecided: json['ai_consent_decided'] as bool? ?? false,
+      clues: Clue.listeDe(json['clues']),
     );
+  }
+}
+
+/// Une note du carnet : un indice DÉJÀ TROUVÉ, avec son texte.
+///
+/// Le serveur n'envoie que les trouvés — le client ne peut donc pas déduire ce
+/// qu'il reste à chercher, même en lisant la réponse brute. Le [code] ne sert
+/// qu'à identifier la note ; il n'est jamais montré au joueur.
+class Clue {
+  const Clue({required this.code, required this.texte});
+
+  final String code;
+  final String texte;
+
+  factory Clue.fromJson(Map<String, dynamic> json) => Clue(
+        code: json['code'] as String? ?? '',
+        texte: json['texte'] as String? ?? '',
+      );
+
+  /// Un code sans texte ne s'affiche pas : le serveur le filtre déjà, et le
+  /// client ne rattrape pas un contenu manquant par une ligne vide.
+  ///
+  /// Une charge illisible donne un carnet vide plutôt qu'une exception — même
+  /// principe que `NarrationScreen.decoder` : un contenu abîmé ne doit jamais
+  /// empêcher de jouer, et le carnet est un écran de lecture facultatif.
+  static List<Clue> listeDe(dynamic brut) {
+    if (brut is! List) return const [];
+    return [
+      for (final c in brut)
+        if (c is Map<String, dynamic> && (c['texte'] as String? ?? '').isNotEmpty)
+          Clue.fromJson(c),
+    ];
   }
 }
 
@@ -394,6 +433,7 @@ class AdvanceResult {
     required this.chapterEnd,
     required this.aiMomentPending,
     required this.idempotentReplay,
+    required this.clues,
   });
 
   /// À dérouler AVEC leurs délais. Sur un rejeu, les délais valent 0.
@@ -405,6 +445,11 @@ class AdvanceResult {
 
   /// L'appel était une retransmission : rien n'a été réappliqué côté serveur.
   final bool idempotentReplay;
+
+  /// Le carnet APRÈS ce coup — c'est `advance` qui accorde les indices, donc
+  /// c'est lui qui doit le dire. Sans ça, un joueur qui ouvre le carnet juste
+  /// après un zoom le verrait encore vide.
+  final List<Clue> clues;
 
   factory AdvanceResult.fromJson(Map<String, dynamic> json) => AdvanceResult(
         newMessages: (json['new_messages'] as List<dynamic>? ?? const [])
@@ -421,5 +466,6 @@ class AdvanceResult {
             : ChapterEnd.fromJson(json['chapter_end'] as Map<String, dynamic>),
         aiMomentPending: json['ai_moment_pending'] as bool? ?? false,
         idempotentReplay: json['idempotent_replay'] as bool? ?? false,
+        clues: Clue.listeDe(json['clues']),
       );
 }

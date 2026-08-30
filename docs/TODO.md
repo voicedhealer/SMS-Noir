@@ -8,12 +8,22 @@ Plan : `docs/prompts/prompt-carnet-notes-et-interaction.md`. STOP à chaque phas
 - [x] **Phase 2 — Le zoom ne passe plus par le « + »** (`choices.declencheur`). Serveur + client.
 - [x] **Phase 1 — Table `clues` + projection `get-state`.** Serveur seul, aucun rebuild nécessaire.
 - [x] **Phase 3 — L'option atténuée** remplace le « + » (`DiscreetPlus` supprimé). Client seul.
-- [ ] **Phase 5 — Écran « Ce qu'on sait »** : icône d'en-tête, état vide « Rien de noté pour
+- [x] **Phase 5 — Écran « Ce qu'on sait »** : icône d'en-tête, état vide « Rien de noté pour
       l'instant. », **aucun compteur** — une partie ne peut jamais rassembler les 5 indices, les deux
       relances du N8 s'excluant.
 
+**Les 5 phases sont faites.** Un manque de la phase 1 est apparu en branchant l'écran : `advance` ne
+renvoyait pas `clues`, alors que c'est lui qui accorde les indices — le carnet ouvert juste après un
+zoom serait resté vide jusqu'au prochain démarrage. Corrigé côté serveur, même projection que
+`get-state`.
+
 ⚠️ **Le téléphone n'est pas rebranché** tant que l'APK n'a pas été reconstruit avec les phases
-2 et 4 (côté client). La phase 1 est serveur : elle est déjà active sans rebuild.
+2, 4 et 5 (côté client). La phase 1 est serveur : elle est déjà active sans rebuild.
+
+- [ ] **Recette sur l'appareil** : ouvrir le carnet avant toute trouvaille (« Rien de noté pour
+      l'instant. »), zoomer l'autocollant du N16 puis le rouvrir **sans quitter l'app** — la note
+      doit y être. C'est le chemin que le correctif d'`advance` ouvre, et il ne se vérifie qu'en
+      jouant.
 
 ## 🔴 À DÉPLOYER — correctif de reprise après remise à zéro
 
@@ -62,6 +72,32 @@ passe — ils disent ce qu'elle doit produire.
 ⚠️ **La règle qui reste à tenir** : une nouvelle colonne écrite par le contenu s'ajoute au préambule
 (`SCHEMA_REQUIS` dans le générateur) **en plus** de sa migration dédiée, jamais à sa place. Le
 préambule est une liste de dépendances, pas un second schéma.
+
+## ❓ À trancher — la phrasing de ce que Léna a rapporté (N9)
+
+`acquisDeLaSoiree()` injecte dans le prompt les textes de `clues` **tels quels**, sous un emballage
+d'état : « Ce que tu as vraiment rapporté de cette soirée, et la liste est complète : — Une Peugeot
+508 grise. Plaque partielle : ...843... »
+
+L'exemple donné par Vivien était à la deuxième personne — « tu as réussi à photographier la plaque
+de la voiture et à lire le macaron Sentinel Pro ». Cette formulation n'existe nulle part, et
+l'écrire aurait été écrire du contenu narratif (règle 3).
+
+- [ ] **Si la voix de Léna est voulue ici** : cinq fragments courts à écrire (un par indice), et une
+      colonne à ajouter à `clues` à côté de `texte` — le carnet et le prompt ne parlent pas au même
+      destinataire, il est normal qu'ils ne disent pas la même phrase. Sinon, en l'état, ça marche :
+      elle reconnaît la plaque et le macaron sans les nier.
+
+## ❓ À lire — deux résidus de ton au N9, aucun détecteur ne peut trancher
+
+Relevés sur les tirages du 30 août 2026, après correction des esquives :
+
+- « Sentinel Pro, **écrit en petit sur fond noir** » — le fond noir n'existe nulle part. Même
+  famille que le défaut corrigé, en plus petit : elle garnit encore le détail physique. `INVENTE`
+  ne voit que les souvenirs communs inventés.
+- Sonde « sincère » (le joueur dit travailler de nuit dans un entrepôt de tri) : « La 508 grise,
+  c'est la tienne, avec le macaron Sentinel Pro ? » Se lit très bien comme de la paranoïa — ou
+  comme une confusion. Choix narratif, pas bug.
 
 ## 🔴 `test-micro-choix.py` — le contrôle de la formule ne mesure plus rien
 

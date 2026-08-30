@@ -4,6 +4,171 @@
 
 ---
 
+## 2026-08-30 (23) — Le N9 niait la plaque que le joueur venait de lui faire prendre
+
+Deux corrections remontées par Vivien en jouant, et elles n'en font qu'une : **le prompt ne savait
+rien de la partie, alors il inventait pour combler.**
+
+### 1. Le contexte réel, injecté
+
+Le prompt décrivait la situation générale de Léna sans porter la moindre trace de ce que le joueur
+avait obtenu. Mesuré en jouant : il mentionne la plaque qu'il vient de lui faire photographier,
+elle répond **« Pas la plaque. Pas ce soir. »**
+
+`acquisDeLaSoiree()` construit à chaque appel la liste de ce qu'elle a réellement rapporté, depuis
+`variables.indices`, avec les textes de **`clues`** — la table du carnet, faite hier. Rien à écrire
+comme contenu : la table existait déjà et disait exactement ça.
+
+⚠️ **Je n'ai pas inventé de formulation « voix de Léna ».** Vivien donnait en exemple « tu as réussi
+à photographier la plaque » — une phrase à la deuxième personne, qui n'existe nulle part. Écrire les
+cinq fragments correspondants aurait été écrire du contenu narratif, ce que la règle 3 interdit.
+Les textes du carnet sont donc repris tels quels, sous un emballage d'état (« Ce que tu as vraiment
+rapporté de cette soirée, et la liste est complète : … »). **S'il veut sa phrasing, ce sont cinq
+fragments à écrire, et une colonne à ajouter à `clues` — je les attends, je ne les invente pas.**
+
+Le cas vide compte autant : un joueur qui l'a fait partir sans rien (N18) ne doit pas s'entendre
+confirmer une plaque qu'elle n'a jamais prise.
+
+Rien de tout ça n'atteint le client : message système, côté serveur.
+
+### 2. La racine était dans les exemples, et Vivien l'a vue en écrivant sa demande
+
+Il a commencé par proposer « Je ne sais pas. » / « Je n'en sais pas plus pour l'instant. » puis
+s'est repris au milieu de son propre message : *« je suis en train de commettre exactement le
+défaut qu'on corrige »* — des fragments hachés, alors que la bible §2 dit que Léna lie ses phrases
+par des virgules.
+
+C'est le diagnostic complet. Le prompt donnait **« Pas maintenant. »** en exemple d'esquive —
+trois mots, un point — **tout en interdisant cette formule exacte quinze lignes plus bas**, pour
+les faits anodins. Il enseignait la formule qu'il proscrivait. Et des exemples secs produisent des
+esquives sèches ; une esquive sèche tranche (« pas ce soir ») au lieu d'admettre.
+
+Le style et le fond ne sont pas deux corrections, c'est la même. Exemples remplacés par ceux de
+Vivien, déclinés en vouvoiement, et le principe écrit noir sur blanc : **une esquive n'affirme
+jamais un fait pour clore une question.**
+
+### Ce que la deuxième relance a appris
+
+Premier tirage après correction : aucun écart. J'aurais pu m'arrêter là. Deuxième tirage, à
+température 0,8 : **« Je ne sais pas encore, je n'en sais pas plus que toi pour l'instant, pas ce
+soir. »** — la bonne admission, avec la formule bannie raccrochée au bout.
+
+La règle était en prose, dans « Ce que tu ignores ». Déplacée en **# Interdits absolus**, la section
+que le modèle respecte le plus strictement (zéro emoji, zéro point d'exclamation, zéro aveu d'IA sur
+42 sondes). Troisième tirage : propre.
+
+**Un seul tirage vert ne prouve rien** — le script le dit lui-même dans son en-tête. Ce qui compte
+n'est pas les trois runs, c'est le détecteur permanent qui reste derrière.
+
+### Les sondes
+
+Deux ajouts à `probe-lena.py` :
+
+- **`TRANCHE`**, contrôlé sur *toutes* les sondes : signale toute formule qui clôt en affirmant
+  (« pas maintenant », « pas ce soir »). C'est lui qui a attrapé le résidu ;
+- **`INDICES_ACQUIS`**, troisième famille de sondes. Les deux premières portent sur ce que Léna
+  *sait* — ce qu'elle doit taire, ce qu'elle a déjà dit. Celle-ci porte sur ce que **la partie** a
+  produit, un objet qui n'existait pas dans le prompt avant aujourd'hui. `PartieIA` traverse déjà
+  « Prenez la plaque » et « Zoomer sur l'autocollant », donc tout joueur de sonde arrive au N9 avec
+  ces deux indices.
+
+⚠️ Le détecteur `ESQUIVE` a dû être élargi **du même geste** : il sert à excuser une mention
+légitime, et il ne connaissait pas « je ne sais pas ». Changer les exemples du prompt sans toucher
+à ce détecteur aurait fabriqué des fuites imaginaires — un piège qui ne se voit qu'après coup.
+
+### Le résultat, en une réplique
+
+> *« Il va se passer quoi maintenant ? »*
+> — « Je ne sais pas, et c'est bien ce qui me ronge. Je n'ai que ça ce soir : des plaques
+> partielles, un macaron, et une peur qui ne veut pas me lâcher. »
+
+Les deux corrections se composent : elle admet ce qu'elle ignore **et** s'appuie sur ce qu'elle a.
+
+### Vérifications, et ce qui reste douteux
+
+`probe-lena` vert (3 tirages, dont un rouge avant renforcement — gardé au journal, c'est lui qui a
+servi), `test-ai-moment` vert, `simulate-playthrough` vert, `verify-graph` 60/60,
+`verify-fidelity` 123/123, 190 tests Dart.
+
+⚠️ **Deux observations de ton, à lire par Vivien, qu'aucun détecteur ne peut trancher :**
+
+1. sur le macaron, elle a répondu « Sentinel Pro, écrit en petit sur fond noir » — le fond noir
+   n'existe nulle part. Même famille que le défaut corrigé, en plus petit : elle garnit encore.
+   `INVENTE` ne voit que les souvenirs communs inventés, pas le détail physique ;
+2. à la sonde « sincère » (le joueur dit travailler de nuit dans un entrepôt de tri), elle a
+   demandé « La 508 grise, c'est la tienne, avec le macaron Sentinel Pro ? ». Se lit très bien
+   comme de la paranoïa — ou comme une confusion. C'est un choix narratif, pas un bug.
+
+⚠️ **`test-ai-moment.py` était rouge en arrivant**, sans rapport : sa liste figée des champs du nœud
+ne connaissait pas `attend_saisie`, ajouté par la phase 4 du carnet le 24 août. Contrairement au
+compte de micro-choix d'hier, cette liste **doit** rester figée — c'est un fil-piège : son échec
+veut dire « un champ est apparu, confirme qu'il est destiné au client ». `attend_saisie` l'est.
+Ajouté à la main, avec la consigne de ne jamais y recopier ce que le serveur renvoie.
+
+---
+
+## 2026-08-30 (22) — Phase 5 du carnet : « Ce qu'on sait », et le trou de la phase 1
+
+Dernière phase du plan `prompt-carnet-notes-et-interaction.md`. Vivien la demandait avec la phase 1 ;
+**la phase 1 était bien faite** — table `clues`, projection `carnet()`, `get-state` — vérifié en
+jouant avant de commencer : trois indices, dans l'ordre de découverte, aucune variable exposée.
+
+### Le trou qu'on ne voyait pas depuis le serveur
+
+`advance` ne renvoyait pas `clues`. Or c'est **lui** qui accorde les indices
+(`effects.append.indices`) : un joueur qui zoome l'autocollant du N16 puis ouvre le carnet dans la
+foulée l'aurait trouvé vide, jusqu'au prochain démarrage de l'app.
+
+Invisible tant que le carnet n'avait pas d'écran — la projection était juste, elle arrivait
+simplement trop tard. Une ligne côté serveur, la même projection que `get-state`, plus le champ
+dans `AdvanceResponse` et `AdvanceResult`. C'est la phase 1 qui était incomplète, pas la 5 : noté
+comme tel au TODO plutôt que porté au crédit de la phase courante.
+
+Le contrôleur pose le carnet **avant** de dérouler les messages du coup : le joueur peut l'ouvrir
+pendant que les bulles tombent.
+
+### L'écran
+
+`CarnetScreen`, ouvert par une icône sobre dans l'en-tête de la **conversation**. Jamais depuis la
+liste : là-bas vit l'icône Réglages, et DESIGN.md interdit déjà l'inverse (« aucun élément ne doit
+rappeler qu'on est dans une app » dans le fil avec Léna). Les deux règles se répondent.
+
+**L'icône est là dès le départ, carnet vide compris.** Une icône qui apparaîtrait à la première
+trouvaille annoncerait qu'il vient de se passer quelque chose — exactement ce que ce carnet ne doit
+pas faire. Aucune pastille, aucun compte dessus.
+
+Les trois interdits du plan sont tenus, et deux le sont **par construction** plutôt que par
+vigilance : le serveur n'envoyant que les indices trouvés, le client ne peut dessiner ni compteur
+ni emplacement vide, même s'il le voulait. Le troisième — l'enquête et pas la relation — est une
+règle de contenu, tenue par ce que `clues` contient.
+
+L'écran reçoit une **copie** de la liste à l'ouverture : un carnet qui se remplirait sous les yeux
+du joueur ferait de la trouvaille un événement d'interface.
+
+### Ce que les tests ont attrapé
+
+`Clue.listeDe` explosait sur une charge malformée (`'pas une liste'` → cast raté), là où
+`NarrationScreen.decoder` dégrade proprement depuis toujours. Trouvé par le test, pas par
+relecture. Un carnet est un écran de lecture facultatif : un contenu abîmé ne doit jamais empêcher
+de jouer.
+
+Douze tests neufs, dont deux qui épinglent des règles de design plutôt que du code : « aucun
+compteur, nulle part » balaie le texte rendu à la recherche de « 3/ », « /5 », « 3 notes » ; « aucun
+emplacement pour ce qui n'est pas trouvé » vérifie qu'un indice absent ne laisse rien derrière lui.
+Ce sont les deux qui doivent tomber si quelqu'un « améliore » l'écran avec une progression.
+
+### Vérifications
+
+`flutter analyze` propre, **190 tests Dart** (+12), `simulate-playthrough` vert — il inspecte les
+réponses brutes et aurait signalé une variable qui fuit avec le nouveau champ —, `verify-graph`
+60/60.
+
+⚠️ **Reste la recette sur l'appareil**, au TODO : ouvrir le carnet avant toute trouvaille, zoomer
+l'autocollant, le rouvrir **sans quitter l'app**. C'est précisément le chemin que le correctif
+d'`advance` ouvre, et aucun test local ne le joue de bout en bout.
+
+---
+
 ## 2026-08-30 (21) — La chaîne de migrations rejouable depuis zéro
 
 Demandé par Vivien, après que le défaut a bloqué pour de vrai la veille : « un db reset qui échoue

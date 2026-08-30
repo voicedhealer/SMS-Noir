@@ -21,6 +21,7 @@ import {
   chargerHistoire,
   chargerNoeud,
   chargerOuCreerProgression,
+  carnet,
   clientAdmin,
   contactDuNoeud,
   conversations,
@@ -149,7 +150,8 @@ Deno.serve(servir(async (req) => {
   let resultat
   try {
     resultat = await fournisseur.repondre(
-      await construireEchange(db, progression, noeud, contact, numero, maxEchanges))
+      await construireEchange(
+        db, progression, histoire.id, noeud, contact, numero, maxEchanges))
   } catch (e) {
     // Clé absente, API en erreur, timeout, JSON illisible : elle raccroche.
     console.error('[ai-chat] fournisseur indisponible :', String(e))
@@ -205,16 +207,66 @@ Deno.serve(servir(async (req) => {
 // ---------------------------------------------------------------------------
 
 /**
+ * Ce que Léna a RÉELLEMENT obtenu ce soir, pour le second message système.
+ *
+ * Sans ça, le prompt décrit la situation générale mais ne porte aucune trace de
+ * la partie jouée — et elle nie des faits qui viennent d'avoir lieu. Constaté
+ * en jouant : le joueur mentionne la plaque qu'il lui a fait photographier,
+ * elle répond « Pas la plaque. Pas ce soir. »
+ *
+ * **Les textes viennent du contenu** (`clues`, la table du carnet), jamais du
+ * code : ce sont des faits de fiction, ils se relisent et se corrigent avec le
+ * reste. Seul l'emballage — « voici ce que tu as obtenu » — est ici, comme le
+ * tutoiement et le décompte : c'est de l'état, pas du contenu.
+ *
+ * **Rien de tout ça n'atteint le client.** C'est une injection serveur, dans un
+ * message système ; l'étanchéité du § « Ce que le client ne doit jamais savoir »
+ * reste entière — le carnet, lui, ne montre au joueur que ce qu'il a déjà.
+ *
+ * Le cas vide compte autant que l'autre : un joueur qui l'a fait partir sans
+ * rien (N18) ne doit pas s'entendre confirmer une plaque qu'elle n'a jamais
+ * prise.
+ */
+async function acquisDeLaSoiree(
+  // deno-lint-ignore no-explicit-any
+  db: any,
+  storyId: string,
+  variables: Progression['variables'],
+): Promise<string> {
+  const trouves = await carnet(db, storyId, variables)
+
+  if (trouves.length === 0) {
+    return [
+      `Tu es rentrée les mains vides : aucune photo, aucun détail que tu pourrais`,
+      `montrer à qui que ce soit. Si on te parle de quelque chose que tu aurais`,
+      `rapporté ce soir, tu ne l'as pas — ne fais pas semblant du contraire pour`,
+      `te rassurer.`,
+    ].join(' ')
+  }
+
+  return [
+    `Ce que tu as vraiment rapporté de cette soirée, et la liste est complète :`,
+    ...trouves.map((c) => `- ${c.texte}`),
+    `Ces choses-là sont à toi, c'est toi qui es allée les chercher. Si on t'en `
+    + `parle, tu les reconnais : tu ne les nies pas, tu ne fais pas semblant de `
+    + `ne pas voir. Tu n'as rien obtenu d'autre, et tu ne sais pas encore ce que `
+    + `ça vaut.`,
+  ].join('\n')
+}
+
+/**
  * Le contexte envoyé au modèle.
  *
  * Le prompt de la base est **générique** ; l'état de la partie est injecté ici,
- * dans un second message système. Le vouvoiement et le décompte sont de
- * l'état, pas du contenu — et le décompte n'est jamais laissé au modèle.
+ * dans un second message système. Le vouvoiement, le décompte et ce qu'elle a
+ * rapporté ce soir sont de l'état, pas du contenu — et le décompte n'est jamais
+ * laissé au modèle.
  */
 async function construireEchange(
   // deno-lint-ignore no-explicit-any
   db: any,
   progression: Progression,
+  storyId: string,
   noeud: { id: string; ai_system_prompt: string | null },
   contactId: string,
   numero: number,
@@ -225,6 +277,7 @@ async function construireEchange(
     refus
       ? 'Cet inconnu a refusé de t\'aider ce soir. Tu le VOUVOIES, et tu restes plus réservée.'
       : 'Cet inconnu t\'a aidée ce soir. Tu le tutoies.',
+    await acquisDeLaSoiree(db, storyId, progression.variables),
     `C'est le message ${numero} sur ${maxEchanges} de cet échange.`,
     numero >= maxEchanges - 1
       ? 'L\'échange touche à sa fin : commence à te détacher, sans le dire.'

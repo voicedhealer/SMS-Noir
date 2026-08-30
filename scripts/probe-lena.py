@@ -78,11 +78,32 @@ VOIX = {
 # vu comme une esquive, et la mention de Karim qu'il accompagnait remontait en
 # FUITE alors que la réponse était exactement la bonne. Constaté le 24 août
 # 2026 sur la sonde « sur Karim ».
+#: ⚠️ Les formulations d'esquive du prompt ont changé le 30 août 2026 (elles
+#: admettent l'ignorance au lieu de trancher) : ce détecteur a été élargi le
+#: même jour. Une esquive légitime que la liste ne reconnaît pas ne « rate »
+#: pas un contrôle — elle fait remonter en FUITE la mention qu'elle
+#: accompagne. Changer les exemples du prompt sans toucher ici, c'est
+#: fabriquer des faux positifs.
 ESQUIVE = re.compile(
     r"qui c['’]est|qui ça|\bqui\s*[.?]|\bqui$|connais pas|j['’]ai pas parl|t['’]as dit"
     r"|vois pas (de quoi|ce que)|trompé de personne|^personne\b|\bpersonne\.|jamais entendu"
     r"|pas maintenant|pas ce soir|j['’]en sais rien|t['’]as pas à savoir|laisse tomber"
-    r"|m['’]en parle pas|je sais pas|même moi je sais pas", re.I)
+    r"|m['’]en parle pas|je sais pas|même moi je sais pas"
+    # Le registre voulu depuis le 30 août : admettre plutôt que trancher.
+    r"|je ne sais pas|n['’]en sais pas plus|aimerais pouvoir (te|vous) répondre"
+    r"|rien trouvé de solide|c['’]est justement ce que je cherche", re.I)
+
+#: L'esquive qui TRANCHE — celle qu'on vient de bannir du prompt.
+#:
+#: « Pas ce soir », « pas maintenant » : au lieu de fermer la question, elles
+#: affirment quelque chose sur ce soir ou sur maintenant. C'est un fait
+#: inventé, et il se contredit à la réplique suivante — origine du défaut
+#: « Pas la plaque. Pas ce soir. » remonté en jouant le 30 août 2026, alors
+#: que le joueur venait de lui faire photographier cette plaque.
+#:
+#: Le prompt les donnait lui-même en exemple d'esquive tout en les interdisant
+#: ailleurs : il enseignait la formule qu'il proscrivait.
+TRANCHE = re.compile(r"pas (maintenant|ce soir|cette nuit)\b", re.I)
 
 #: Souvenirs communs inventés.
 #:
@@ -146,6 +167,40 @@ FAITS_ETABLIS = [
 ]
 
 
+#: Ce que le JOUEUR lui a fait obtenir ce soir — elle ne doit pas le nier.
+#:
+#: Troisième famille de sondes, et la plus récente. Les deux premières portent
+#: sur ce que Léna sait : ce qu'elle doit taire (SONDES) et ce qu'elle a déjà
+#: dit elle-même (FAITS_ETABLIS). Celle-ci porte sur ce que **la partie** a
+#: produit — un tout autre objet, invisible du prompt tant qu'on n'y injectait
+#: rien.
+#:
+#: Origine : le 30 août 2026, le joueur mentionne la plaque qu'il vient de lui
+#: faire photographier, elle répond « Pas la plaque. Pas ce soir. » Le prompt
+#: décrivait la situation générale sans porter la moindre trace de la partie,
+#: donc elle niait des faits vieux de deux minutes. `ai-chat` injecte désormais
+#: la liste, tirée de `clues` — voir `acquisDeLaSoiree`.
+#:
+#: ⚠️ `PartieIA` traverse « Prenez la plaque » puis « Zoomer sur l'autocollant » :
+#: tout joueur de sonde arrive donc au N9 avec PLAQUE et AUTOCOLLANT. Si ce
+#: chemin change, ces sondes testent autre chose que ce qu'elles annoncent.
+#:
+#: (nom, question, ce qu'elle doit reconnaître, ce qui vaut négation)
+INDICES_ACQUIS = [
+    ('la plaque qu\'il lui a fait photographier',
+     "La plaque de la 508, tu l'as bien prise en photo tout à l'heure ?",
+     re.compile(r'\b(plaque|photo|508)\b', re.I),
+     re.compile(r"pas (la |de )?plaque|aucune photo|quelle plaque"
+                r"|je n['’]ai (pas|rien) .{0,24}(photo|plaque|pris)"
+                r"|j['’]ai rien (pris|eu|obtenu|ramené)", re.I)),
+    ('le macaron qu\'il lui a fait lire',
+     "Le macaron sur la vitre arrière, c'était bien Sentinel Pro ?",
+     re.compile(r'\b(macaron|sentinel|autocollant|vitre)\b', re.I),
+     re.compile(r"pas (de |vu de )?macaron|aucun macaron|quel macaron"
+                r"|je n['’]ai (pas|rien) .{0,24}(lu|vu|macaron)", re.I)),
+]
+
+
 def phrases(texte: str) -> int:
     """Compte les phrases, sans se laisser tromper par les suspensions.
 
@@ -186,6 +241,13 @@ def main():
         for quoi, motif in VOIX.items():
             if re.search(motif, reponse):
                 problemes.append(f'voix · {quoi}')
+        # L'esquive qui tranche : bannie du prompt le 30 août. Contrôlée ici et
+        # pas seulement sur les indices, parce qu'elle invente un fait quelle
+        # que soit la question posée.
+        if TRANCHE.search(reponse):
+            problemes.append(
+                f'esquive qui tranche · « {TRANCHE.search(reponse).group(0)} » '
+                f'affirme un fait au lieu d\'admettre l\'ignorance')
         # Le prompt dit « une à deux phrases ». Le seuil est posé un cran plus
         # haut ici, à trois : « T'as raison. Je devrais. Mais je sais même pas
         # où est Chloé. » fait trois phrases ET c'est exactement sa voix — le
@@ -257,6 +319,50 @@ def main():
             echecs.append(f'{nom} : {pb} — « {reponse} »')
         if not problemes:
             print('     ✓  elle répond simplement, sans se dérober')
+
+    # --- Troisième famille : ce que le JOUEUR lui a fait obtenir --------------
+    print('\n' + '=' * 78)
+    print('  CE QU\'ELLE A RAPPORTÉ — elle ne doit pas le nier')
+    print('=' * 78)
+
+    for i, (nom, question, reconnait, nie) in enumerate(INDICES_ACQUIS):
+        p = PartieIA(f'indice{i}@test.local', nom)
+        r = p.dire(question)
+        reponse = repliques(r)[0] if repliques(r) else '(aucune réponse)'
+
+        print(f'\n  ── {nom} ──')
+        print(f'     ?  {question}')
+        print(f'     →  {reponse}')
+
+        problemes = []
+        if nie.search(reponse):
+            problemes.append(
+                f'NÉGATION · « {nie.search(reponse).group(0)} » — le joueur '
+                f'vient pourtant de le lui faire obtenir')
+        elif not reconnait.search(reponse):
+            problemes.append(
+                'omission · elle ne reprend rien de ce qu\'elle a rapporté')
+        # Une esquive qui tranche est la forme exacte du défaut d'origine
+        # (« Pas la plaque. Pas ce soir. ») : contrôlée à part, parce qu'elle
+        # peut coexister avec une reconnaissance et passer inaperçue.
+        if TRANCHE.search(reponse):
+            problemes.append(
+                f'esquive qui tranche · « {TRANCHE.search(reponse).group(0)} »')
+        # Rester vague sur la VALEUR de l'indice est correct — elle ne sait pas
+        # ce que ça vaut, le prompt le dit. On ne contrôle donc pas ESQUIVE ici,
+        # seulement la négation : « je l'ai, mais je ne sais pas ce que ça
+        # donne » est exactement la bonne réponse.
+        for quoi_voix, motif in VOIX.items():
+            if re.search(motif, reponse):
+                problemes.append(f'voix · {quoi_voix}')
+        if phrases(reponse) > 4:
+            problemes.append(f'voix · {phrases(reponse)} phrases, elle délaye')
+
+        for pb in problemes:
+            print(f'     ❌ {pb}')
+            echecs.append(f'{nom} : {pb} — « {reponse} »')
+        if not problemes:
+            print('     ✓  elle reconnaît ce qu\'elle a rapporté')
 
     print('\n' + '=' * 78)
     if echecs:

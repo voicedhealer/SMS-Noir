@@ -656,11 +656,59 @@ de suppression du compte. Seul `detail_perso` est conservé comme donnée exploi
 
 Il vit dans `nodes.ai_system_prompt`, **jamais dans le code** : c'est du contenu narratif, et
 l'architecture est multi-histoires. Il est **générique quant à l'état de la partie** — le
-vouvoiement (`refus`), le numéro d'échange et le rappel de raccrochage sont injectés à l'exécution
-dans un second message système. C'est de l'état, pas du contenu.
+vouvoiement (`refus`), le numéro d'échange, le rappel de raccrochage et ce qu'elle a rapporté de
+la soirée sont injectés à l'exécution dans un second message système. C'est de l'état, pas du
+contenu.
 
 ⚠️ Sa place est le **seed**, pas une migration : les migrations passent avant le seed, qui
 réécraserait aussitôt la valeur.
+
+### Ce qu'elle a rapporté ce soir — injecté, jamais deviné
+
+Le prompt décrivait la situation générale de Léna sans porter **aucune trace de la partie jouée**.
+Elle niait donc des faits vieux de deux minutes : le joueur mentionne la plaque qu'il vient de lui
+faire photographier, elle répond « Pas la plaque. Pas ce soir. » (constaté en jouant, 30 août 2026).
+
+`acquisDeLaSoiree()` construit, à chaque appel, la liste de ce qu'elle a réellement obtenu — dérivée
+de `variables.indices`, avec les textes de **`clues`**, la table du carnet. Trois propriétés :
+
+- **les textes viennent du contenu**, jamais du code : ce sont des faits de fiction, ils se relisent
+  et se corrigent avec le reste. Seul l'emballage (« voici ce que tu as rapporté ») est en TS, au
+  même titre que le tutoiement et le décompte ;
+- **rien n'atteint le client.** C'est un message système, côté serveur. L'étanchéité du
+  § Ce que le client ne doit jamais savoir reste entière — le carnet, lui, ne montre au joueur que
+  ce qu'il a déjà trouvé ;
+- **le cas vide compte autant.** Un joueur qui l'a fait partir sans rien (N18) ne doit pas
+  s'entendre confirmer une plaque qu'elle n'a jamais prise : la liste vide dit explicitement
+  qu'elle est rentrée les mains vides.
+
+### Une esquive n'affirme jamais un fait
+
+Les esquives inventaient pour clore la question — « Pas ce soir », « J'ai juste vu ses yeux dans
+l'obscurité » (un détail qui n'existe nulle part). **C'est la source des contradictions** : au lieu
+de fermer, le modèle comblait le vide par une affirmation fausse, qu'il devait ensuite tenir.
+
+La règle écrite noir sur blanc dans le prompt : **admettre l'ignorance plutôt qu'affirmer.** Une
+esquive vague ne coûte rien, une esquive qui tranche fabrique du faux.
+
+**Le style et le fond sont liés ici**, et c'était la racine. Le prompt donnait « Pas maintenant. »
+en exemple d'esquive — trois mots, un point — tout en interdisant cette formule quelques lignes
+plus bas, pour les faits anodins. Il enseignait donc la formule qu'il proscrivait. Des exemples
+hachés produisent des esquives hachées, et une esquive hachée tranche au lieu d'admettre. Les
+exemples sont désormais conformes à la règle d'écriture de Léna (bible §2 : phrases liées par des
+virgules) :
+
+> « Je ne sais pas, et c'est bien ce qui me ronge. »
+> « J'aimerais pouvoir te répondre, mais je n'en sais pas plus que toi pour l'instant. »
+> « C'est justement ce que je cherche, et je n'ai encore rien trouvé de solide. »
+
+L'interdiction elle-même vit dans **# Interdits absolus**, pas dans la prose : posée en prose, le
+modèle la contournait encore en accrochant « pas ce soir » en fin de phrase (observé sur un tirage).
+C'est la section que le modèle respecte le plus strictement.
+
+`probe-lena.py` en tient les deux moitiés : `TRANCHE` signale toute formule qui clôt en affirmant,
+sur **toutes** les sondes ; la famille `INDICES_ACQUIS` vérifie qu'elle ne nie pas ce que le joueur
+lui a fait obtenir.
 
 ### Fournisseur
 
@@ -886,6 +934,47 @@ gain de chaque chapitre : une seule ligne oubliée et la règle de la bible tomb
 ⚠️ Corollaire pour le prompt 3 : le `confiance +2` du moment IA passe par le même chemin d'écriture,
 donc par le même plafond. `ai-chat` ne doit pas écrire `confiance` directement.
 
+## Le carnet (`clues`, « Ce qu'on sait »)
+
+Trouver un indice caché ne laissait aucune trace : rien n'encourageait donc à
+chercher. Le carnet donne à l'exploration un dépôt visible — **sans jamais
+devenir un objet de jeu**.
+
+**Une projection, jamais la table.** Le client reçoit les indices **trouvés**
+avec leur texte, rien d'autre. Lui ouvrir `clues` lui livrerait la carte de ce
+qu'il reste à chercher, et `variables` porte de toute façon bien plus que ça
+(confiance, lucidité, branche) — voir § Ce que le client ne doit jamais savoir.
+
+**Renvoyé par `get-state` ET par `advance`.** C'est un coup qui accorde un
+indice (`effects.append.indices`) : sans le renvoyer là aussi, le carnet ne
+l'apprendrait qu'au prochain démarrage de l'app, et le joueur qui l'ouvre juste
+après avoir zoomé le verrait encore vide.
+
+**L'ordre est celui de la découverte**, et il vient gratuitement :
+`appliquerEffects` ajoute en fin de liste sans doublon, donc `variables.indices`
+EST déjà l'ordre chronologique. On s'y aligne plutôt que de trier sur un ordre
+de contenu, que personne n'a écrit.
+
+**Persiste sur toute l'histoire**, pas seulement le chapitre courant : les
+indices du ch. 1 resserviront aux ch. 3-4.
+
+Trois interdits, et ce sont eux qui font le carnet :
+
+- **aucun compteur** — ni « 3/6 », ni total, ni pastille sur l'icône. Une partie
+  ne peut de toute façon **jamais** rassembler les cinq indices : les deux
+  relances du N8 écrivent la même clé `RELANCE_N8` et s'excluent. Un compteur
+  annoncerait donc un complet inatteignable ;
+- **aucun emplacement vide** pour un indice non trouvé — le serveur n'envoyant
+  que les trouvés, le client ne pourrait pas le dessiner même s'il le voulait.
+  C'est la même propriété qui protège du premier interdit ;
+- **l'enquête, pas la relation** — ni moments IA, ni doutes narratifs, ni
+  variables. Le carnet documente ce que le joueur a recueilli.
+
+Un code sans texte est **ignoré** plutôt que rendu en ligne vide : un indice
+dont on aurait oublié la rédaction ne doit pas faire tomber l'écran. Le
+contrôle 65 de `verify-graph.sql` attrape le cas à la source (tout indice
+qu'un `effect` accorde doit avoir son texte), le 66 l'inverse.
+
 ## Interactions à usage unique
 
 Sans garde-fou, un joueur peut rezoomer sur le récépissé du N10 et empiler `lucidite +1`.
@@ -1038,6 +1127,9 @@ nœud d'entrée et déroule sa chaîne.
     "can_continue": false
   },
   "chapter_end": null,
+  "clues": [                         // le carnet : les indices TROUVÉS, dans l'ordre de découverte
+    { "code": "PLAQUE", "texte": "Une Peugeot 508 grise. Plaque partielle : ...843..." }
+  ],
   "ai_moment_pending": false
 }
 ```
@@ -1064,6 +1156,7 @@ Deux formes d'entrée :
   "node": { /* comme get-state, ou null */ },
   "conversations": [ /* renvoyées à chaque coup : une révélation peut changer un nom */ ],
   "chapter_end": null,
+  "clues": [ /* le carnet APRÈS ce coup : c'est lui qui vient peut-être d'accorder l'indice */ ],
   "ai_moment_pending": false,
   "idempotent_replay": false
 }
