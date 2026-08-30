@@ -4,6 +4,244 @@
 
 ---
 
+## 2026-08-30 (21) — La chaîne de migrations rejouable depuis zéro
+
+Demandé par Vivien, après que le défaut a bloqué pour de vrai la veille : « un db reset qui échoue
+n'est plus théorique dès lors qu'il a bloqué une fois — et la procédure de contournement ne
+survivra pas à trois semaines ni à une machine neuve ». Au TODO depuis le 25 août, corrigé.
+
+### Le défaut, énoncé correctement
+
+Ce n'était pas « quatre colonnes manquantes », c'était une **contrainte d'ordre que rien ne
+tenait**. Une migration de contenu est réécrite à chaque retouche de ton, mais sa **date est figée**
+à sa publication ; les migrations de schéma, elles, continuent d'arriver derrière. Le contenu du
+chapitre 1, daté du 18 août, écrivait dans `messages.tension`, `messages.ambience_sound_url`,
+`nodes.attente_saisie` et `choices.declencheur` — créées les 24. Un `db reset` rejoue par ordre de
+version : le contenu passait avant les DDL et s'arrêtait sur `column does not exist`.
+
+Invisible pendant six jours parce que la base locale n'avait pas été remise à zéro : les colonnes y
+avaient été ajoutées par les ALTER, puis le contenu réécrit en place par-dessus.
+
+### Autoportant plutôt que redaté
+
+Deux issues. **Redater** le fichier de contenu pour qu'il passe en dernier règle le cas du jour,
+mais pas la classe : la prochaine migration de schéma le recasse. Et redater un fichier déjà
+appliqué sur l'hébergé impose un `supabase migration repair` — le geste manuel qu'on voulait
+justement supprimer (ARCHITECTURE.md décrit un déploiement par `db push`, et MEMOIRE (15) raconte
+la dernière fois qu'il a fallu réparer à la main).
+
+**Rendre le contenu autoportant** ferme la classe entière : sa date cesse d'avoir de l'importance.
+Un préambule `add column if not exists`, recopié à l'identique des migrations dédiées, écrit par
+`generate-seed-content.py` (`SCHEMA_REQUIS`) avec la même garde que `PREAMBULE` — donc emporté par
+toute régénération ET par toute publication, sans que personne ait à y penser.
+
+La duplication est assumée, et bornée par trois règles écrites à côté du code : le texte est
+**recopié**, jamais réinventé ; **strictement ce que cette migration écrit**, rien de plus — c'est
+une liste de dépendances, pas un second schéma ; et `if not exists` des deux côtés, donc l'ordre
+d'exécution ne change pas l'état final. Vérifié sur la base neuve : le CHECK du `declencheur` est
+bien là, les `comment on column` des migrations dédiées aussi.
+
+### La deuxième face, fermée par un déménagement
+
+Rejouer le contenu **seul** — le geste quotidien après une régénération — fait
+`delete from chapters` et effaçait `chapters.notification_text`, posé par un `update` de la
+migration postérieure `20260821120000`. Le bouton « Me prévenir » devenait inerte, sans erreur
+nulle part.
+
+Le préambule DDL ne pouvait rien pour ce sens-là, et le TODO le disait. La bonne question n'était
+pas « comment le rejouer » mais **« pourquoi ce texte est-il dans une migration de schéma »** : « Léna
+vous attend. Le chapitre 2 est disponible. » est une phrase que le joueur LIT. C'est du contenu. Il
+vit maintenant dans l'`insert into chapters`, et l'`update` a été **retiré** de la migration de
+teaser plutôt que gardé en double — deux endroits qui posent la même phrase, c'est la dérive qu'on
+évite partout ailleurs.
+
+`20260821120000` a aussi dû passer en `add column if not exists` : sans ça, sur une base neuve, le
+préambule créait la colonne et cette migration échouait ensuite sur « column already exists ».
+
+### Ce que la vérification a coûté, et rapporté
+
+`supabase db reset` lancé pour de vrai, deux fois. Les 26 migrations passent, sans une seule
+intervention. Puis, sur cette base neuve : `verify-graph` **60/60**, `verify-fidelity` 123/123,
+`simulate-playthrough` vert, `upload-media.sh`, `flutter test` 178. Et
+`test-migration-peuplee.py`, qui rejoue le contenu seul sur une partie en cours : le texte de
+notification survit désormais.
+
+Trois contrôles neufs tiennent la propriété : **80** épingle la définition exacte des colonnes du
+préambule (un `not null` d'un côté et pas de l'autre donnerait deux schémas différents selon
+l'ancienneté de la base, sans que rien ne le dise), **81** le CHECK du `declencheur`, **82** le
+texte de notification. Ils ne remplacent pas un `db reset` — c'est lui seul qui prouve que la
+chaîne passe — ils disent ce qu'elle doit produire.
+
+⚠️ **`test-migration-peuplee.py` échouait, et pas à cause de ce travail.** Il gelait « 60
+micro-choix », un compte figé quand le script a été écrit ; le chapitre en pose 72 depuis
+l'addendum de transition N20-N9. Le contrôle criait donc au loup sur du contenu parfaitement sain —
+et un garde-fou qui crie au loup finit ignoré. Il lit maintenant le compte **dans le chapitre**,
+via le parseur du générateur : il ne peut plus se périmer. C'est ce que « le contenu rejoué est
+celui du chapitre » a toujours voulu dire.
+
+---
+
+## 2026-08-29 (20) — Un deuxième écran noir : le trajet vers l'entrepôt (N14)
+
+Demandé par Vivien. Entre « Je pars maintenant » et « Je me suis approchée, tout près ! », le
+joueur passait d'un message à l'autre sur un simple séparateur « 23h31 » : rien ne racontait le
+trajet, rien ne faisait monter l'attente. Trois lignes, texte fourni tel quel, appliquées sans
+retouche (règle 3).
+
+**Même mécanisme que le N19, et c'est tout l'intérêt** : le `content_type = 'narration'` existait
+déjà, LOGIQUE.md disait même qu'« un chapitre pourra en poser plusieurs sans qu'on touche au
+schéma ». C'est vrai du contenu — rien à ajouter pour poser un second écran. La MUSIQUE, elle,
+n'avait pas cette propriété : voir plus bas. Ce qui a bougé :
+
+- **Le générateur ne cherche plus « l'écran noir du N19 »**, il lit un bloc `### 🖤 ÉCRAN NOIR
+  NARRATIF` **à sa place dans le nœud**. L'ancienne version faisait une recherche globale sur le
+  document et collait le résultat en fin de N19 : elle ne savait pas où insérer un deuxième écran.
+- **La fenêtre est dérivée, plus lue.** Elle valait `SEPARATEUR['00h34']`, une constante choisie à
+  la main parce qu'on savait quel message refermait l'écran. Elle vaut maintenant le délai du
+  message **qui suit réellement** l'écran — le message d'après dans le nœud (N14 : le séparateur
+  « 23h31 », 20 s), ou le premier du nœud d'après si l'écran le termine (N19 → N20, 60 s). Le
+  dernier repère reste calculé à « fenêtre moins temps de frappe » : 18 s au N14, la dernière
+  lettre tombant à 19,62 s pour 20 s de fenêtre.
+- **`delai_message()` est né de ça.** Les règles de délai étaient dans `sql_messages` ; la fenêtre
+  avait besoin des mêmes. Les dupliquer aurait recalculé le repère sur une fenêtre que la base ne
+  pose pas — le défaut d'origine, à l'identique.
+
+### Une musique par écran, et la seule migration de la journée
+
+**Correction en cours de route.** L'écran a d'abord été fait **muet**, sur la consigne initiale
+(« le silence sert mieux ce moment »). Vivien est revenu dessus le jour même : l'écran a bien
+besoin d'un son, pour rester cohérent avec le N19 et l'écran de fin qui en ont tous les deux. Il a
+fourni un morceau de la famille **« danger »** — froid, retenu, une amorce du motif qui reviendra
+plus fort au N19.
+
+Ce qui a fait tomber une hypothèse jamais énoncée : `stories.narration_music_url`, **une seule
+musique d'écran noir pour toute la fiction**. Tenable tant que le N19 était seul ; faux dès le
+second écran, qui ne joue pas le même morceau. Le premier réflexe — un drapeau dans le `body` pour
+dire « cet écran veut LA musique » — ne survivait pas non plus à la correction : il ne sait dire
+que oui/non, pas *laquelle*.
+
+**La musique est donc devenue un `media_url`,** posé sur le message de l'écran, exactement comme
+la photo du N16 ou la vidéo du N9. Ce qui a décidé :
+
+- le chemin des médias est **déjà générique** — écriture, persistance dans `player_messages`,
+  signature à 6 h, téléversement par `upload-media.sh`. **Zéro ligne de moteur touchée** ;
+- il survit au rechargement : rouvrir l'app pendant l'écran noir resigne la musique, vérifié ;
+- une deuxième colonne d'histoire n'aurait pas passé le troisième écran.
+
+`stories.narration_music_url` est donc **supprimée** (migration `20260829120000`) — c'est la seule
+migration de la journée, et elle enlève, elle n'ajoute pas. Les deux autres segments restent sur
+l'histoire, et c'est cohérent : une ouverture et une fin ne se rattachent à aucun message.
+
+Effet de bord bienvenu : `ConversationState.musiqueNarration` disparaît, et avec lui le piège
+qu'il portait — ce champ devait échapper au vidage de `intro` sous peine de n'être joué qu'à la
+toute première ouverture de l'app (bug remonté par Vivien sur son téléphone, 18 août). La musique
+d'un écran noir arrive maintenant **par le fil**, comme le reste ; il n'y a plus rien à préserver.
+
+### Le segment : 22 s pour 20 s d'écran, coupé net
+
+Le fichier fourni fait 2 min 56. Les segments du projet sont découpés **en amont** — un morceau
+entier téléchargé pour 20 s de lecture retarderait le premier mot, sur un écran qui n'attend pas.
+Coupé donc aux **22 premières secondes**, sans aucun fondu : 20 s d'écran plus ~2 s de garde, même
+proportion que le N19 (64 s de fichier pour 60 s de fenêtre). La garde n'est pas cosmétique — la
+musique démarre toujours un peu APRÈS l'écran (chargement réseau), jamais avant ; un fichier calé
+à 20 s pile finirait sur une seconde de silence.
+
+Les trois contraintes demandées (catégorie **ambient**, **coupure nette** jamais en fondu,
+**indicateur sonore**) n'ont rien coûté : `MusiqueNarrative` les tient déjà toutes les trois pour
+tout son narratif, et `SoundIndicatorOverlay` est monté au-dessus de `MaterialApp`, donc visible
+sur un plein écran. Rien à câbler, seulement à vérifier.
+
+La source de 2 min 56 est descendue dans **`media/sources/`** : `upload-media.sh` ne parcourt que
+la racine de `media/`, elle ne peut donc plus être ramassée par erreur. Ce n'est pas une précaution
+théorique — voir juste en dessous.
+
+### Cinq secondes avant la bascule, et pourquoi le N19 n'en a pas
+
+L'écran du trajet suit la réponse de Léna à un micro-choix. À délai 0 — la valeur du N19 — il
+tombait à l'instant même où elle finissait de répondre : le reproche exact déjà fait à la vidéo de
+transition le 24 août (« je n'ai pas eu le temps de lire le message que hop »). D'où
+`DELAI_FORCE[('N14', 1)] = 5`, un temps de lecture sans « en train d'écrire ». Le N19 garde son 0 :
+là, la bascule brutale après « merde » **est** l'effet.
+
+### Le contrôle 62 a attrapé ma propre erreur
+
+Généralisé de « l'écran noir du N19 » à *tous* les écrans noirs, il a échoué au premier passage :
+`N14 : texte tronqué, finit à 19.62 s > fenêtre 5 s`. Ma requête prenait le délai **minimum** des
+messages suivants au lieu de celui du message **immédiatement** suivant — 5 s (le texte d'arrivée)
+au lieu de 20 s (le séparateur). Corrigé en `order by position limit 1`.
+
+Contrôle **67** ajouté dans la foulée : chaque écran noir porte SA musique, nommée. Sans lui, un
+`media_url` perdu à la génération rendrait un écran muet **sans erreur nulle part** — et muet par
+accident ressemble trop à muet par intention. Contrôle 44 (nombre de messages) passé de 69 à 70.
+La formule de frappe du contrôle 62 corrige au passage la pause de trop qu'elle comptait sur une
+ligne finissant par « ... » — le Dart n'en pose pas, il n'y a plus rien à écrire derrière.
+
+### `upload-media.sh` allait donner la musique de fin au mauvais morceau
+
+Le repli de la musique de fin prend « le seul fichier audio non réclamé ». `media/README.md`
+promet depuis toujours que **s'il en reste deux, aucun n'est pris** — le code, lui, prenait le
+PREMIER dans l'ordre du glob. Divergence sans conséquence tant qu'un seul fichier traînait libre.
+
+Le morceau « danger » déposé par Vivien s'appelait `Before_The_Door_Opens.mp3` : **B avant U**, il
+serait passé devant `Unmarked_Evidence.mp3` et serait devenu la musique de fin de chapitre, en
+silence. Le script a donc été aligné sur ce que son README promettait — il refuse et nomme les
+candidats — et deux trous ont été bouchés au passage : la boucle des médias de nœud marque
+désormais ce qu'elle prend, et le bloc dédié du battement de cœur aussi. Sans cette seconde
+correction le garde-fou criait à l'ambiguïté sur `heartbeat-n19.mp3`, libre depuis toujours et
+sauvé jusqu'ici par le seul ordre alphabétique.
+
+### Vérifications
+
+`flutter analyze` propre, **178 tests Dart** verts, `verify-graph` **57/57**, `verify-fidelity`
+123/123, `simulate-playthrough` vert sur les cinq parcours, `upload-media.sh` rejoué. Livraison
+réelle sondée sur une partie : réponse au micro-choix → 5 s → écran noir → 20 s → « 23h31 » → 5 s
+→ « Je me suis approchée ». La musique arrive bien sur le message, en chemin signé, à la livraison
+comme au rechargement.
+
+⚠️ **Le `supabase db reset` a échoué en cours de route**, sur le défaut déjà consigné en TODO
+(§ « La chaîne de migrations n'est plus rejouable depuis zéro ») : la migration de contenu écrit
+dans `nodes.attente_saisie`, créée par une migration postérieure. Base locale reconstruite à la
+main dans l'ordre DDL → contenu → `update` postérieurs. **Rien à voir avec cet écran**, mais c'est
+la première fois que le défaut bloque vraiment un reset — il n'est plus théorique.
+
+---
+
+## 2026-08-29 (19) — Le N10 parlait d'« cet endroit » avant qu'aucun endroit n'existe
+
+Signalé par Vivien. La réponse de Léna au 🔍 du N10 disait « pour eux ce n'est pas anormal de
+passer un appel à cet endroit » — un lieu dont le joueur pouvait n'avoir jamais entendu parler.
+Texte de remplacement fourni par lui, appliqué tel quel : doc V3.2 → régénération de la migration →
+base. `verify-fidelity` 123/123, `verify-graph` 56/56, `simulate-playthrough` vert.
+
+**Ce n'est pas une incohérence plantée.** Vérifié avant de toucher quoi que ce soit : la bible §7
+n'en compte qu'une au N10, et c'est la **date du récépissé** (signalement à J-2 mois contre « je
+cherche depuis 7 mois »), dont le zoom a d'ailleurs migré au N8 en V3.2. Rien à voir avec cette
+réplique. Règle 2 respectée dans les deux sens : on ne corrige pas de sa propre initiative, mais on
+vérifie avant d'appliquer une correction demandée.
+
+**Le défaut ne concerne qu'une des deux routes vers le N10.** L'entrepôt et le bornage à 400 m sont
+posés au N8 (« un ancien entrepôt sur la route de Lacan », puis le 🔍 « Pourquoi cet endroit
+précisément ? »). Or le N10 s'atteint de deux façons :
+
+| route | l'endroit a-t-il été nommé ? |
+|---|---|
+| **N8 → N10** (« N'y allez pas seule, retournez voir la police d'abord. ») | oui — la réplique d'origine tenait |
+| **N6 → N10** (« Appelez la police, pas un inconnu. ») | **non** — N1→N2/N4→N6 ne nomme aucun lieu |
+
+⚠️ **Deux renvois du même genre subsistent sur la route N6 → N10, non touchés.** Ils sortent de ce
+qui a été demandé, et ce sont des décisions de contenu :
+
+1. Le libellé du micro-choix lui-même — « Ils ont regardé **le bornage** au moins ? » : le joueur y
+   interroge un bornage dont on ne lui a jamais parlé sur cette route.
+2. Le choix structurant A du N10 — « D'accord, je reste en ligne, mais n'entrez pas dans **ce
+   bâtiment**. » : quel bâtiment ?
+
+Posés en question ouverte (TODO Q17). Trois issues possibles, toutes à trancher par Vivien : faire
+nommer le lieu par le N6, réécrire ces deux libellés pour qu'ils tiennent sans lui, ou constater
+que la route N6 → N10 est assez marginale pour vivre avec.
+
+---
+
 ## 2026-08-27 (18) — Le N5 entrait dans le N8 sans transition, comme le N7 avant lui
 
 La correction du 24 août n'avait été appliquée qu'à **une** des deux branches qui entrent dans le

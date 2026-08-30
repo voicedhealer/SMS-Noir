@@ -67,26 +67,57 @@ n° 3** de la bible §7 : elle est censée être seule dans une zone déserte.
 
 ---
 
-## La musique — trois segments
+## La musique
+
+Deux familles, et elles ne se rangent pas au même endroit.
+
+**Les segments de l'HISTOIRE** — une ouverture, une fin. Ils ne se rattachent à
+aucun message, donc ils vivent sur `stories` :
 
 | Rôle | Reconnu par | Colonne |
 |---|---|---|
 | Intronisation | `intro` dans le nom | `intro_music_url` |
-| Écran noir du N19 | `60-sec`, `N19` ou `narration` dans le nom | `narration_music_url` |
 | Écran de fin | `clap-de-fin` ou `fin-music` dans le nom, **sinon** : le seul fichier audio restant | `chapter_end_music_url` |
+
+**Les musiques des ÉCRANS NOIRS** — une par écran, posée sur le message de
+l'écran comme une photo l'est sur le sien (migration `20260829120000`) :
+
+| Écran | Nom du fichier | Durée |
+|---|---|---|
+| Le trajet (N14) | `musique-N14-trajet` | ~22 s (écran de 20 s) |
+| L'incident (N19) | `musique-N19-ecran-noir`, ou tout fichier avec `N19` dans le nom | ~64 s (écran de 60 s) |
+
+Elles étaient sur l'histoire, une seule pour toute la fiction — intenable dès
+qu'il y en a eu deux, d'autant que le trajet ne joue pas le même morceau que
+l'incident : une **amorce « danger »**, froide et retenue, du motif que le N19
+reprend plus fort.
 
 **L'écran de fin accepte un vrai titre de morceau.** Une composition n'a
 aucune raison de porter un mot-clé technique — « Unmarked_Evidence.mp3 » est
 un nom d'œuvre, pas un identifiant. S'il ne reste qu'un seul fichier audio non
-réclamé par l'intro et le N19, le script le prend pour la fin, quel que soit
-son nom.
+réclamé, le script le prend pour la fin, quel que soit son nom.
 
 **Ce repli ne marche qu'à un fichier près.** S'il en reste deux non identifiés
-à la fois, aucun n'est pris automatiquement — inclure `fin` quelque part dans
-le nom lève l'ambiguïté.
+à la fois, le script **refuse** et les nomme tous les deux — inclure `fin`
+quelque part dans le nom lève l'ambiguïté.
 
-Durées : l'intro et le N19 sont coupés net par l'app à la fin de leur écran —
-**60 s minimum** suffit pour le N19, pas besoin d'une précision à la seconde.
+### `sources/` — les morceaux entiers
+
+`upload-media.sh` ne lit que la **racine** de `media/`. Un morceau complet dont
+on ne veut qu'un extrait se range donc dans `media/sources/`, et seul l'extrait
+découpé reste à la racine. Ce n'est pas du rangement : un fichier libre de plus
+à la racine et le repli de la musique de fin devient ambigu.
+
+### Durées et coupures
+
+Les segments d'écran sont coupés **net** par l'app à la fermeture de leur écran,
+**jamais en fondu** — la coupure fait partie de l'effet. Le fichier doit donc
+couvrir la durée de l'écran avec un peu de garde (la musique démarre toujours
+un peu après l'écran, le temps du chargement) : ~64 s pour les 60 s du N19,
+~22 s pour les 20 s du N14. Découper **en amont**, pas jouer à partir d'un
+offset : un morceau entier téléchargé pour 20 s de lecture retarde le premier
+mot.
+
 L'écran de fin, lui, joue jusqu'au bout : c'est le seul qui doit vraiment finir
 en musique, pas être coupé en plein élan.
 

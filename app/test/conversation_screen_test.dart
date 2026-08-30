@@ -339,15 +339,18 @@ void main() {
     });
 
     testWidgets(
-        'la musique du N19 et de fin restent exposées même une fois l\'intronisation déjà vue',
+        'la musique de fin reste exposée même une fois l\'intronisation déjà vue',
         (tester) async {
       // Régression : `ConversationState.intro` (et donc son
-      // `narration_music_url`/`chapter_end_music_url`) était nullé dès que
-      // l'intro avait déjà été vue, alors que ces segments doivent rester
-      // disponibles à CHAQUE passage par le N19 ou l'écran de fin — pas
-      // seulement à la toute première ouverture de l'app. Signalé par
-      // Vivien : sur son téléphone, seul le son de l'intro du tout début
-      // fonctionnait.
+      // `chapter_end_music_url`) était nullé dès que l'intro avait déjà été
+      // vue, alors que ce segment doit rester disponible à CHAQUE passage par
+      // l'écran de fin — pas seulement à la toute première ouverture de l'app.
+      // Signalé par Vivien : sur son téléphone, seul le son de l'intro du tout
+      // début fonctionnait.
+      //
+      // La musique des écrans noirs échappe désormais à ce piège par
+      // construction : elle voyage sur le `media_url` de leur message, donc
+      // par le fil, et non par l'intro.
       //
       // Testé au niveau de l'état exposé par le contrôleur, pas en montant
       // `NarrationScreen` : ce widget résout `Env.supabaseUrl` dès qu'un
@@ -364,7 +367,6 @@ void main() {
               'intro': {
                 'panels': const [],
                 'music_url': null,
-                'narration_music_url': '/musique-n19.mp3',
                 'chapter_end_music_url': '/musique-fin.mp3',
               },
               'new_messages': const [],
@@ -392,7 +394,6 @@ void main() {
 
       final etat = conteneur.read(conversationProvider).value!;
       expect(etat.intro, isNull, reason: 'l\'intro elle-même ne doit pas rejouer');
-      expect(etat.musiqueNarration, '/musique-n19.mp3');
       expect(etat.musiqueFin, '/musique-fin.mp3');
     });
 

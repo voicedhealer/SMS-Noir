@@ -35,6 +35,11 @@ _s = importlib.util.spec_from_file_location(
 sim = importlib.util.module_from_spec(_s)
 _s.loader.exec_module(sim)
 
+_g = importlib.util.spec_from_file_location(
+    'gen', pathlib.Path(__file__).with_name('generate-seed-content.py'))
+gen = importlib.util.module_from_spec(_g)
+_g.loader.exec_module(gen)
+
 CONTENEUR = 'supabase_db_SMS-Noir'
 
 
@@ -99,11 +104,19 @@ if __name__ == '__main__':
     # d'avant n'existent plus.
     sim.verifier('Le pointeur narratif est remis à zéro',
                  sql('select count(*) from player_progress where current_node_id is not null;'), '0')
-    # 60, pas 63 : compte figé au moment où ce script a été écrit, avant un
-    # ajustement ultérieur du contenu (cf. verify-graph.sql #45/#46 : 93 choix
-    # au total, 33 hors micro — 60 micro, chiffre qui, lui, est tenu à jour).
-    sim.verifier('Le contenu est bien celui de la V3.2',
-                 sql("select count(*) from choices where kind = 'micro';"), '60')
+    # Le contenu rejoué est-il le contenu COURANT, ou une version d'avant ?
+    #
+    # Le compte attendu est lu dans le chapitre, jamais figé ici. Il l'était —
+    # « 60, pas 63 : compte figé au moment où ce script a été écrit » — et ce
+    # genre de constante se périme en silence : le chapitre en compte 72 depuis
+    # l'addendum de transition N20-N9, et ce contrôle échouait donc sur du
+    # contenu parfaitement sain. Un garde-fou qui crie au loup finit ignoré.
+    noeuds = gen.parser()
+    attendus = sum(len(b['options'])
+                   for code in gen.ORDRE for b in noeuds[code]['micro'])
+    sim.verifier('Le contenu rejoué est celui du chapitre',
+                 sql("select count(*) from choices where kind = 'micro';"),
+                 str(attendus))
 
     print('\n' + '=' * 78)
     if sim.ECHECS:

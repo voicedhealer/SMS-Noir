@@ -280,6 +280,26 @@ Séquence de déploiement :
 4. `supabase functions deploy`
 5. `app/tool/run_remote.sh --release`
 
+### Une migration de contenu est autoportante
+
+Elle est réécrite à chaque retouche de ton, mais sa **date est figée** à sa publication — et les
+migrations de schéma continuent d'arriver derrière elle. Une migration de contenu ne peut donc pas
+compter sur sa place dans la chronologie pour trouver les colonnes où elle écrit.
+
+Elle porte donc en tête un **préambule `add column if not exists`**, recopié à l'identique des
+migrations dédiées, écrit par `generate-seed-content.py` (`SCHEMA_REQUIS`). C'est une **liste de
+dépendances, pas un second schéma** : strictement les colonnes où ses `insert` écrivent, jamais
+plus. La migration dédiée reste la source — elle porte le raisonnement, les `comment on column` et
+le reste du schéma qui va avec.
+
+Corollaire : **une phrase que le joueur lit n'a rien à faire dans une migration de schéma.** Le
+contenu commence par `delete from` ses tables ; tout texte posé ailleurs par un `update` est effacé
+au premier rejeu, sans erreur. C'est arrivé au texte de notification du chapitre 2, revenu depuis
+dans l'`insert into chapters`.
+
+Contrôles 80 à 82 de `verify-graph.sql`. Ils ne remplacent pas un vrai `supabase db reset` — c'est
+lui seul qui prouve que la chaîne passe — ils disent ce qu'elle doit produire.
+
 ### L'angle mort du `db reset`
 
 **Un `db reset` local ne peut pas voir les défauts de migration liés aux

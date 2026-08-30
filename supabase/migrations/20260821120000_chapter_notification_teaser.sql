@@ -16,8 +16,13 @@
 -- Les deux sont nullables : un chapitre sans texte de notification ne bloque
 -- rien (le bouton « Me prévenir » reste inerte plutôt que d'envoyer un
 -- corps vide), un chapitre sans teaser n'affiche simplement pas cette ligne.
-alter table chapters add column notification_text text;
-alter table chapters add column teaser_text text;
+-- `if not exists` : la migration de CONTENU déclare elle aussi ces deux
+-- colonnes, en préambule, parce qu'elle y écrit alors qu'elle est datée
+-- AVANT celle-ci. Sans ça, un `db reset` depuis zéro échouait ici sur
+-- « column already exists ». Voir le préambule de
+-- 20260818174043_contenu_chapitre_1.sql.
+alter table chapters add column if not exists notification_text text;
+alter table chapters add column if not exists teaser_text text;
 
 comment on column chapters.notification_text is
   'Corps de la notification locale programmée pour le déblocage de CE '
@@ -27,10 +32,20 @@ comment on column chapters.teaser_text is
   'Phrase d''accroche courte de CE chapitre, affichée sur l''écran de fin du '
   'chapitre précédent. Null = pas de ligne d''accroche affichée.';
 
--- Texte donné explicitement par Vivien dans le prompt — contenu, pas
--- improvisé. Le teaser du chapitre 2 reste à écrire (hors périmètre de ce
--- prompt) : `teaser_text` reste null pour l'instant.
-update chapters
-   set notification_text = 'Léna vous attend. Le chapitre 2 est disponible.'
- where position = 2
-   and story_id = (select id from stories where slug = 'numero-inconnu');
+-- ⚠️ **Le texte a déménagé dans la migration de contenu**, où il aurait dû
+-- naître : c'est une phrase que le joueur LIT, donc du contenu, et il vit
+-- maintenant dans l'`insert into chapters` du chapitre 2.
+--
+-- Il était posé ici par un `update`, et la migration de contenu — datée avant
+-- celle-ci — fait `delete from chapters` puis les recrée. Rejouer le contenu
+-- seul, le geste quotidien après une régénération, effaçait donc le texte sans
+-- rien dire : le bouton « Me prévenir » de l'écran de fin devenait inerte,
+-- sans erreur nulle part. C'est `simulate-playthrough.py` qui l'attrapait,
+-- après coup.
+--
+-- Le `update` n'est pas conservé « au cas où » : deux endroits qui posent la
+-- même phrase, c'est exactement la dérive qu'on évite ailleurs. La colonne
+-- reste ici, sa valeur est du contenu.
+--
+-- Le teaser du chapitre 2 reste à écrire (hors périmètre de ce prompt) :
+-- `teaser_text` reste null pour l'instant.

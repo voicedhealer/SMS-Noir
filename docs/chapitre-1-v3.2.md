@@ -230,7 +230,7 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 
 **MICRO-CHOIX :**
 - 🛡 « Ils n'avaient pas le droit de vous dire ça. » → *« Merci, ça fait du bien de l'entendre, j'ai fini par croire que c'était moi le problème. »*
-- 🔍 « Ils ont regardé le bornage au moins ? » → *« Ils l'ont noté, classé, et rien fait, pour eux ce n'est pas anormal de passer un appel à cet endroit, rien ne les choque ! Un dossier de plus dans une pile de dossiers, ils sont débordés, je peux le comprendre, mais là on n'est pas sur un défaut de stationnement. »*
+- 🔍 « Ils ont regardé le bornage au moins ? » → *« Ils l'ont noté, classé, et rien fait. Un dossier de plus dans une pile de dossiers, ils sont débordés, je peux le comprendre, mais là on n'est pas sur un défaut de stationnement. »*
 - 🧠 « Et si vous aviez raison, mais que ce soit dangereux ? » → *« Alors ce sera dangereux, mais je ne peux pas passer une nuit de plus à ne rien faire. »*
 
 **[Léna]** Alors oui, un inconnu au bout d'un mauvais numéro, c'est tout ce qu'il me reste, c'est assez ironique quand on y pense.
@@ -297,6 +297,30 @@ Trois options, toujours dans le même ordre, jamais d'icône affichée : 🛡 **
 - 🛡 « Restez dans votre voiture le plus longtemps possible. » → *« Oui, mais je suis trop loin, je ne vois pas grand-chose d'ici. »*
 - 🔍 « Décrivez-moi tout, même ce qui vous paraît sans importance. » → *« D'accord, ça permettra de me relire au cas où j'oublierais un détail par la suite, et au passage ça m'occupera l'esprit et calmera cette peur viscérale. »*
 - 🧠 « Vous êtes vraiment sûre de vouloir faire ça ? » → *« Non. Mais je n'ai pas le choix, personne d'autre ne le fera. »*
+
+### 🖤 ÉCRAN NOIR NARRATIF — LE TRAJET
+
+*(Bascule plein écran. Texte en effet machine à écrire, ~45ms/caractère. Aucune image de fond :
+le noir seul. Musique : un segment de la famille **« danger »** — froid, retenu, une amorce du
+motif qui reviendra plus fort au N19. Il dure la longueur de l'écran, se coupe net à la fin,
+jamais en fondu, et déclenche l'indicateur sonore comme tout son narratif.)*
+
+> *Léna est en route pour l'entrepôt...*
+>
+> *(7s)*
+>
+> *Elle cherche des réponses, un indice, n'importe quoi.*
+>
+> *(11s)*
+>
+> *Allez-vous soutenir cette inconnue ?*
+
+*(La dernière ligne est **rhétorique** : aucune réponse attendue, aucun choix affiché. L'écran
+enchaîne directement sur l'arrivée de Léna.)*
+
+*(Coupure nette — l'écran se referme sur le séparateur « 23h31 ». Le dernier décalage — 18 s —
+est **recalculé par le générateur** comme au N19 : la fenêtre du séparateur moins le temps de
+frappe de la dernière ligne, pour que sa dernière lettre tombe pile sur l'arrivée de Léna.)*
 
 *Séparateur : « 23h31 »*
 

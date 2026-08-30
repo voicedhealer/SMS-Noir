@@ -1,5 +1,4 @@
 import 'dart:async';
-import '../screens/narration_screen.dart';
 import 'reglages.dart';
 
 import 'package:flutter/services.dart';
@@ -49,7 +48,6 @@ class ConversationState {
     this.storyCoverUrl,
     this.consentDecide = false,
     this.joueurEcrit = false,
-    this.musiqueNarration,
     this.musiqueFin,
   });
 
@@ -88,17 +86,17 @@ class ConversationState {
   /// Séquence d'ouverture à jouer avant tout. Null = déjà vue, ou aucune.
   final IntroSequence? intro;
 
-  /// Segment 2 du morceau (écran noir du N19) — chemin signé relatif.
+  /// Segment 3 du morceau (écran de fin de chapitre) — chemin signé relatif.
   ///
   /// Distinct de [intro] à dessein : [intro] se vide définitivement une fois
   /// l'intronisation vue (`LocalStore.introVue`), alors que ce segment doit
-  /// rester disponible à CHAQUE passage par le N19, potentiellement bien après
-  /// la toute première ouverture de l'app. Le nuller avec [intro] revenait à
-  /// ne jamais jouer ce son après la première fois.
-  final String? musiqueNarration;
-
-  /// Segment 3 du morceau (écran de fin de chapitre) — même raison que
-  /// [musiqueNarration] : jamais gouverné par `introVue`.
+  /// rester disponible à CHAQUE passage par l'écran de fin, potentiellement
+  /// bien après la toute première ouverture de l'app. Le nuller avec [intro]
+  /// revenait à ne jamais jouer ce son après la première fois.
+  ///
+  /// Les écrans noirs ne sont plus concernés : chacun porte sa musique sur le
+  /// `media_url` de son message, qui arrive par le fil et ne dépend d'aucun
+  /// état d'intronisation.
   final String? musiqueFin;
 
   /// Le joueur est en train d'écrire dans le champ (texte non vide).
@@ -111,16 +109,20 @@ class ConversationState {
   Conversation? get contact =>
       conversations.isEmpty ? null : conversations.first;
 
-  /// Lignes de l'écran noir, si le dernier message délivré est une narration.
+  /// Le message d'écran noir en cours, si le dernier message délivré en est
+  /// un. Ses lignes sont dans son `body`, sa musique dans son `media_url`.
   ///
   /// La narration tient tant que rien n'est arrivé derrière : c'est le message
   /// SUIVANT qui la referme, et son délai qui en donne la durée. Rien à
   /// synchroniser, donc rien à désynchroniser.
-  List<({String texte, int a})> get narrationEnCours {
-    if (fil.isEmpty) return const [];
+  ///
+  /// Le chapitre 1 en pose deux (N14, N19) : rien ici ne les distingue, et
+  /// c'est voulu — le client ne connaît pas le graphe, il ne fait que jouer ce
+  /// que le contenu lui donne, musique comprise.
+  ClientMessage? get narrationEnCours {
+    if (fil.isEmpty) return null;
     final dernier = fil.last;
-    if (dernier.contentType != ContentType.narration) return const [];
-    return NarrationScreen.decoder(dernier.body);
+    return dernier.contentType == ContentType.narration ? dernier : null;
   }
 
   /// Le dernier message délivré est la vidéo de transition N20→N9, si elle
@@ -258,7 +260,6 @@ class ConversationState {
     String? storyCoverUrl,
     bool? consentDecide,
     bool? joueurEcrit,
-    String? musiqueNarration,
     String? musiqueFin,
   }) => ConversationState(
     fil: fil ?? this.fil,
@@ -280,7 +281,6 @@ class ConversationState {
     storyCoverUrl: storyCoverUrl ?? this.storyCoverUrl,
     consentDecide: consentDecide ?? this.consentDecide,
     joueurEcrit: joueurEcrit ?? this.joueurEcrit,
-    musiqueNarration: musiqueNarration ?? this.musiqueNarration,
     musiqueFin: musiqueFin ?? this.musiqueFin,
   );
 }
@@ -302,9 +302,8 @@ class ConversationController extends AsyncNotifier<ConversationState> {
   String? _storyTagline;
   String? _storyCoverUrl;
 
-  /// Voir `ConversationState.musiqueNarration`/`musiqueFin` : jamais nullé
-  /// avec `_intro`, sinon plus aucun son après la première intronisation.
-  String? _musiqueNarration;
+  /// Voir `ConversationState.musiqueFin` : jamais nullé avec `_intro`, sinon
+  /// plus aucun son après la première intronisation.
   String? _musiqueFin;
 
   /// Voir `ConversationState.consentDecide`.
@@ -470,10 +469,9 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     _intro = (!etat.intro.estVide && !_store.introVue) ? etat.intro : null;
     _aJouerApresIntro = const [];
 
-    // Contrairement à `_intro`, ces deux-là ne se vident JAMAIS avec
-    // `introVue` : le N19 et l'écran de fin ont besoin de leur musique à
-    // chaque passage, pas seulement à la toute première ouverture de l'app.
-    _musiqueNarration = etat.intro.musiqueNarration;
+    // Contrairement à `_intro`, celui-ci ne se vide JAMAIS avec `introVue` :
+    // l'écran de fin a besoin de sa musique à chaque passage, pas seulement à
+    // la toute première ouverture de l'app.
     _musiqueFin = etat.intro.musiqueFin;
 
     // L'historique se rejoue d'un bloc : le déjà-vu n'a pas de timers.
@@ -572,7 +570,6 @@ class ConversationController extends AsyncNotifier<ConversationState> {
     storyCoverUrl: _storyCoverUrl,
     consentDecide: _consentDecide,
     joueurEcrit: _joueurEcrit,
-    musiqueNarration: _musiqueNarration,
     musiqueFin: _musiqueFin,
   );
 

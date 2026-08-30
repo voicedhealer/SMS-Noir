@@ -1,0 +1,18 @@
+-- La musique d'un écran noir vit sur SON message, plus sur l'histoire.
+--
+-- `stories.narration_music_url` supposait qu'il n'y avait qu'UN écran noir dans
+-- toute l'histoire — vrai tant que le N19 était seul. Le chapitre en pose
+-- désormais deux, et le second ne réclame pas le même morceau : le trajet du
+-- N14 ouvre sur une amorce « danger », froide et retenue, du motif que le N19
+-- reprendra plus fort. Deux écrans, deux familles, une seule colonne.
+--
+-- Ajouter une deuxième colonne d'histoire n'aurait pas passé le troisième
+-- écran. La musique rejoint donc `messages.media_url`, là où vivent déjà la
+-- photo du N16 et la vidéo du N9 : signée, persistée dans `player_messages` et
+-- téléversée par `upload-media.sh` exactement comme elles — **sans une seule
+-- ligne de moteur à toucher**, le chemin des médias étant déjà générique.
+--
+-- Les deux autres segments du morceau restent sur l'histoire, et c'est
+-- cohérent : `intro_music_url` et `chapter_end_music_url` ne se rattachent à
+-- aucun message. Ce sont des ouvertures d'histoire, pas des scènes.
+alter table stories drop column if exists narration_music_url;

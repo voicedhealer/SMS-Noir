@@ -48,6 +48,12 @@ MEDIAS=(
   photo-N21-porte-cles
   audio-N17-reperage
   lena-rentre-chez-elle
+  # Les musiques des deux écrans noirs. Elles étaient sur `stories`, une seule
+  # pour toute l'histoire — intenable dès qu'il y en a eu deux, d'autant que le
+  # trajet du N14 ne joue pas le même morceau que l'incident du N19. Ce sont
+  # des médias de nœud comme les autres depuis la migration 20260829120000.
+  musique-N14-trajet
+  musique-N19-ecran-noir
 )
 
 # .mp4 est ambigu (conteneur vidéo OU audio-only, cf. mime()) : ce nom précis
@@ -133,6 +139,12 @@ poser_story() {  # poser_story <colonne> <objet>
   fi
 }
 
+# Fichiers déjà réclamés — par la boucle MEDIAS d'abord, puis par les musiques
+# d'histoire. Le repli « le seul audio restant » ne doit JAMAIS ramasser un
+# média de nœud : depuis que les musiques d'écran noir en sont, deux fichiers
+# de musique parfaitement légitimes vivent dans media/ sans mot-clé d'histoire.
+_MUSIQUES_PRISES=""
+
 mkdir -p "$DOSSIER"
 echo "=============================================================================="
 echo "  MÉDIAS DU CHAPITRE 1 — bucket « $BUCKET »"
@@ -164,6 +176,7 @@ for base in "${MEDIAS[@]}"; do
   fi
 
   poser_media "$placeholder" "$objet"
+  _MUSIQUES_PRISES="$_MUSIQUES_PRISES $(basename "$fichier")"
   taille=$(du -h "$fichier" | cut -f1 | tr -d ' ')
   printf "  ✅ %-28s → %s  (%s, %s)\n" "$base" "$objet" "$type" "$taille"
 done
@@ -203,6 +216,11 @@ if [ -f "$DOSSIER/heartbeat-n19.mp3" ]; then
     -H "Content-Type: audio/mpeg" -H "x-upsert: true" \
     --data-binary "@$DOSSIER/heartbeat-n19.mp3")
   if [ "$code" = "200" ] || [ "$code" = "201" ]; then
+    # Réclamé, donc plus candidat au repli « le seul audio restant ». Ce bloc
+    # téléverse sans passer par la boucle MEDIAS : sans cette ligne, le
+    # battement de cœur reste éternellement « libre » et rend la musique de
+    # fin ambiguë. Il l'était déjà avant, mais l'ordre du glob le cachait.
+    _MUSIQUES_PRISES="$_MUSIQUES_PRISES heartbeat-n19.mp3"
     printf "  ✅ %-28s → %s  (%s)\n" "heartbeat-n19" "heartbeat-n19.mp3" "tension N19"
   else
     printf "  ❌ %-28s téléversement refusé (HTTP %s)\n" "heartbeat-n19" "$code"
@@ -249,15 +267,17 @@ sonner reception sound_received_url "son de réception"
 sonner envoi     sound_sent_url     "son d'envoi"
 sonner frappe    sound_typing_url   "son de frappe"
 
-# Les trois segments musicaux.
+# Les segments musicaux portés par l'HISTOIRE — l'intro et l'écran de fin.
+#
+# Les écrans noirs n'en sont plus : leur musique est un média de nœud (boucle
+# MEDIAS ci-dessus), parce qu'il en faut une PAR ÉCRAN. Ne restent ici que les
+# segments qui ne se rattachent à aucun message : une ouverture et une fin.
 #
 # Un fichier de contenu (intro-music.mp4, un mot-clé de nœud dans son nom) se
 # reconnaît sans ambiguïté. Une COMPOSITION MUSICALE n'a aucune raison de
 # porter un mot-clé technique dans son titre — « Unmarked_Evidence.mp3 » est un
 # vrai nom de morceau, pas un identifiant. Deux passes, donc : mots-clés
 # d'abord, puis repli sur « le seul fichier audio encore non attribué ».
-_MUSIQUES_PRISES=""
-
 trouver_musique() {  # trouver_musique <motifs séparés par |>
   local motifs="$1" f nom
   for f in "$DOSSIER"/*; do
@@ -285,7 +305,10 @@ trouver_musique() {  # trouver_musique <motifs séparés par |>
     # le cas pour tous les rushes à venir, quel que soit leur nom.
     if [ -z "$motifs" ]; then
       case "$nom" in *.mp4) continue;; esac
-      echo "$f"; return
+      # Sans motif, on les liste TOUS : c'est l'appelant qui décide, et il
+      # refuse dès qu'il y en a deux. Rendre le premier venu masquerait
+      # l'ambiguïté au lieu de la signaler.
+      echo "$f"; continue
     fi
     # Pas de sous-shell pour découper sur « | » : un `return` à l'intérieur de
     # ( … ) ne sort que du sous-shell, pas de la fonction — la boucle
@@ -298,7 +321,6 @@ trouver_musique() {  # trouver_musique <motifs séparés par |>
 }
 
 for triplet in "intro:intro_music_url:intro-music" \
-               "60-sec|N19|narration:narration_music_url:narration-music" \
                "clap-de-fin|fin-music:chapter_end_music_url:fin-music"; do
   motif="${triplet%%:*}"; reste="${triplet#*:}"
   colonne="${reste%%:*}"; base="${reste#*:}"
@@ -307,9 +329,27 @@ for triplet in "intro:intro_music_url:intro-music" \
 
   # Repli, pour la fin uniquement : une vraie composition n'a aucune raison de
   # porter un mot-clé technique dans son titre. S'il ne reste qu'UN fichier
-  # audio non réclamé par l'intro ou le N19, c'est lui.
+  # audio non réclamé, c'est lui.
+  #
+  # ⚠️ **Un seul, sinon aucun.** media/README.md le promet depuis le début —
+  # « s'il en reste deux non identifiés à la fois, aucun n'est pris
+  # automatiquement » — mais le code prenait le PREMIER venu, dans l'ordre du
+  # glob. Divergence sans conséquence tant qu'il ne traînait qu'un fichier
+  # libre ; le jour où un deuxième morceau est arrivé dans media/, il passait
+  # devant par ordre alphabétique et devenait la musique de fin, en silence.
+  # Refuser l'ambiguïté rend l'échec visible et laisse le mot-clé la trancher.
   if [ -z "$fichier" ] && [ "$colonne" = "chapter_end_music_url" ]; then
-    fichier="$(trouver_musique "")"
+    libres="$(trouver_musique "")"
+    combien=$(printf '%s\n' "$libres" | grep -c . || true)
+    if [ "$combien" -gt 1 ]; then
+      printf "  ❌ %-28s ambigu, %s fichiers libres :\n" "(musique de fin)" "$combien"
+      printf '%s\n' "$libres" | while read -r libre; do
+        [ -n "$libre" ] && printf "       · %s\n" "$(basename "$libre")"
+      done
+      printf "     %-28s mets « fin » dans le nom de celui qui doit gagner.\n" ""
+      continue
+    fi
+    fichier="$libres"
   fi
 
   if [ -z "$fichier" ]; then
@@ -339,12 +379,12 @@ if [ -n "$DISTANT" ]; then
     | python3 -c 'import json,sys
 for m in json.load(sys.stdin):
     print("  %s#%s  %-6s  %s" % (m["nodes"]["code"], m["position"], m["content_type"], m["media_url"]))'
-  rest GET "stories?slug=eq.numero-inconnu&select=cover_url,intro_music_url,narration_music_url,chapter_end_music_url,sound_received_url,sound_sent_url,sound_typing_url" \
+  rest GET "stories?slug=eq.numero-inconnu&select=cover_url,intro_music_url,chapter_end_music_url,sound_received_url,sound_sent_url,sound_typing_url" \
     | python3 -c 'import json,sys
 s = json.load(sys.stdin)[0]
 print("  couverture=%s" % (s["cover_url"] or "(aucune)"))
-print("  musique intro=%s  N19=%s  fin=%s" % (
-      s["intro_music_url"] or "(aucune)", s["narration_music_url"] or "(aucune)",
+print("  musique intro=%s  fin=%s" % (
+      s["intro_music_url"] or "(aucune)",
       s["chapter_end_music_url"] or "(aucune)"))
 print("  sons    recu=%s  envoi=%s  frappe=%s" % (s["sound_received_url"] or "(aucun)",
       s["sound_sent_url"] or "(aucun)", s["sound_typing_url"] or "(aucun)"))'
@@ -356,7 +396,6 @@ else
        where m.media_url is not null order by m.media_url;"
   sql "select '  couverture='||coalesce(cover_url,'(aucune)') from stories where slug='numero-inconnu';"
   sql "select '  musique intro='||coalesce(intro_music_url,'(aucune)')
-       ||'  N19='||coalesce(narration_music_url,'(aucune)')
        ||'  fin='||coalesce(chapter_end_music_url,'(aucune)')
        from stories where slug='numero-inconnu';"
   sql "select '  sons    reçu='||coalesce(sound_received_url,'(aucun)')||'  envoi='||coalesce(sound_sent_url,'(aucun)')||'  frappe='||coalesce(sound_typing_url,'(aucun)') from stories where slug='numero-inconnu';"

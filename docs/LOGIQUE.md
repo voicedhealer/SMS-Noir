@@ -375,14 +375,18 @@ valeur d'une variable écrêtée. **Son échec veut dire « recalcule les valeur
 
 ## L'écran noir narratif (`content_type = 'narration'`)
 
-Pendant les 60 s où Léna ne répond plus (N19), l'app quitte la conversation et
-bascule en plein écran. C'est le seul moment du chapitre où le joueur cesse
-d'être dans une messagerie.
+Deux fois dans le chapitre 1, l'app quitte la conversation et bascule en plein
+écran. Ce sont les seuls moments où le joueur cesse d'être dans une messagerie.
+
+| écran | quand | fenêtre | musique |
+|---|---|---|---|
+| **le trajet** | N14#1 — Léna vient de dire « Je pars maintenant » | 20 s, le séparateur « 23h31 » | `musique-N14-trajet` — amorce « danger » |
+| **l'incident** | N19#4 — après « merde » | 60 s, le séparateur « 00h34 » | `musique-N19-ecran-noir` — le motif, plus fort |
 
 **La narration est une chose qui ARRIVE DANS LE FIL, pas une propriété du nœud.**
 C'est pour ça qu'elle est un message et pas une colonne sur `nodes` : elle a une
-position, elle est délivrée par le déroulé comme le reste, et un chapitre pourra
-en poser plusieurs sans qu'on touche au schéma.
+position, elle est délivrée par le déroulé comme le reste, et le chapitre en pose
+deux sans qu'on ait eu à toucher au schéma.
 
 Son `body` porte les lignes et leurs décalages :
 
@@ -390,19 +394,57 @@ Son `body` porte les lignes et leurs décalages :
 [{"texte": "Léna ne répond plus...", "a": 0}, {"texte": "…", "a": 20}]
 ```
 
+**Sa musique est son `media_url`** — un fichier PAR ÉCRAN, signé, persisté et
+téléversé exactement comme la photo du N16 ou la vidéo du N9. Elle vivait sur
+`stories.narration_music_url`, une seule pour toute l'histoire : tenable tant
+que le N19 était seul, faux dès le second écran, qui ne joue pas le même
+morceau — le trajet ouvre sur une amorce « danger », froide et retenue, que le
+N19 reprend plus fort. Une deuxième colonne d'histoire n'aurait pas passé le
+troisième écran ; le chemin des médias, lui, était déjà générique (migration
+`20260829120000`, zéro ligne de moteur touchée).
+
+Un fichier pas encore livré laisse un `placeholder://` : l'écran se joue alors
+en silence, comme une photo manquante affiche son cartouche. Le contrôle 67 de
+`verify-graph.sql` vérifie que chacun a bien le sien — muet par accident et
+muet par intention se ressembleraient trop.
+
+Les trois contraintes de tout son narratif s'appliquent, et sont tenues par
+`MusiqueNarrative` sans rien de spécifique à l'écran : **catégorie ambient**
+(respecte le mode silencieux, ne coupe pas ce que le joueur écoutait),
+**coupure nette** à la fermeture — jamais de fondu descendant — et
+**indicateur sonore** visible tant que ça joue, tapable pour couper.
+
 **La durée n'est écrite nulle part.** L'écran tient tant que rien n'est arrivé
 derrière : c'est le message SUIVANT qui le referme, et son `delay_seconds` qui
 en donne la durée. Les deux ne peuvent donc pas se désynchroniser — il n'y a
 rien à tenir en accord.
+
+**Le TEXTE, lui, ne suit pas tout seul.** C'est la nuance qui a masqué un défaut
+pendant tout le développement (voir MEMOIRE, 24 août) : l'écran durait bien
+l'attente, mais le texte finissait 17 s avant elle. Le **dernier décalage est
+donc calculé, jamais lu** — `generate-seed-content.py` le pose à « fenêtre moins
+temps de frappe de la dernière ligne », pour les deux écrans, à partir du délai
+réel du message qui les referme. Toucher au délai d'un séparateur suffit : le
+repère suit.
+
+Cette synchronisation tient sur une vitesse de frappe **dupliquée** entre le
+Python (`FRAPPE_PAR_CARACTERE`, `FRAPPE_PAUSE_POINTS`) et le Dart
+(`Typewriter.parCaractere`, `surPause`). Deux verrous, à faire tomber ensemble :
+`app/test/typewriter_test.dart` § « la vitesse de frappe est figée » côté client,
+le **contrôle 62** de `verify-graph.sql` côté serveur — qui passe *tous* les
+écrans noirs au crible, pas seulement celui du N19.
 
 Trois règles de mise en scène :
 
 - **Aucune sortie, aucun bouton, aucun champ de saisie.** Le joueur ne peut rien
   faire, et c'est le sujet. Un champ actif sur un écran noir sans fil visible ne
   ressemblerait à rien de réel et laisserait croire qu'une action est possible.
-- **La dernière ligne est inachevée** — « ou prévenir la ». Elle est coupée par
-  le retour de Léna. Ne jamais la compléter, ne jamais la faire disparaître
-  proprement : la coupure est l'effet.
+  Vaut aussi pour une question posée à l'écran : « Allez-vous soutenir cette
+  inconnue ? » (N14) est **rhétorique**, rien ne s'affiche pour y répondre.
+- **La dernière ligne du N19 est inachevée** — « ou prévenir la ». Elle est
+  coupée par le retour de Léna. Ne jamais la compléter, ne jamais la faire
+  disparaître proprement : la coupure est l'effet. Celle du N14 est entière,
+  mais tombe tout aussi juste.
 - **La narration ne laisse aucune trace dans le fil.** En remontant la
   conversation, on ne la relit pas : c'était un moment, pas un message.
 

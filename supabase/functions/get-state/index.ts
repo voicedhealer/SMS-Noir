@@ -49,9 +49,10 @@ Deno.serve(servir(async (req) => {
     intro: {
       panels: (histoire.intro_panels ?? []) as { lines: string[] }[],
       music_url: await signerObjet(db, histoire.intro_music_url),
-      // Les deux autres segments du MÊME morceau, signés au même moment parce
-      // qu'ils se chargent ensemble — même s'ils servent à d'autres écrans.
-      narration_music_url: await signerObjet(db, histoire.narration_music_url),
+      // L'autre segment du MÊME morceau, signé au même moment parce qu'ils se
+      // chargent ensemble — même s'il sert à un autre écran. La musique des
+      // écrans noirs, elle, voyage sur le `media_url` de leur message : chaque
+      // écran a la sienne (migration 20260829120000).
       chapter_end_music_url: await signerObjet(db, histoire.chapter_end_music_url),
     },
     sounds: {

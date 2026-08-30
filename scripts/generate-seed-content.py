@@ -103,7 +103,14 @@ def duree_frappe(texte: str) -> float:
 #: dernière image avant le retour au fil. À 6 s tout rond, la moindre latence
 #: de buffer coupait la fin — or Vivien la veut entière.
 #: ⚠️ À réajuster si la durée du fichier change.
-DELAI_FORCE = {('N9', 1): 8}
+#: N14#1 (l'écran noir du trajet) : 5 s de délai plutôt que 0, pour la même
+#: raison que la vidéo ci-dessus. Il suit la réplique du micro-choix, et à 0 le
+#: plein écran tombait à l'instant même où Léna finissait de répondre. Ces 5 s
+#: sont un temps de lecture sur le fil ; la durée de l'ÉCRAN, elle, reste donnée
+#: par le délai du séparateur « 23h31 » qui le referme.
+#: ⚠️ Le N19 n'y figure pas : là, la bascule instantanée après « merde » EST
+#: l'effet.
+DELAI_FORCE = {('N9', 1): 8, ('N14', 1): 5}
 
 #: Séparateurs : le délai réel que l'ellipse masque.
 SEPARATEUR = {'jeudi — 22h47': 0, '23h02': 15, '23h18': 25, '23h58': 25,
@@ -115,7 +122,7 @@ TYPING_LONG = {('N2', 0), ('N13', 0)}
 
 #: Notifications push. Le document les marque « 🔔 PUSH » en tête de nœud ;
 #: on les pose sur le message qui réveille réellement le téléphone.
-PUSH = {('N4', 1), ('N6', 2), ('N11', 3), ('N14', 2), ('N19', 1), ('N20', 1)}
+PUSH = {('N4', 1), ('N6', 2), ('N11', 3), ('N14', 3), ('N19', 1), ('N20', 1)}
 PUSH_TEXTE = {('N11', 3): 'Léna : 1 nouveau message'}
 
 #: Renforcement sensoriel — bulles bordées de rouge et battement de cœur.
@@ -138,7 +145,29 @@ TENSION = {
     # Le texte décrit lui-même l'accélération cardiaque, et l'absence de rouge
     # s'y voyait en jouant. Visuel seul — aucune entrée dans AMBIANCE : le
     # battement reste réservé au N19.
-    ('N14', 2),
+    # Position 3 depuis l'ajout de l'écran noir du trajet en position 1.
+    ('N14', 3),
+}
+
+#: Musique de chaque écran noir — un fichier PAR ÉCRAN, posé sur le message.
+#:
+#: Déclaré ici et pas déduit du document : comme PUSH ou TENSION, c'est de la
+#: mise en scène, pas du texte que le joueur lit.
+#:
+#: ⚠️ **Le segment ne vit plus sur `stories`.** Il y en avait un seul pour toute
+#: l'histoire (`narration_music_url`), ce qui tenait tant qu'il n'y avait qu'un
+#: écran noir. Le trajet du N14 en réclame un autre, d'une autre famille — pas
+#: le segment 2 du même morceau, mais une amorce « danger », froide et retenue,
+#: du motif qui reviendra plus fort au N19. Une deuxième colonne d'histoire
+#: n'aurait pas passé le troisième écran : la musique est donc un `media_url`
+#: comme la photo du N16 ou la vidéo du N9, signée et persistée par le même
+#: chemin, sans une ligne de moteur à toucher.
+#:
+#: Les noms suivent la convention de `media/` : `<type>-<nœud>-<rôle>`, ce qui
+#: les rend trouvables par `upload-media.sh` sans mot-clé à inventer.
+ECRAN_NOIR_MUSIQUE = {
+    'N14': 'musique-N14-trajet',
+    'N19': 'musique-N19-ecran-noir',
 }
 
 #: Son d'ambiance en boucle, posé sur le message DÉCLENCHEUR seul.
@@ -218,6 +247,30 @@ INTERACTIONS = [
 ]
 
 
+def delai_message(code, pos, kind, texte) -> int:
+    """Délai d'un message, en secondes — **seule** règle de délai du générateur.
+
+    Deux lecteurs : `sql_messages`, qui l'écrit dans le SQL, et la fenêtre d'un
+    écran noir, qui est le délai du message suivant. Les faire diverger
+    recalculerait le dernier repère sur une fenêtre que la base ne pose pas —
+    et le texte finirait après le message, en silence.
+    """
+    if kind == 'separator':
+        return SEPARATEUR.get(texte, 10)
+    if kind == 'carte':
+        return 2
+    if kind == 'narration':
+        # 0 par défaut : la bascule suit le message précédent sans respiration.
+        return DELAI_FORCE.get((code, pos), 0)
+    if kind == 'system':
+        return 8
+    if kind == 'video':
+        return 5
+    if kind == 'media':
+        return ENTREE[code] if pos == 0 else SUITE
+    return DELAI_FORCE.get((code, pos), ENTREE.get(code, SUITE) if pos == 0 else SUITE)
+
+
 def dollars(t):
     """Le seed cite en $$…$$ : un $$ dans le texte casserait la citation."""
     return t.replace('$$', '')
@@ -249,16 +302,55 @@ def effets(texte):
 # ---------------------------------------------------------------------------
 
 def parser():
-    noeuds, courant = {}, None
+    noeuds, courant, ecran = {}, None, None
     for ligne in DOC.read_text().splitlines():
+        # Un écran noir se referme sur la première ligne HORS citation qui suit
+        # ses lignes : tout ce qui vient après le bloc `>` (la didascalie de
+        # coupure, le `→ **N20**`) appartient de nouveau au document.
+        #
+        # La condition porte sur `ecran['lignes']` et pas seulement sur `ecran` :
+        # entre le titre du bloc et sa première citation, le document glisse une
+        # didascalie de mise en scène qui refermerait l'écran avant qu'il ait
+        # une seule ligne.
+        if ecran is not None and ecran['lignes'] and ligne.strip() \
+                and not ligne.startswith('>'):
+            noeuds[ecran['code']]['messages'].append(('narration', ecran['lignes']))
+            ecran = None
+
         m = re.match(r'^## (N\d+)\b', ligne)
         if m:
             courant = m.group(1)
-            noeuds[courant] = {'messages': [], 'micro': [], 'structurants': []}
+            noeuds[courant] = {'messages': [], 'micro': [], 'structurants': [],
+                               'suite': None}
             continue
         if not courant:
             continue
         n = noeuds[courant]
+
+        # Écran noir narratif : un message `narration`, posé À SA PLACE dans le
+        # nœud. Lu ici et non par une recherche globale sur le document : le
+        # chapitre en pose deux (le trajet au N14, l'incident au N19), et une
+        # recherche globale ne saurait pas où les insérer.
+        if ligne.startswith('### 🖤 ÉCRAN NOIR NARRATIF'):
+            ecran = {'code': courant, 'lignes': [], 'decalage': 0}
+            continue
+        if ecran is not None:
+            m = re.match(r'^>\s*\*\((\d+)s\)\*\s*$', ligne)
+            if m:
+                ecran['decalage'] += int(m.group(1))
+            else:
+                m = re.match(r'^>\s*\*(.+?)\*\s*$', ligne)
+                if m:
+                    ecran['lignes'].append(
+                        {'texte': m.group(1).strip(), 'a': ecran['decalage']})
+            continue
+
+        # Transition automatique (« → **N20** ») : dit quel message referme un
+        # écran noir posé en fin de nœud.
+        m = re.match(r'^→ \*\*(N\d+)\*\*\s*$', ligne)
+        if m:
+            n['suite'] = m.group(1)
+            continue
 
         m = re.match(r'^\*Séparateur : « (.+?) »\*', ligne)
         if m:
@@ -301,45 +393,68 @@ def parser():
                 {'label': label, 'cible': cible, 'effets': effets(eff)})
             continue
 
-    # L'écran noir du N19 : un message `narration`, posé après « merde ».
+    # Un écran noir qui fermerait le document n'aurait aucune ligne pour le
+    # refermer : on le pose ici plutôt que de le perdre en silence.
+    if ecran is not None and ecran['lignes']:
+        noeuds[ecran['code']]['messages'].append(('narration', ecran['lignes']))
+
+    # Les écrans noirs sont posés ; il reste à SYNCHRONISER leur dernière ligne.
     #
-    # Les lignes et leurs décalages viennent du document ; la DURÉE de l'écran,
-    # elle, est le délai du message suivant (le séparateur « 00h34 »).
+    # La DURÉE d'un écran noir n'est écrite nulle part : c'est le délai du
+    # message SUIVANT qui la donne, et l'écran se referme dessus.
     #
     # ⚠️ Le commentaire disait ici que « l'écran noir dure exactement l'attente,
     # par construction » — vrai de l'ÉCRAN, faux du TEXTE, et cette nuance a
     # masqué le défaut pendant tout le développement. Les décalages étaient de
     # simples cumuls lus dans le doc, sans aucun lien avec le délai : le texte
-    # finissait à 42,7 s pour une fenêtre de 60 s, laissant 17 s d'écran figé
-    # après la dernière lettre. Constaté en jouant le 24 août 2026, présent
-    # depuis le tout premier commit du générateur.
+    # du N19 finissait à 42,7 s pour une fenêtre de 60 s, laissant 17 s d'écran
+    # figé après la dernière lettre. Constaté en jouant le 24 août 2026,
+    # présent depuis le tout premier commit du générateur.
     #
-    # Le DERNIER décalage est donc désormais CALCULÉ, jamais lu : il vaut la
-    # fenêtre moins le temps de frappe de la dernière ligne, pour que la
-    # dernière lettre de « la » tombe pile sur le retour de Léna. Tout futur
-    # ajustement du délai se répercute alors tout seul.
-    bloc = re.search(r'### 🖤 ÉCRAN NOIR NARRATIF.*?(?=\n\*\(Coupure)',
-                     DOC.read_text(), re.S)
-    if bloc:
-        lignes_ecran, decalage = [], 0
-        for l in bloc.group(0).splitlines():
-            m = re.match(r'^>\s*\*\((\d+)s\)\*\s*$', l)
-            if m:
-                decalage += int(m.group(1))
+    # Le DERNIER décalage est donc CALCULÉ, jamais lu : il vaut la fenêtre
+    # moins le temps de frappe de la dernière ligne, pour que sa dernière
+    # lettre tombe pile sur le message qui referme l'écran. Tout ajustement du
+    # délai se répercute alors tout seul, sur les deux écrans.
+    for code in noeuds:
+        messages = noeuds[code]['messages']
+        for i, (kind, lignes_ecran) in enumerate(messages):
+            if kind != 'narration':
                 continue
-            m = re.match(r'^>\s*\*(.+?)\*\s*$', l)
-            if m:
-                lignes_ecran.append({'texte': m.group(1).strip(), 'a': decalage})
-        if lignes_ecran:
-            fenetre = SEPARATEUR['00h34']
+            # Le message qui referme l'écran : le suivant dans le nœud (N14,
+            # le séparateur « 23h31 ») ou, si l'écran termine le nœud, le
+            # premier du nœud d'après (N19 -> N20, le séparateur « 00h34 »).
+            if i + 1 < len(messages):
+                ou, pos = code, i + 1
+            else:
+                ou, pos = noeuds[code]['suite'], 0
+                if not ou:
+                    sys.exit(f"écran noir {code} : le nœud ne dit pas vers quoi "
+                             f"il enchaîne, impossible de calculer la fenêtre")
+            fenetre = delai_message(ou, pos, *noeuds[ou]['messages'][pos])
+
             declare = lignes_ecran[-1]['a']
             calcule = int(fenetre - duree_frappe(lignes_ecran[-1]['texte']))
             lignes_ecran[-1]['a'] = calcule
             if declare != calcule:
-                print(f'  ⓘ écran noir N19 : dernier repère recalculé '
+                print(f'  ⓘ écran noir {code} : dernier repère recalculé '
                       f'{declare} s -> {calcule} s (fenêtre {fenetre} s)')
-            noeuds['N19']['messages'].append(
-                ('narration', json.dumps(lignes_ecran, ensure_ascii=False)))
+
+            # Une fenêtre trop courte ne se voit pas : la dernière ligne
+            # commencerait avant que la précédente ait fini de s'écrire, ou
+            # avant même d'être affichée. Mieux vaut refuser de générer.
+            if len(lignes_ecran) > 1:
+                fin_avant = (lignes_ecran[-2]['a']
+                             + duree_frappe(lignes_ecran[-2]['texte']))
+                if calcule < fin_avant:
+                    sys.exit(f"écran noir {code} : fenêtre de {fenetre} s trop "
+                             f"courte — la dernière ligne devrait commencer à "
+                             f"{calcule} s, alors que la précédente s'écrit "
+                             f"jusqu'à {fin_avant:.1f} s")
+
+            # Le body ne porte QUE les lignes. La musique de l'écran est son
+            # `media_url` — voir ECRAN_NOIR_MUSIQUE et sql_messages.
+            messages[i] = ('narration',
+                           json.dumps(lignes_ecran, ensure_ascii=False))
 
     # Le cliffhanger : porté par un message `system` pour rester du CONTENU.
     # Le client le sort du fil et l'affiche en plein écran.
@@ -428,14 +543,20 @@ def sql_messages(noeuds):
         for pos, (kind, texte) in enumerate(noeuds[code]['messages']):
             cast = '::text' if premier else ''
             media = f'null{cast}'
+            d = delai_message(code, pos, kind, texte)
             if kind == 'separator':
-                d, ty, ct, body = SEPARATEUR.get(texte, 10), 0, 'separator', texte
+                ty, ct, body = 0, 'separator', texte
             elif kind == 'carte':
-                d, ty, ct, body = 2, 0, 'contact_card', None
+                ty, ct, body = 0, 'contact_card', None
             elif kind == 'narration':
-                d, ty, ct, body = 0, 0, 'narration', texte
+                ty, ct, body = 0, 'narration', texte
+                # La musique de l'écran, en placeholder comme tout média :
+                # `upload-media.sh` la remplace au téléversement, et un écran
+                # sans fichier livré reste simplement muet.
+                if code in ECRAN_NOIR_MUSIQUE:
+                    media = f'$$placeholder://{ECRAN_NOIR_MUSIQUE[code]}$$'
             elif kind == 'system':
-                d, ty, ct, body = 8, 0, 'system', texte
+                ty, ct, body = 0, 'system', texte
             elif kind == 'video':
                 # Délai 5 s, et non 0 : le plein écran ne doit pas tomber sur
                 # le message que le joueur est encore en train de lire. À 0,
@@ -447,14 +568,13 @@ def sql_messages(noeuds):
                 #
                 # Sa durée À L'ÉCRAN, elle, reste donnée par le délai du
                 # message SUIVANT (voir DELAI_FORCE), pas par celui-ci.
-                d, ty, ct, body = 5, 0, 'video', None
+                ty, ct, body = 0, 'video', None
                 media = f'$${texte}$$'
             elif kind == 'media':
                 ct, fichier = MEDIA[texte]
-                d, ty, body = (ENTREE[code] if pos == 0 else SUITE), 3, None
+                ty, body = 3, None
                 media = f'$${fichier}$$'
             else:
-                d = DELAI_FORCE.get((code, pos), ENTREE.get(code, SUITE) if pos == 0 else SUITE)
                 ty = d if (code, pos) in TYPING_LONG else 3
                 ct, body = 'text', texte
 
@@ -565,6 +685,74 @@ def sql_choix(noeuds):
 #: **On réinitialise, on n'efface pas.** Les lignes `player_progress` restent,
 #: avec leur compte et leur historique de consentement RGPD ; seul le pointeur
 #: narratif est remis à zéro. Voir docs/ARCHITECTURE.md.
+#: Le schéma dont la migration de CONTENU a besoin, redéclaré en tête d'elle.
+#:
+#: **Pourquoi cette duplication est le bon choix ici.** Une migration de contenu
+#: n'a pas de place naturelle dans une chronologie : elle est réécrite à chaque
+#: retouche de ton, alors que sa DATE, elle, est figée depuis sa publication.
+#: Les migrations de schéma, elles, continuent d'arriver derrière. Résultat le
+#: 29 août 2026 : un `supabase db reset` depuis zéro s'arrêtait net sur
+#: « column "attente_saisie" of relation "nodes" does not exist » — le contenu
+#: écrivait dans quatre colonnes créées par des migrations POSTÉRIEURES.
+#:
+#: Deux issues possibles. Redater le fichier de contenu pour qu'il passe en
+#: dernier règle le cas du jour, mais pas la classe : la prochaine migration de
+#: schéma le recasse, et redater un fichier déjà appliqué sur l'hébergé impose
+#: un `supabase migration repair` — précisément le geste manuel qu'on veut voir
+#: disparaître. **Rendre le contenu AUTOPORTANT** ferme la classe entière : sa
+#: date n'a plus d'importance, il déclare ce dont il a besoin.
+#:
+#: Trois règles pour que la duplication ne dérive pas :
+#:  1. le texte est recopié À L'IDENTIQUE de la migration dédiée, qui reste la
+#:     source (elle porte le raisonnement, les `comment on column`, et le reste
+#:     du schéma qui va avec — `player_messages.tension`, par exemple) ;
+#:  2. **strictement ce que CETTE migration écrit**, rien de plus. Le préambule
+#:     n'est pas un second schéma, c'est une liste de dépendances ;
+#:  3. `if not exists` des deux côtés, donc l'ordre d'exécution ne change pas
+#:     l'état final — et les contrôles 80-83 de verify-graph.sql épinglent la
+#:     définition obtenue, pour qu'une dérive entre les deux se voie.
+SCHEMA_REQUIS = """-- ---------------------------------------------------------------------------
+-- Préambule : le schéma dont CETTE migration a besoin
+-- ---------------------------------------------------------------------------
+--
+-- Une migration de contenu est rejouée à chaque retouche de ton, mais sa date
+-- est figée : les migrations de schéma continuent d'arriver DERRIÈRE elle.
+-- Celle-ci écrit dans des colonnes créées par quatre d'entre elles — un
+-- `db reset` depuis zéro s'arrêtait donc sur « column does not exist », et la
+-- chaîne n'était rejouable qu'à la main, dans un ordre appris par cœur.
+--
+-- Elle déclare donc elle-même ce dont elle a besoin, et sa position dans la
+-- chronologie cesse d'avoir de l'importance. Ce n'est PAS un second schéma :
+-- strictement les colonnes où ces `insert` écrivent, recopiées à l'identique
+-- de leur migration dédiée, qui reste la source (raisonnement, commentaires,
+-- et le reste du schéma qui va avec). `if not exists` des deux côtés : celle
+-- qui passe en second ne fait rien, l'état final est le même dans les deux
+-- ordres.
+--
+-- ⚠️ En ajouter une ici sans la migration dédiée qui va avec serait poser du
+-- schéma dans une migration de contenu. C'est l'inverse : on recopie, on
+-- n'invente pas.
+
+-- 20260824150000_tension_n19.sql
+alter table messages
+  add column if not exists tension boolean not null default false,
+  add column if not exists ambience_sound_url text;
+
+-- 20260824160000_attente_saisie.sql
+alter table nodes add column if not exists attente_saisie jsonb;
+
+-- 20260824170000_declencheur_interaction.sql
+alter table choices add column if not exists declencheur text
+  check (declencheur is null or declencheur in ('geste', 'texte'));
+
+-- 20260821120000_chapter_notification_teaser.sql — le texte de notification du
+-- chapitre 2 est posé plus bas, avec les chapitres : c'est une phrase que le
+-- joueur lit, donc du contenu.
+alter table chapters add column if not exists notification_text text;
+alter table chapters add column if not exists teaser_text text;
+
+"""
+
 PREAMBULE = """-- Remise à zéro des parties en cours, AVANT de toucher au contenu.
 --
 -- Les nœuds et les contacts vont être remplacés ; les progressions les
@@ -671,6 +859,12 @@ if __name__ == '__main__':
     if 'delete from player_messages;' not in seed:
         i = seed.index('delete from stories')
         seed = seed[:i] + PREAMBULE + seed[i:]
+    # Et le schéma requis avant lui : une migration de contenu doit pouvoir
+    # s'appliquer quelle que soit sa place dans la chronologie. Posé ici plutôt
+    # qu'à la main pour qu'une publication (`--publier`) l'emporte avec elle.
+    if 'Préambule : le schéma dont CETTE migration a besoin' not in seed:
+        i = seed.index('-- Remise à zéro des parties en cours')
+        seed = seed[:i] + SCHEMA_REQUIS + seed[i:]
     # L'histoire est mise à jour en place, jamais supprimée puis recréée :
     # `player_progress.story_id` la référence en ON DELETE CASCADE.
     seed = seed.replace("delete from stories where slug = 'numero-inconnu';\n", '')

@@ -23,38 +23,45 @@ l'est pas, les 17 progressions du distant restent mortes et l'app ouvre sur un f
 
 - [ ] `supabase functions deploy` puis vérifier en jouant depuis le téléphone.
 
-## 🔴 La chaîne de migrations n'est plus rejouable depuis zéro
+## ✅ La chaîne de migrations est rejouable depuis zéro — corrigé le 30 août 2026
 
-`20260818174043_contenu_chapitre_1.sql` écrit dans quatre colonnes — `messages.tension`,
-`messages.ambience_sound_url`, `nodes.attente_saisie`, `choices.declencheur` — créées par des
-migrations **postérieures** (`20260824150000`, `160000`, `170000`). Un `supabase db reset` sur une
-base vierge rejoue les fichiers par ordre de version : le contenu passe avant les DDL et échoue sur
-« column does not exist ».
+**Prouvé en le lançant** : `supabase db reset` sur une base vierge applique les 26 migrations dans
+l'ordre, sans une seule intervention. Puis `verify-graph` 60/60, `verify-fidelity` 123/123,
+`simulate-playthrough` vert, `upload-media.sh`, et `test-migration-peuplee` — qui rejoue le contenu
+seul par-dessus une partie en cours.
 
-Invisible jusqu'ici parce que la base locale n'a pas été remise à zéro depuis : les colonnes y ont
-été ajoutées par les ALTER, puis le contenu modifié en place.
+Ce qui n'allait pas, et qui a bloqué pour de vrai le 29 août
+(`column "attente_saisie" of relation "nodes" does not exist`) : une migration de contenu est
+réécrite à chaque retouche de ton, mais sa **date est figée** à sa publication, et les migrations
+de schéma continuent d'arriver derrière elle. Celle du chapitre 1 écrivait dans quatre colonnes
+créées plus tard.
 
-**Deuxième face du même défaut, constatée le 27 août 2026 — celle-ci frappe le développement
-quotidien.** Rejouer la migration de contenu **seule** sur une base existante (le geste normal
-après une régénération) fait `delete from chapters`, et efface au passage
-`chapters.notification_text`, posé par la migration **postérieure** `20260821120000`. Le bouton
-« Me prévenir » de l'écran de fin devient alors inerte, sans erreur nulle part.
-`simulate-playthrough.py` l'attrape — c'est lui qui l'a signalé — mais il faut y penser :
+**La migration de contenu est maintenant autoportante** : un préambule `add column if not exists`,
+recopié à l'identique des migrations dédiées, qui reste écrit par `generate-seed-content.py` — donc
+emporté par toute régénération et par toute publication. Sa position dans la chronologie n'a plus
+d'importance, ce qui ferme la classe entière plutôt que le cas du jour.
 
-- [ ] **Après tout `psql < …_contenu_chapitre_1.sql`, rejouer les `update` des migrations
-      postérieures** qui écrivent dans `stories` / `chapters` / `nodes` / `messages` / `choices`.
-      Aujourd'hui il n'y en a qu'une (`20260821120000`, `notification_text`). Le préambule DDL
-      idempotent proposé ci-dessous ne suffira pas à régler ce sens-là : il faudra soit déplacer ce
-      contenu dans la migration de contenu, soit rendre la migration de teaser rejouable seule.
+Redater le fichier pour qu'il passe en dernier avait été envisagé : ça règle le cas du jour, pas la
+classe — la prochaine migration de schéma le recasse — et redater un fichier déjà appliqué sur
+l'hébergé impose un `supabase migration repair`, soit exactement le geste manuel qu'on voulait
+supprimer.
 
-**Sans effet sur la synchronisation du distant**, qui pousse le schéma d'abord et ne rejoue le
-contenu qu'ensuite (procédure du 19/08). Mais la propriété « les migrations sont la source de
-vérité rejouable » est perdue tant que ce n'est pas corrigé.
+**La deuxième face est fermée aussi.** Rejouer le contenu seul faisait `delete from chapters` et
+effaçait `chapters.notification_text`, posé par un `update` de la migration postérieure
+`20260821120000` : le bouton « Me prévenir » devenait inerte, sans erreur nulle part. Ce texte est
+une phrase que le joueur **lit** — donc du contenu : il vit maintenant dans l'`insert into chapters`
+de la migration de contenu, et l'`update` a été retiré plutôt que gardé en double.
 
-- [ ] **Corriger l'ordre.** Piste la plus simple : préambule DDL idempotent (`add column if not
-      exists`, identique aux migrations dédiées, qui le sont déjà) en tête de la migration de
-      contenu, pour la rendre autoportante. Puis **valider par un vrai `db reset` local** — c'est
-      le seul test qui prouve la propriété.
+Trois contrôles neufs tiennent la propriété (`verify-graph.sql`) : **80** épingle la définition
+exacte des colonnes du préambule — un `not null` d'un côté et pas de l'autre donnerait deux schémas
+différents selon l'ancienneté de la base, sans que rien ne le dise ; **81** vérifie que le CHECK du
+`declencheur` est là quel que soit qui l'a posé ; **82** que le chapitre 2 garde son texte de
+notification. Ils ne remplacent pas un vrai `db reset` — c'est lui seul qui prouve que la chaîne
+passe — ils disent ce qu'elle doit produire.
+
+⚠️ **La règle qui reste à tenir** : une nouvelle colonne écrite par le contenu s'ajoute au préambule
+(`SCHEMA_REQUIS` dans le générateur) **en plus** de sa migration dédiée, jamais à sa place. Le
+préambule est une liste de dépendances, pas un second schéma.
 
 ## 🔴 `test-micro-choix.py` — le contrôle de la formule ne mesure plus rien
 
@@ -376,6 +383,18 @@ elle a besoin de ton feu vert, et `chapitre-1-v2.md` devra être patché en mêm
         pour un **défaut de transition** vers le N8, pas pour sa densité. La décision ci-dessus
         reste valable telle quelle.
       - **N18→N19** : laissé tel quel, à rejuger une fois l'effet de tension éprouvé en jeu.
+
+- [ ] **Q17 — La route N6 → N10 parle d'un lieu qu'elle n'a jamais nommé.** L'entrepôt et le
+      bornage à 400 m sont posés au **N8** ; or le N10 s'atteint aussi depuis le N6 (« Appelez la
+      police, pas un inconnu. »), et N1→N2/N4→N6 ne nomme aucun lieu. La réplique de Léna a été
+      corrigée le 29 août 2026 (« pour eux ce n'est pas anormal de passer un appel à cet endroit »
+      retiré, texte de Vivien), mais deux renvois du même genre subsistent sur cette route :
+      - le libellé du micro-choix 🔍 lui-même — « Ils ont regardé **le bornage** au moins ? » ;
+      - le choix structurant A du N10 — « n'entrez pas dans **ce bâtiment** ».
+
+      Trois issues, toutes affaire de contenu donc **non tranchées d'initiative** : faire nommer le
+      lieu par le N6, réécrire ces deux libellés pour qu'ils tiennent sans lui, ou accepter que la
+      route N6 → N10 soit assez marginale pour vivre avec. Voir MEMOIRE.md 2026-08-29 (19).
 
 - [ ] **Q9 — Jour J : le 13 ou le 14 août 2026 ?** Tu as indiqué « Jeudi 14 août 2026 », mais le
       14 août 2026 est un **vendredi**. Le chapitre affiche « jeudi — 22h47 » et le suspect vient

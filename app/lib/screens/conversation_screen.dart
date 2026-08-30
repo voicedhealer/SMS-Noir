@@ -208,13 +208,24 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           if (etat.consentementRequis) {
             return ConsentScreen(onReponse: ctrl.repondreConsentement);
           }
-          // L'écran noir prend toute la place tant que Léna n'est pas revenue.
-          // Il sort le joueur de la messagerie — c'est le seul moment du
-          // chapitre où il n'a rien à faire, et c'est le sujet.
+          // L'écran noir prend toute la place tant que le message suivant
+          // n'est pas arrivé. Il sort le joueur de la messagerie — les seuls
+          // moments du chapitre où il n'a rien à faire, et c'est le sujet.
+          //
+          // Sa musique est celle de CE message : chaque écran a son segment
+          // (une amorce « danger » au N14, sa reprise au N19). Un fichier pas
+          // encore téléversé laisse un `placeholder://` : l'écran se joue alors
+          // en silence, comme une photo manquante affiche son cartouche.
           final narration = etat.narrationEnCours;
-          if (narration.isNotEmpty) {
-            return NarrationScreen(
-                lignes: narration, musique: etat.musiqueNarration);
+          if (narration != null) {
+            final lignes = NarrationScreen.decoder(narration.body);
+            if (lignes.isNotEmpty) {
+              return NarrationScreen(
+                  lignes: lignes,
+                  musique: narration.isPlaceholderMedia
+                      ? null
+                      : narration.mediaUrl);
+            }
           }
           // Même principe, fond vidéo plutôt que noir pur — addendum
           // transition N20-N9 §2.

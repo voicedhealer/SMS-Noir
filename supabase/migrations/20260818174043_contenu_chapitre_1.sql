@@ -35,6 +35,46 @@
 --   • inline_response : réplique joueur immédiate, réponse de Léna à 8 s / typing 4
 -- ============================================================================
 
+-- ---------------------------------------------------------------------------
+-- Préambule : le schéma dont CETTE migration a besoin
+-- ---------------------------------------------------------------------------
+--
+-- Une migration de contenu est rejouée à chaque retouche de ton, mais sa date
+-- est figée : les migrations de schéma continuent d'arriver DERRIÈRE elle.
+-- Celle-ci écrit dans des colonnes créées par quatre d'entre elles — un
+-- `db reset` depuis zéro s'arrêtait donc sur « column does not exist », et la
+-- chaîne n'était rejouable qu'à la main, dans un ordre appris par cœur.
+--
+-- Elle déclare donc elle-même ce dont elle a besoin, et sa position dans la
+-- chronologie cesse d'avoir de l'importance. Ce n'est PAS un second schéma :
+-- strictement les colonnes où ces `insert` écrivent, recopiées à l'identique
+-- de leur migration dédiée, qui reste la source (raisonnement, commentaires,
+-- et le reste du schéma qui va avec). `if not exists` des deux côtés : celle
+-- qui passe en second ne fait rien, l'état final est le même dans les deux
+-- ordres.
+--
+-- ⚠️ En ajouter une ici sans la migration dédiée qui va avec serait poser du
+-- schéma dans une migration de contenu. C'est l'inverse : on recopie, on
+-- n'invente pas.
+
+-- 20260824150000_tension_n19.sql
+alter table messages
+  add column if not exists tension boolean not null default false,
+  add column if not exists ambience_sound_url text;
+
+-- 20260824160000_attente_saisie.sql
+alter table nodes add column if not exists attente_saisie jsonb;
+
+-- 20260824170000_declencheur_interaction.sql
+alter table choices add column if not exists declencheur text
+  check (declencheur is null or declencheur in ('geste', 'texte'));
+
+-- 20260821120000_chapter_notification_teaser.sql — le texte de notification du
+-- chapitre 2 est posé plus bas, avec les chapitres : c'est une phrase que le
+-- joueur lit, donc du contenu.
+alter table chapters add column if not exists notification_text text;
+alter table chapters add column if not exists teaser_text text;
+
 -- Remise à zéro des parties en cours, AVANT de toucher au contenu.
 --
 -- Les nœuds et les contacts vont être remplacés ; les progressions les
@@ -105,8 +145,19 @@ select id, 1, 'Le mauvais numéro', 0 from stories where slug = 'numero-inconnu'
 
 -- Stub du chapitre 2 : donne une cible réelle au compte à rebours du N22 (chapter_end)
 -- alors que le contenu n'existe pas encore. 480 min = 8 h (bible §9).
-insert into chapters (story_id, position, title, unlock_delay_minutes, entry_node_id)
-select id, 2, 'Chloé', 480, null from stories where slug = 'numero-inconnu';
+--
+-- `notification_text` est posé ICI, et plus par un `update` dans
+-- 20260821120000 : c'est une phrase que le joueur LIT, donc du contenu. Posée
+-- là-bas, elle était effacée à chaque rejeu de cette migration — qui commence
+-- par `delete from chapters` — et le bouton « Me prévenir » de l'écran de fin
+-- devenait inerte, sans erreur nulle part.
+--
+-- `teaser_text` reste null : le teaser du chapitre 2 n'est pas encore écrit.
+insert into chapters (story_id, position, title, unlock_delay_minutes, entry_node_id,
+                      notification_text)
+select id, 2, 'Chloé', 480, null,
+       $$Léna vous attend. Le chapitre 2 est disponible.$$
+from stories where slug = 'numero-inconnu';
 
 -- ---------------------------------------------------------------------------
 -- Les 21 nœuds (N1..N22 — N15 n'existe pas ; N9 arrive après N20 dans le flux)
@@ -363,9 +414,10 @@ from (values
 
 -- N14
 ('N14', 0, 'text', $$Je me rends à l'entrepôt, mon téléphone sera en silencieux, je ne veux pas qu'il me repère ! Mais je vous lis. S'il vous plaît, gardez votre téléphone près de vous, juste ce soir... Je pars maintenant.$$, null, 8, 3, false, null, $${}$$, false, null),
-('N14', 1, 'separator', $$23h31$$, null, 20, 0, false, null, $${}$$, false, null),
-('N14', 2, 'text', $$Je me suis approchée, tout près ! Accroupie derrière un muret, il fait noir et mon cœur bat à 200 battements par minute, pourvu qu'il ne m'arrive rien !$$, null, 5, 3, true, null, $${}$$, true, null),
-('N14', 3, 'text', $$Je vois sa voiture, une berline Peugeot 508 grise avec un macaron derrière, j'ai du mal à lire et j'ai peur de me lever, il va me repérer. C'est la même voiture que les autres fois. Que dois-je faire ?$$, null, 5, 3, false, null, $${}$$, false, null),
+('N14', 1, 'narration', $$[{"texte": "Léna est en route pour l'entrepôt...", "a": 0}, {"texte": "Elle cherche des réponses, un indice, n'importe quoi.", "a": 7}, {"texte": "Allez-vous soutenir cette inconnue ?", "a": 18}]$$, $$placeholder://musique-N14-trajet$$, 5, 0, false, null, $${}$$, false, null),
+('N14', 2, 'separator', $$23h31$$, null, 20, 0, false, null, $${}$$, false, null),
+('N14', 3, 'text', $$Je me suis approchée, tout près ! Accroupie derrière un muret, il fait noir et mon cœur bat à 200 battements par minute, pourvu qu'il ne m'arrive rien !$$, null, 5, 3, true, null, $${}$$, true, null),
+('N14', 4, 'text', $$Je vois sa voiture, une berline Peugeot 508 grise avec un macaron derrière, j'ai du mal à lire et j'ai peur de me lever, il va me repérer. C'est la même voiture que les autres fois. Que dois-je faire ?$$, null, 5, 3, false, null, $${}$$, false, null),
 
 -- N16
 ('N16', 0, 'image', null, $$photo-N16-plaque.png$$, 18, 3, false, null, $${}$$, false, null),
@@ -383,7 +435,7 @@ from (values
 ('N19', 1, 'text', $$Il est en train de mettre un sac dans son coffre, il a l'air lourd, j'espère que ce n'est pas...$$, null, 5, 3, true, null, $${}$$, true, null),
 ('N19', 2, 'text', $$Il regarde vers moi, j'ai croisé son regard, je suis en danger ?$$, null, 5, 3, false, null, $${}$$, true, null),
 ('N19', 3, 'text', $$merde$$, null, 5, 3, false, null, $${}$$, true, null),
-('N19', 4, 'narration', $$[{"texte": "Léna ne répond plus...", "a": 0}, {"texte": "Il fait nuit, elle est seule, et vous êtes à des kilomètres. L'a-t-il enlevée ? Est-elle rentrée ?", "a": 27}, {"texte": "Vous ne pouvez rien faire d'autre qu'attendre, ou prévenir la", "a": 57}]$$, null, 0, 0, false, null, $${}$$, false, null),
+('N19', 4, 'narration', $$[{"texte": "Léna ne répond plus...", "a": 0}, {"texte": "Il fait nuit, elle est seule, et vous êtes à des kilomètres. L'a-t-il enlevée ? Est-elle rentrée ?", "a": 27}, {"texte": "Vous ne pouvez rien faire d'autre qu'attendre, ou prévenir la", "a": 57}]$$, $$placeholder://musique-N19-ecran-noir$$, 0, 0, false, null, $${}$$, false, null),
 
 -- N20
 ('N20', 0, 'separator', $$00h34$$, null, 60, 0, false, null, $${}$$, false, null),
@@ -499,7 +551,7 @@ from (values
 
 -- N10 · pause après le message 0
 ('N10', 10, $$Ils n'avaient pas le droit de vous dire ça.$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Merci, ça fait du bien de l'entendre, j'ai fini par croire que c'était moi le problème.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N10', 11, $$Ils ont regardé le bornage au moins ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Ils l'ont noté, classé, et rien fait, pour eux ce n'est pas anormal de passer un appel à cet endroit, rien ne les choque ! Un dossier de plus dans une pile de dossiers, ils sont débordés, je peux le comprendre, mais là on n'est pas sur un défaut de stationnement.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N10', 11, $$Ils ont regardé le bornage au moins ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Ils l'ont noté, classé, et rien fait. Un dossier de plus dans une pile de dossiers, ils sont débordés, je peux le comprendre, mais là on n'est pas sur un défaut de stationnement.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
 ('N10', 12, $$Et si vous aviez raison, mais que ce soit dangereux ?$$, 0, $$[{"sender": "contact", "content_type": "text", "body": "Alors ce sera dangereux, mais je ne peux pas passer une nuit de plus à ne rien faire.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N11 · pause après le message 2

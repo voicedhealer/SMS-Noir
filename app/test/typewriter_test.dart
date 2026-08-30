@@ -70,13 +70,14 @@ void main() {
   test('la vitesse de frappe est figée — elle est partagée avec le serveur', () {
     // ⚠️ Ces deux valeurs sont DUPLIQUÉES dans scripts/generate-seed-content.py
     // (FRAPPE_PAR_CARACTERE / FRAPPE_PAUSE_POINTS), qui s'en sert pour calculer
-    // le dernier repère de l'écran noir du N19 : la dernière lettre de « la »
-    // doit tomber pile au retour de Léna.
+    // le dernier repère de CHAQUE écran noir : sa dernière lettre doit tomber
+    // pile sur le message qui referme l'écran — l'arrivée de Léna à l'entrepôt
+    // au N14, son retour au N19.
     //
-    // Les changer ICI sans les changer LÀ-BAS désynchronise la scène en
+    // Les changer ICI sans les changer LÀ-BAS désynchronise les deux scènes en
     // silence — le texte finirait après le message, et la coupure serait
     // manquée. Ce test est la moitié cliente du verrou ; l'autre moitié est le
-    // contrôle 62 de verify-graph.sql.
+    // contrôle 62 de verify-graph.sql, qui les passe tous les deux au crible.
     const t = Typewriter(texte: 'x');
     expect(t.parCaractere, const Duration(milliseconds: 45),
         reason: 'si tu changes ça, change aussi FRAPPE_PAR_CARACTERE côté Python');

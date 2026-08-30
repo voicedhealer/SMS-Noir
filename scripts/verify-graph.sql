@@ -253,10 +253,11 @@ select _chk(43, 'Aucun média sans URL', '',
   coalesce((select string_agg(n.code || '#' || m.position, ', ') from _n n join messages m on m.node_id = n.id
             where m.content_type in ('image','audio','video') and m.media_url is null), ''));
 
--- 69 lignes pour 66 positions distinctes : N9#1 (ex-N9#0, décalée par la vidéo
+-- 70 lignes pour 67 positions distinctes : N9#1 (ex-N9#0, décalée par la vidéo
 -- de transition en position 0), N21#0, N21#2, N22#1 portent chacune 2
 -- variantes (refus true/false) — voir messages.conditions, LOGIQUE.md.
-select _chk(44, 'Nombre total de messages', '69',
+-- 69 → 70 le 29 août 2026 : l'écran noir du trajet, en N14#1.
+select _chk(44, 'Nombre total de messages', '70',
   (select count(*)::text from _n n join messages m on m.node_id = n.id));
 
 -- 93 → 96 le 23 août 2026 : un bloc de micro-choix ajouté au N7 après le
@@ -355,14 +356,20 @@ select _chk(61, 'Tout battement tombe dans son attente', '',
             where coalesce(m.phantom_typing_at, -1) >= m.delay_seconds
                or coalesce(m.haptic_at, -1) >= m.delay_seconds), ''));
 
--- Écran noir du N19 : la dernière lettre doit tomber sur le retour de Léna.
+-- Écrans noirs : la dernière lettre doit tomber sur le message qui les referme.
 --
 -- Le texte s'écrit à la machine (45 ms/caractère, 400 ms de pause quand ce qui
 -- est déjà écrit finit par « ... »), et l'écran reste affiché jusqu'à l'arrivée
--- du séparateur « 00h34 ». Ces deux horloges sont indépendantes : rien dans le
+-- du message suivant. Ces deux horloges sont indépendantes : rien dans le
 -- moteur ne les relie. Elles ne coïncidaient PAS depuis le premier commit — le
--- texte finissait à 42,7 s pour une fenêtre de 60 s, soit 17 s d'écran figé,
--- masquées par un commentaire du générateur qui affirmait le contraire.
+-- texte du N19 finissait à 42,7 s pour une fenêtre de 60 s, soit 17 s d'écran
+-- figé, masquées par un commentaire du générateur qui affirmait le contraire.
+--
+-- Le contrôle porte sur TOUS les écrans noirs du chapitre, pas sur le seul
+-- N19 : le trajet du N14 en est un aussi, et un troisième arrivera. La fenêtre
+-- est prise là où le moteur la prend — le délai du message qui suit l'écran,
+-- dans le nœud si l'écran n'y est pas dernier (N14 : le séparateur « 23h31 »),
+-- sinon le premier message du nœud d'après (N19 -> N20 : « 00h34 »).
 --
 -- Ce contrôle est la moitié SERVEUR du verrou ; l'autre est
 -- `app/test/typewriter_test.dart` § « la vitesse de frappe est figée », qui
@@ -371,31 +378,78 @@ select _chk(61, 'Tout battement tombe dans son attente', '',
 -- côté.
 --
 -- Tolérance : la dernière lettre doit tomber dans la seconde qui précède le
--- retour de Léna, jamais après. Finir un peu avant est une coupure nette ;
+-- message suivant, jamais après. Finir un peu avant est une coupure nette ;
 -- finir après serait du texte tronqué en pleine frappe.
-select _chk(62, 'Écran noir N19 : le texte finit pile au retour de Léna', 'OK',
-  (with derniere as (
-     select (jsonb_array_elements(m.body::jsonb) ->> 'a')::numeric as a,
-            jsonb_array_elements(m.body::jsonb) ->> 'texte'        as texte
+select _chk(62, 'Écrans noirs : le texte finit pile sur le message qui les referme', 'OK',
+  coalesce((
+   with ecran as (
+     select n.code, m.node_id, m.position, n.next_node_id,
+            m.body::jsonb -> 'lignes' as lignes
      from _n n join messages m on m.node_id = n.id
-     where n.code = 'N19' and m.content_type = 'narration'
-     order by a desc limit 1),
+     where m.content_type = 'narration'),
+   derniere as (
+     select e.code, e.node_id, e.position, e.next_node_id,
+            l.ligne ->> 'texte'         as texte,
+            (l.ligne ->> 'a')::numeric  as a
+     from ecran e
+     cross join lateral (
+       select ligne from jsonb_array_elements(e.lignes) as ligne
+       order by (ligne ->> 'a')::numeric desc limit 1) l),
    calcul as (
-     select d.a
-          + length(d.texte) * 0.045
-          + (length(d.texte) - length(replace(d.texte, '...', ''))) / 3 * (0.400 - 0.045)
-            as fin_texte,
-            (select m.delay_seconds from _n n join messages m on m.node_id = n.id
-             where n.code = 'N20' and m.position = 0) as fenetre
+     select d.code,
+            -- Réplique de _TypewriterState._suivant() : la pause tombe AVANT
+            -- le caractère qui suit « ... », donc une ellipse finale n'en
+            -- déclenche aucune — il n'y a plus rien à écrire derrière.
+            d.a
+              + length(d.texte) * 0.045
+              + ((length(d.texte) - length(replace(d.texte, '...', ''))) / 3
+                 - (case when d.texte like '%...' then 1 else 0 end)) * (0.400 - 0.045)
+              as fin_texte,
+            -- Le message IMMÉDIATEMENT suivant, pas le plus court de ceux
+            -- qui suivent : c'est celui-là qui referme l'écran. (Une variante
+            -- conditionnelle partage sa position et son délai, d'où le
+            -- `limit 1` plutôt qu'un agrégat.)
+            coalesce(
+              (select m.delay_seconds from messages m
+               where m.node_id = d.node_id and m.position > d.position
+               order by m.position limit 1),
+              (select m.delay_seconds from messages m
+               where m.node_id = d.next_node_id
+               order by m.position limit 1))
+              as fenetre
      from derniere d)
-   select case
-            when fin_texte > fenetre
-              then 'texte tronqué : finit à ' || round(fin_texte, 2) || ' s > fenêtre ' || fenetre || ' s'
-            when fenetre - fin_texte > 1
-              then 'blanc de ' || round(fenetre - fin_texte, 2) || ' s après la dernière lettre'
-            else 'OK'
-          end
-   from calcul));
+   select string_agg(
+            c.code || ' : ' || case
+              when c.fenetre is null
+                then 'aucun message ne referme l''écran'
+              when c.fin_texte > c.fenetre
+                then 'texte tronqué, finit à ' || round(c.fin_texte, 2)
+                     || ' s > fenêtre ' || c.fenetre || ' s'
+              else 'blanc de ' || round(c.fenetre - c.fin_texte, 2)
+                   || ' s après la dernière lettre'
+            end, ' · ' order by c.code)
+   from calcul c
+   where c.fenetre is null
+      or c.fin_texte > c.fenetre
+      or c.fenetre - c.fin_texte > 1), 'OK'));
+
+-- Chaque écran noir porte SA musique, sur son propre message.
+--
+-- Elle vivait sur l'histoire (`stories.narration_music_url`), une seule pour
+-- toute la fiction : tenable tant que le N19 était seul, faux dès le second
+-- écran, qui ne joue pas le même morceau. Un écran qui perdrait son `media_url`
+-- redeviendrait muet **sans erreur nulle part** — d'où ce contrôle.
+--
+-- On compare les noms d'objets, pas des chemins signés : `upload-media.sh`
+-- remplace le `placeholder://` par l'objet du bucket, et c'est cet état-là qui
+-- prouve que le fichier est livré ET rattaché au bon écran.
+select _chk(67, 'Chaque écran noir porte sa musique', 'N14=musique-N14-trajet, N19=musique-N19-ecran-noir',
+  coalesce((select string_agg(n.code || '=' ||
+                     regexp_replace(coalesce(m.media_url, '<aucune>'),
+                                    '^(placeholder://)?(.*?)(\.[a-z0-9]+)?$', '\2'),
+                     ', ' order by n.code)
+            from _n n join messages m on m.node_id = n.id
+            where m.content_type = 'narration'), '<aucun>'));
 
 -- Le carnet : tout indice qu'un effect peut accorder doit avoir un texte, et
 -- réciproquement. Un indice sans texte disparaîtrait du carnet en silence ; un
@@ -418,6 +472,59 @@ select _chk(66, 'Aucun texte d''indice orphelin', '',
                 select ch.effects->'append'->>'indices'
                 from _n n join choices ch on ch.node_id = n.id
                 where ch.effects->'append' ? 'indices')), ''));
+
+-- ---------------------------------------------------------------------------
+-- La chaîne de migrations est rejouable depuis zéro
+-- ---------------------------------------------------------------------------
+--
+-- La migration de contenu écrit dans des colonnes créées par des migrations
+-- POSTÉRIEURES à sa date. Elle les redéclare donc en préambule, à l'identique,
+-- en `add column if not exists` — et l'ordre d'exécution ne doit rien changer
+-- à l'état final. Ces contrôles épinglent cet état final : si le préambule et
+-- la migration dédiée divergeaient (un `not null` d'un côté, pas de l'autre),
+-- une base neuve et une base existante n'auraient plus le même schéma, et
+-- rien ne le dirait.
+--
+-- ⚠️ Ils ne remplacent pas un vrai `supabase db reset` : c'est lui, et lui
+-- seul, qui prouve que la chaîne passe. Ils disent ce qu'elle doit produire.
+select _chk(80, 'Colonnes du préambule de contenu : définition attendue',
+  'chapters.notification_text text NULL | chapters.teaser_text text NULL | '
+  'choices.declencheur text NULL | messages.ambience_sound_url text NULL | '
+  'messages.tension boolean NOT NULL false | nodes.attente_saisie jsonb NULL',
+  coalesce((select string_agg(
+              c.table_name || '.' || c.column_name || ' ' || c.data_type
+              || case when c.is_nullable = 'NO' then ' NOT NULL' else ' NULL' end
+              || coalesce(' ' || c.column_default, ''),
+              ' | ' order by c.table_name, c.column_name)
+            from information_schema.columns c
+            where c.table_schema = 'public'
+              and (c.table_name, c.column_name) in (
+                ('messages', 'tension'), ('messages', 'ambience_sound_url'),
+                ('nodes', 'attente_saisie'), ('choices', 'declencheur'),
+                ('chapters', 'notification_text'), ('chapters', 'teaser_text'))),
+           '<aucune>'));
+
+-- Le CHECK voyage avec la colonne : `add column if not exists` saute la clause
+-- entière quand la colonne est déjà là, donc c'est le préambule OU la
+-- migration dédiée qui le pose, jamais les deux. Il doit être là dans les deux
+-- cas.
+select _chk(81, 'Le déclencheur garde sa contrainte, quel que soit qui l''a posée', 'oui',
+  coalesce((select 'oui' from pg_constraint
+            where conrelid = 'choices'::regclass
+              and pg_get_constraintdef(oid) like '%declencheur%'
+              and pg_get_constraintdef(oid) like '%geste%'
+              and pg_get_constraintdef(oid) like '%texte%'
+            limit 1), 'non'));
+
+-- Le texte de notification du chapitre 2 est du CONTENU : il est posé par
+-- l'`insert into chapters` de la migration de contenu, pas par un `update`
+-- d'une migration postérieure. Posé là-bas, il était effacé à chaque rejeu du
+-- contenu — qui commence par `delete from chapters` — et le bouton
+-- « Me prévenir » devenait inerte en silence.
+select _chk(82, 'Le chapitre 2 garde son texte de notification', 'Léna vous attend. Le chapitre 2 est disponible.',
+  coalesce((select c.notification_text from chapters c
+            join stories s on s.id = c.story_id
+            where s.slug = 'numero-inconnu' and c.position = 2), '<aucun>'));
 
 select _chk(70, 'Séquence d''intronisation : 4 panneaux', '4',
   (select jsonb_array_length(intro_panels)::text from stories where slug = 'numero-inconnu'));
