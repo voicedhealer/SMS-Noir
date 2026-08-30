@@ -17,21 +17,33 @@ renvoyait pas `clues`, alors que c'est lui qui accorde les indices — le carnet
 zoom serait resté vide jusqu'au prochain démarrage. Corrigé côté serveur, même projection que
 `get-state`.
 
-⚠️ **Le téléphone n'est pas rebranché** tant que l'APK n'a pas été reconstruit avec les phases
-2, 4 et 5 (côté client). La phase 1 est serveur : elle est déjà active sans rebuild.
+✅ **APK reconstruit et installé le 30 août 2026** avec les phases 2, 4 et 5.
 
 - [ ] **Recette sur l'appareil** : ouvrir le carnet avant toute trouvaille (« Rien de noté pour
       l'instant. »), zoomer l'autocollant du N16 puis le rouvrir **sans quitter l'app** — la note
       doit y être. C'est le chemin que le correctif d'`advance` ouvre, et il ne se vérifie qu'en
       jouant.
 
-## 🔴 À DÉPLOYER — correctif de reprise après remise à zéro
+## ✅ Hébergé synchronisé et APK installé — 30 août 2026
 
-`supabase functions deploy` **n'a pas encore été lancé** avec le correctif de
-`chargerOuCreerProgression` (une progression sans nœud courant repart de l'entrée). Tant qu'il ne
-l'est pas, les 17 progressions du distant restent mortes et l'app ouvre sur un fil vide.
+Séquence complète jouée (ARCHITECTURE.md § Séquence de déploiement) :
 
-- [ ] `supabase functions deploy` puis vérifier en jouant depuis le téléphone.
+1. `supabase db push` — `20260829120000` (la musique d'écran noir par message) ;
+2. `supabase migration repair --status reverted 20260818174043` puis `db push --include-all` — le
+   contenu, dont la date figée oblige à ce détour à **chaque** déploiement (voir plus bas) ;
+3. `DISTANT=1 scripts/upload-media.sh` — la migration repose des `placeholder://` ;
+4. `supabase functions deploy` — les 5 fonctions, dont le correctif de
+   `chargerOuCreerProgression` qui attendait depuis le 25 août ;
+5. APK release construit et installé sur le Samsung (`com.numeroinconnu.numero_inconnu` 2.0.22).
+
+Vérifié sur l'hébergé avant de construire : les deux écrans noirs portent leur musique, le prompt
+du N9 a les corrections d'esquive et de détail sensoriel et ne cite plus la formule bannie, le
+chapitre 2 a son texte de notification.
+
+⚠️ **Les progressions sont reparties à l'entrée du chapitre 1**, c'est le comportement voulu de la
+migration de contenu (« on réinitialise, on n'efface pas » : comptes et consentements survivent).
+
+- [ ] **La recette sur l'appareil** — voir la liste en tête de ce fichier.
 
 ## ✅ La chaîne de migrations est rejouable depuis zéro — corrigé le 30 août 2026
 
@@ -88,16 +100,20 @@ l'écrire aurait été écrire du contenu narratif (règle 3).
       destinataire, il est normal qu'ils ne disent pas la même phrase. Sinon, en l'état, ça marche :
       elle reconnaît la plaque et le macaron sans les nier.
 
-## ❓ À lire — deux résidus de ton au N9, aucun détecteur ne peut trancher
+## ❓ À lire — un tic de ton au N9
 
-Relevés sur les tirages du 30 août 2026, après correction des esquives :
+Les deux observations du 30 août ont été tranchées le jour même : le « fond noir » du macaron
+**corrigé** (le prompt interdit désormais tout détail sensoriel non rapporté), la question sur la
+508 **gardée** et consignée dans `SOUHAITABLES` comme comportement voulu — c'est une femme à cran
+qui soupçonne brièvement celui qui l'aide, pas une confusion.
 
-- « Sentinel Pro, **écrit en petit sur fond noir** » — le fond noir n'existe nulle part. Même
-  famille que le défaut corrigé, en plus petit : elle garnit encore le détail physique. `INVENTE`
-  ne voit que les souvenirs communs inventés.
-- Sonde « sincère » (le joueur dit travailler de nuit dans un entrepôt de tri) : « La 508 grise,
-  c'est la tienne, avec le macaron Sentinel Pro ? » Se lit très bien comme de la paranoïa — ou
-  comme une confusion. Choix narratif, pas bug.
+Reste, plus léger :
+
+- [ ] Elle accroche parfois **« Chloé. »** en fin de réplique alors que la question ne porte pas
+      sur sa sœur (« Je ne sais pas, et c'est bien ce qui me ronge. Chloé. »). Ce n'est pas une
+      fuite — c'est un fait qu'elle a partagé — mais un tic d'ancrage. Vu deux fois sur cinq
+      tirages. À revoir en jouant plutôt qu'à corriger à l'aveugle : le prompt insiste beaucoup sur
+      ce qu'elle a le droit de redire, c'est peut-être ça qui sur-ancre.
 
 ## 🔴 `test-micro-choix.py` — le contrôle de la formule ne mesure plus rien
 

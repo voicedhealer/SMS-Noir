@@ -4,6 +4,86 @@
 
 ---
 
+## 2026-08-30 (24) — ÉTAT DES LIEUX
+
+*Photographie du projet à cette date, demandée par Vivien pour que les décisions discutées mais
+non implémentées soient tracées quelque part de durable. Les entrées ci-dessous racontent le
+chemin ; celle-ci dit où on en est.*
+
+### Ce qui est fait et vérifié
+
+| Domaine | État |
+|---|---|
+| **Contenu du chapitre 1** | V3.2 complète, générée depuis `docs/chapitre-1-v3.2.md`. 21 nœuds, 66 messages, 24 blocs de micro-choix, 26 choix structurants, 7 interactions |
+| **Moteur** (`get-state`, `advance`) | Complet. Micro-choix, pauses en cours de nœud, interactions à usage unique, attente de saisie, carnet |
+| **Moment IA** (`ai-chat`) | Complet, avec garde-fous : pré-filtre d'injection, quota, mode dégradé, consentement, refus scripté |
+| **App Flutter** | Fil, intro, carte d'entrée, écrans noirs, transition vidéo, fin de chapitre, réglages, carnet. 190 tests |
+| **Carnet « Ce qu'on sait »** | Les 5 phases faites. Table `clues`, projection dans `get-state` **et** `advance`, écran client |
+| **Deux écrans noirs** | N14 (le trajet) et N19 (l'incident), chacun avec sa musique, dernier repère calculé |
+| **Chaîne de migrations** | Rejouable depuis zéro. `supabase db reset` passe sans intervention |
+| **Gardiens** | `verify-graph` 60/60 · `verify-fidelity` 123/123 · `simulate-playthrough` · `test-ai-moment` · `test-migration-peuplee` · `probe-lena` · 190 tests Dart |
+
+### Ce qui attend, par ordre d'urgence
+
+*Les deux 🔴 de tête ont été levés en fin de journée — hébergé synchronisé, APK installé. Le
+détail de la séquence est au TODO.*
+
+1. 🟠 **Recette sur l'appareil**, la seule chose qui reste avant de pouvoir conclure : l'écran noir
+   du N14 et sa musique, le carnet ouvert **sans quitter l'app** après un zoom, et le N9 à qui on
+   parle de la plaque. Rien de tout ça n'est joué de bout en bout par un test local.
+2. 🔴 **`test-micro-choix.py`** : son contrôle de formule ne mesure plus rien (défaut préexistant,
+   diagnostiqué le 27 août, pas corrigé).
+3. 🟡 Deux témoins visuels dus par Vivien sur la transition N20-N9, et un réglage d'équilibre sur
+   l'écran d'accueil.
+
+### Décisions de fond, et ce qu'elles engagent
+
+- **Le contenu narratif vit dans le contenu.** Un texte que le joueur lit n'a rien à faire dans une
+  migration de schéma ni dans le code : le rejeu du contenu l'efface, sans erreur. Quand un contenu
+  résiste à un mécanisme technique, la première question est de savoir s'il est au bon endroit.
+- **Fermer la classe, pas l'instance.** Le préambule DDL plutôt que le redatage : plus cher sur le
+  moment, mais la date de la migration de contenu cesse définitivement de compter.
+- **Une valeur figée se dégèle, un fil-piège reste figé.** La distinction est écrite dans
+  LOGIQUE.md § Quand une règle change, ses gardiens aussi — c'est le genre de nuance qu'on inverse
+  six mois plus tard.
+- **On ne nomme jamais dans le prompt ce qu'elle ne doit pas dire.** Vrai des noms propres (Karim),
+  et vrai des tournures : un contre-exemple écrit en toutes lettres est recopié.
+- **Une esquive n'affirme jamais un fait.** Admettre l'ignorance plutôt que trancher — le style et
+  le fond sont liés, des exemples secs produisent des esquives qui tranchent.
+- **Le client ne connaît pas le graphe**, et le carnet ne compte rien. Deux règles tenues par
+  construction : le serveur n'envoie que les indices trouvés.
+- **La musique d'un écran est un `media_url`**, pas une colonne d'histoire : il en faut une par
+  écran.
+
+### Discuté, décidé, **pas encore implémenté**
+
+- **La phrasing de ce que Léna a rapporté (N9).** `acquisDeLaSoiree()` injecte les textes de `clues`
+  tels quels. Vivien voulait une formulation à la deuxième personne (« tu as réussi à photographier
+  la plaque ») ; l'écrire aurait été inventer du contenu narratif. **Cinq fragments courts à écrire
+  par Vivien, plus une colonne à ajouter à `clues`**, si sa voix est voulue à cet endroit. En
+  l'état ça fonctionne : elle reconnaît la plaque et le macaron.
+- **Le tic « Chloé. »** en fin de réplique, sans que la question porte sur sa sœur. Repéré le
+  30 août, non corrigé — à voir s'il persiste en jouant.
+- **Le teaser du chapitre 2** (`chapters.teaser_text`) reste `null` : pas encore écrit.
+
+### Le piège qui reste ouvert
+
+**Rien ne surveille l'écart local ↔ distant.** Tout ce qui précède est vérifié contre la stack
+locale. Le 25 août, l'hébergé avait cinq migrations de retard et Vivien a joué le chapitre entier
+sans le savoir, sur une version périmée. Il l'était encore de douze jours ce soir avant le
+déploiement, et rien ne l'avait signalé — seule la question « tu peux l'installer sur mon
+téléphone ? » l'a fait apparaître. Le même écart peut se reformer à tout moment : il n'a aucun
+gardien, seulement une procédure (ARCHITECTURE.md).
+
+**Et la date figée du contenu se paie à chaque déploiement.** Le préambule DDL a réglé le
+`db reset` local ; il ne règle pas l'historique distant. Comme `20260818174043` est antérieure à la
+dernière migration poussée, chaque déploiement de contenu demande un
+`migration repair --status reverted` suivi d'un `db push --include-all`. C'est mécanique, c'est
+documenté, mais ça reste deux gestes à ne pas oublier — la même racine que le défaut corrigé
+aujourd'hui, vue depuis l'autre bout.
+
+---
+
 ## 2026-08-30 (23) — Le N9 niait la plaque que le joueur venait de lui faire prendre
 
 Deux corrections remontées par Vivien en jouant, et elles n'en font qu'une : **le prompt ne savait
@@ -84,20 +164,63 @@ légitime, et il ne connaissait pas « je ne sais pas ». Changer les exemples d
 
 Les deux corrections se composent : elle admet ce qu'elle ignore **et** s'appuie sur ce qu'elle a.
 
+### Suite du même jour — et j'ai refait la faute que le projet avait déjà apprise
+
+Vivien a tranché les deux points laissés ouverts : le « fond noir » du macaron **à corriger**, la
+question sur la 508 **à garder**. Trois choses en sont sorties.
+
+**1. Elle ne décore rien.** Consigne étendue aux détails sensoriels : ni couleur, ni matière, ni
+taille, ni ce qui était écrit dessus, ni la lumière, pour toute chose qu'elle n'a pas décrite
+elle-même ce soir. Ce que « décrit elle-même » veut dire est exactement ce que `acquisDeLaSoiree()`
+lui injecte — les deux mécanismes se tiennent.
+
+**2. J'avais violé « Ne jamais nommer dans le prompt ce qu'elle ne doit pas dire ».** La règle est
+dans LOGIQUE.md depuis l'affaire Karim. Ma correction de la veille citait la formule bannie
+**quatre fois**, dont un contre-exemple écrit en toutes lettres :
+
+> Jamais des fragments empilés par des points, du genre « Je ne sais pas. Pas maintenant. Pas ce
+> soir. »
+
+Le modèle l'a recopié presque mot pour mot : « Je ne sais pas, et c'est bien ce qui me ronge. Pas
+maintenant, pas ce soir, pas avec ce que j'ai sous la main. » Mon propre contre-exemple nourrissait
+le défaut. Quatre citations retirées, la forme décrite au lieu d'être écrite — la formule a disparu
+des tirages. **La règle Karim vaut pour les tournures, pas seulement pour les noms propres.**
+
+**3. Un jeu d'essai de ce qu'on veut GARDER.** Toutes les listes de la sonde disent ce que Léna ne
+doit pas faire ; aucune ne disait ce qu'elle a le droit de faire. Resserrer un détecteur condamne
+parfois un comportement voulu, et personne ne le voit — le comportement disparaît des tirages, on
+met ça sur le compte de la température.
+
+`SOUHAITABLES` répare l'asymétrie : des répliques réelles validées par Vivien, passées dans la
+batterie **sans appeler le modèle**, avant les sondes. Son échec ne dit rien de Léna, il dit qu'un
+détecteur est devenu trop large. La question sur la 508 y est consignée pour elle-même, avec sa
+justification, pour qu'une future correction ne l'élimine pas par erreur.
+
+**Il a servi dans l'heure**, sur deux détecteurs que j'avais écrits la veille :
+
+- **`ESQUIVE` portait deux sens opposés.** Sur les sondes elle *excuse* une mention ; sur les faits
+  établis elle *accuse*. L'élargir à « je ne sais pas » a réparé un usage en cassant l'autre :
+  « Chloé. Ça fait sept mois, et je ne sais pas où elle est » était signalée comme une dérobade
+  alors qu'elle répond pleinement. Scindée en `REFUS` (accuse) et `ESQUIVE` (excuse).
+- **Reconnaître un indice n'oblige pas à le renommer.** « Oui, c'est ça. » confirme le macaron aussi
+  bien que de le répéter — et mieux. Mon détecteur exigeait l'écho lexical et punissait la meilleure
+  réponse, celle-là même que la correction du « fond noir » venait de produire.
+
+Les trois familles de sondes passent maintenant par **une seule batterie** (`defauts()`), leurs
+contrôles propres passés en argument — sans ça, le jeu d'essai n'aurait pas pu les exercer.
+
 ### Vérifications, et ce qui reste douteux
 
-`probe-lena` vert (3 tirages, dont un rouge avant renforcement — gardé au journal, c'est lui qui a
-servi), `test-ai-moment` vert, `simulate-playthrough` vert, `verify-graph` 60/60,
-`verify-fidelity` 123/123, 190 tests Dart.
+`probe-lena` vert au dernier tirage — **5 tirages en tout, 3 rouges**, et c'est le vrai récit : le
+premier vert aurait suffi à conclure trop tôt. `test-ai-moment` vert, `simulate-playthrough` vert,
+`verify-graph` 60/60, `verify-fidelity` 123/123, 190 tests Dart.
 
-⚠️ **Deux observations de ton, à lire par Vivien, qu'aucun détecteur ne peut trancher :**
+Les deux observations de ton remontées à Vivien ont toutes deux été tranchées le jour même : le
+« fond noir » corrigé, la question sur la 508 gardée et consignée comme comportement voulu.
 
-1. sur le macaron, elle a répondu « Sentinel Pro, écrit en petit sur fond noir » — le fond noir
-   n'existe nulle part. Même famille que le défaut corrigé, en plus petit : elle garnit encore.
-   `INVENTE` ne voit que les souvenirs communs inventés, pas le détail physique ;
-2. à la sonde « sincère » (le joueur dit travailler de nuit dans un entrepôt de tri), elle a
-   demandé « La 508 grise, c'est la tienne, avec le macaron Sentinel Pro ? ». Se lit très bien
-   comme de la paranoïa — ou comme une confusion. C'est un choix narratif, pas un bug.
+⚠️ **Une nouvelle, plus légère, à lire :** elle accroche parfois « Chloé. » en fin de réplique sans
+que la question porte sur sa sœur (« Je ne sais pas, et c'est bien ce qui me ronge. Chloé. »). Pas
+une fuite — c'est un fait qu'elle a partagé — mais un tic d'ancrage. Au TODO.
 
 ⚠️ **`test-ai-moment.py` était rouge en arrivant**, sans rapport : sa liste figée des champs du nœud
 ne connaissait pas `attend_saisie`, ajouté par la phase 4 du carnet le 24 août. Contrairement au

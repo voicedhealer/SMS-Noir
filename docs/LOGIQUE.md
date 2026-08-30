@@ -285,6 +285,35 @@ Les gardiens possibles, à balayer à chaque fois : `verify-graph.sql`,
 `test-ai-moment.py`, `probe-lena.py`, les tests Flutter, et les contraintes de
 la base — `messages` **et** `player_messages`, qui s'oublie tout seul.
 
+### Une valeur figée se dégèle, un fil-piège reste figé
+
+Deux contrôles à valeur écrite en dur sont tombés le même week-end, et **la
+bonne correction n'était pas la même** — c'est la nuance qu'on inversera dans
+six mois si elle n'est pas écrite ici.
+
+| contrôle | ce que la valeur figée voulait dire | correction |
+|---|---|---|
+| `test-migration-peuplee.py` — « 60 micro-choix » | *le contenu rejoué est le contenu courant* | **dégelé** : le compte se lit dans le chapitre |
+| `test-ai-moment.py` — les champs du nœud | *aucun champ n'est apparu sans qu'on le décide* | **laissé figé**, mis à jour à la main |
+
+**La question à poser : est-ce que la valeur EST l'assertion, ou est-ce qu'elle
+en est un reflet ?**
+
+Le compte de micro-choix n'était qu'un reflet — 60, puis 63, puis 72 au gré du
+contenu. Chaque écriture le périmait, il criait au loup sur du contenu sain, et
+un garde-fou qui crie au loup finit ignoré. Sa valeur devait donc se dériver de
+la source de vérité (le chapitre), et le contrôle se met alors à jour tout seul.
+
+La liste des champs du nœud, elle, **est** l'assertion : « le client ne reçoit
+que ça ». Son échec est le signal utile — il veut dire *un champ est apparu dans
+la projection, confirme qu'il est destiné au joueur*. La dériver du serveur la
+détruirait : elle recopierait la fuite qu'elle existe pour attraper. Elle doit
+casser à chaque ajout, et se mettre à jour **à la main**, après décision.
+
+Le test dit la différence : **si le contrôle se met à jour tout seul, est-ce
+qu'il peut encore échouer utilement ?** Non pour le fil-piège — dégelé, il ne
+vaut plus rien. Oui pour le reflet — dégelé, il attrape enfin ce qu'il visait.
+
 ## La grammaire des trois axes
 
 Chaque micro-choix offre trois options — **protéger · enquêter · raisonner** —
@@ -703,12 +732,64 @@ virgules) :
 > « C'est justement ce que je cherche, et je n'ai encore rien trouvé de solide. »
 
 L'interdiction elle-même vit dans **# Interdits absolus**, pas dans la prose : posée en prose, le
-modèle la contournait encore en accrochant « pas ce soir » en fin de phrase (observé sur un tirage).
-C'est la section que le modèle respecte le plus strictement.
+modèle la contournait encore en accrochant la formule en fin de phrase. C'est la section qu'il
+respecte le plus strictement.
+
+⚠️ **Et elle est formulée sans jamais citer la formule bannie** — voir § Ne jamais nommer dans le
+prompt ce qu'elle ne doit pas dire, ci-dessus. La première version de cette correction la citait
+quatre fois, dont un contre-exemple écrit en toutes lettres (« Jamais des fragments du genre
+"… Pas maintenant. Pas ce soir." »). Le modèle l'a **recopié presque mot pour mot** au tirage
+suivant : « Je ne sais pas, et c'est bien ce qui me ronge. Pas maintenant, pas ce soir, pas avec
+ce que j'ai sous la main. » La règle apprise sur Karim vaut aussi pour les tournures, pas seulement
+pour les noms propres : **on décrit la forme à éviter, on ne l'écrit pas.** Zéro citation dans le
+prompt, la formule a disparu des tirages.
 
 `probe-lena.py` en tient les deux moitiés : `TRANCHE` signale toute formule qui clôt en affirmant,
 sur **toutes** les sondes ; la famille `INDICES_ACQUIS` vérifie qu'elle ne nie pas ce que le joueur
 lui a fait obtenir.
+
+### Elle ne décore rien
+
+Même défaut, en plus discret : « Sentinel Pro, **écrit en petit sur fond noir** » — le fond noir
+n'existe nulle part. Le détail sensoriel ajouté pour faire vrai est une invention comme une autre,
+et la plus facile à laisser passer parce qu'elle a l'air de ne rien coûter.
+
+Le prompt l'interdit désormais explicitement : ni couleur, ni matière, ni taille, ni ce qui était
+écrit dessus, ni la lumière, pour toute chose qu'elle n'a pas décrite elle-même ce soir. Ce que
+« elle a décrit elle-même » veut dire est précisément ce que `acquisDeLaSoiree()` lui injecte : les
+deux mécanismes se tiennent.
+
+**Aucun détecteur ne l'attrape**, et c'est assumé : distinguer un détail inventé d'un détail
+légitime demande de connaître le contenu par cœur. `INVENTE` ne voit que les souvenirs communs
+fabriqués. Ça se lit à la relecture des tirages.
+
+### Un jeu d'essai de ce qu'on veut GARDER
+
+Toutes les listes de `probe-lena.py` disent ce que Léna ne doit pas faire. Aucune ne disait ce
+qu'elle a le droit de faire — et l'asymétrie coûte : resserrer un détecteur pour attraper un défaut
+condamne parfois, du même geste, un comportement voulu. Personne ne s'en aperçoit, le comportement
+disparaît simplement des tirages suivants et on met ça sur le compte de la température.
+
+`SOUHAITABLES` est le contre-poids : des répliques **réelles, validées par Vivien**, passées dans la
+batterie complète **sans appeler le modèle**, avant les sondes. Son échec ne dit rien de Léna — il
+dit qu'un détecteur est devenu trop large.
+
+Il a servi le jour même : deux répliques justes étaient signalées à tort, et les deux détecteurs
+fautifs étaient de moins de 24 h.
+
+- **`ESQUIVE` portait deux sens opposés.** Sur les sondes elle *excuse* une mention (plus elle est
+  large, mieux c'est) ; sur les faits établis elle *accuse* (plus elle est large, plus elle invente
+  des défauts). L'élargir à « je ne sais pas » a réparé un usage en cassant l'autre. Scindée :
+  `REFUS` — la porte fermée — accuse, `ESQUIVE` excuse.
+- **Reconnaître un indice n'oblige pas à le renommer.** « Oui, c'est ça. » confirme le macaron
+  aussi bien que de le répéter, et c'est mieux écrit. Le détecteur exigeait l'écho lexical et
+  punissait la bonne réponse ; `CONFIRME` le complète.
+
+Et un comportement à garder y est consigné pour lui-même : à la sonde « sincère », le joueur dit
+travailler de nuit dans un entrepôt, et Léna lui demande si la 508 grise est la sienne. **Ce n'est
+pas de la confusion** — c'est une femme à cran qui soupçonne brièvement la seule personne qui
+l'aide, cohérent avec la méfiance écrite du personnage (bible §2). Décision de Vivien, 30 août 2026.
+Sans cette entrée, un futur détecteur de « hors sujet » l'éliminerait sans que personne ne le voie.
 
 ### Fournisseur
 
