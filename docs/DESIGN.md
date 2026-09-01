@@ -466,6 +466,43 @@ non encore ouvert, puisque dans 3 cas sur 6 le média *est* l'interaction.
 
 ---
 
+### Une réplique ne pose jamais une question sans réponse possible
+
+Dans un nœud à choix fermés, hors moment IA, **une réaction de Léna ne se termine pas par une
+question** : le joueur n'a pas de champ libre à cet endroit, et le mode `decorative` ci-dessus
+signifie que ce qu'il écrirait ne partirait nulle part. Elle conclut par une affirmation ou une
+relance qui mène au message suivant.
+
+Deux exceptions, et elles se déclarent :
+
+- **une question suivie immédiatement d'un bloc de choix** — le joueur y répond en choisissant,
+  c'est la grammaire normale du jeu (« Que dois-je faire ? » au N14, « je suis en danger ? » au
+  N19) ;
+- **un nœud qui ouvre `attente_saisie`** — au N16, « je n'arrive pas à le lire d'ici, et vous ? »
+  ouvre justement le champ. La question EST le mécanisme.
+
+Partout ailleurs la question reste en l'air, et le joueur cherche un champ qui n'existe pas. Cas
+d'origine, repéré en jouant le 1er septembre 2026 : au N21, le joueur signalait le téléphone sur
+l'établi, Léna répondait « Ah ouais ! Mais j'ai pas vu ça moi, où ça ? » — puis enchaînait sur le
+trousseau dans la seconde. Elle demandait où, et parlait d'autre chose.
+
+Découle de la bible §2 (elle lie ses phrases, elle ne les empile pas), mais c'est une règle de
+**mise en scène**, pas de fiction : sa place est ici, la bible ne se modifie pas.
+
+**Se vérifie en une requête** — toute `inline_response` de contact finissant par « ? », hors N16 :
+
+```sql
+select n.code, ch.label, m->>'body'
+from nodes n join choices ch on ch.node_id = n.id
+cross join lateral jsonb_array_elements(ch.inline_response) m
+where m->>'sender' = 'contact' and rtrim(m->>'body') like '%?';
+```
+
+Deux occurrences subsistent, **volontairement** : au N17 « pourquoi cette question ? » est un
+battement de `lucidite` — une question défensive est censée rester en l'air — et au N7 « Je peux
+vous demander une chose ? » est rhétorique, elle enchaîne elle-même. Les toucher serait corriger
+une intention, pas un défaut.
+
 ## L'aparté — un pattern générique, pas un détail du moment IA
 
 Une ligne de contexte discrète, posée **dans le flux de la conversation**, sous la dernière bulle

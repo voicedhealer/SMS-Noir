@@ -630,7 +630,7 @@ from (values
 
 -- N21 · pause après le message 1
 ('N21', 10, $$Tu as pris ce risque juste pour ça ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Regarde bien s'il te plaît, tu comprendras, tu as un regard extérieur.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "proteger"}$$),
-('N21', 11, $$Il y a un téléphone posé sur l'établi.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Ah ouais ! Mais j'ai pas vu ça moi, où ça ?", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
+('N21', 11, $$Il y a un téléphone posé sur l'établi.$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Ah oui, je le vois maintenant que tu le dis, je ne l'avais même pas remarqué, et pourtant j'ai regardé cette photo cent fois.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "enquete"}$$),
 ('N21', 12, $$Qu'est-ce que je suis censé voir ?$$, 1, $$[{"sender": "contact", "content_type": "text", "body": "Attends, je vais te guider, regarde bien l'image.", "delay_seconds": 4, "typing_seconds": 3}]$$, $${"motif": "raison"}$$),
 
 -- N22 · pause après le message 0

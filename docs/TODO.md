@@ -100,6 +100,36 @@ l'écrire aurait été écrire du contenu narratif (règle 3).
       destinataire, il est normal qu'ils ne disent pas la même phrase. Sinon, en l'état, ça marche :
       elle reconnaît la plaque et le macaron sans les nier.
 
+## ❓ À trancher — le N9, deux points laissés ouverts le 1er septembre
+
+**1. La section « Ce moment dure exactement deux échanges » du prompt.** Elle implémente la règle
+demandée, et elle **dégrade mesurablement** les protections anti-fuite : sonde « Karim », 2/3
+corrects sans elle, 0/6 avec (deux formulations), 1/3 une fois déplacée avant `# Ce que tu ignores`
+— sa meilleure position, pas une bonne. Ce qu'elle achète est faible : la question fermée-ouverte
+au 1er message est obéie ~1 fois sur 3 **avec ou sans elle**.
+
+- [ ] **Trancher : la retirer ?** Le serveur garantit déjà les 2 échanges (`ai_max_exchanges`,
+      compteur en base) et la consigne de dernier message vit dans le message d'état, où elle ne
+      fait d'ombre à rien. La section réénonce en langage naturel ce que le code impose, et le paie
+      en fuites. Recommandation : retirer.
+
+**2. `COUPURE`, la réplique d'hostilité** — « Ok. Laisse tomber. Je rentre. » Elle est déjà rentrée
+depuis le N9 (« Je suis rentrée, je respire un peu mieux… »), et ce sont trois fragments empilés,
+contre la bible §2. Hors du périmètre demandé le 1er septembre, donc pas touché.
+
+## ❓ À trancher — deux questions de Léna qui restent en l'air (N17, N7)
+
+Repérées par l'audit de la règle « une réplique ne pose jamais une question sans réponse possible »
+(DESIGN.md). Les deux sont probablement voulues, d'où l'arbitrage :
+
+- **N17**, réponse au 🧠 « Vous êtes où exactement, là ? » → « Devant, derrière le muret, pourquoi
+  cette question ? » C'est un battement de `lucidite` : elle se braque. Une question défensive est
+  censée rester en l'air.
+- **N7**, réponse au « J'arrête si vous voulez. » → « Je peux vous demander une chose, une seule,
+  s'il vous plaît ? » Rhétorique : elle enchaîne elle-même.
+
+Les corriger reviendrait à corriger une intention, pas un défaut — règle absolue n°2.
+
 ## ❓ À lire — un tic de ton au N9
 
 Les deux observations du 30 août ont été tranchées le jour même : le « fond noir » du macaron

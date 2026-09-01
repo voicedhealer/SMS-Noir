@@ -492,7 +492,7 @@ séparateur « 00h34 » suffit, le repère suit.)*
 
 **MICRO-CHOIX :**
 - 🛡 « Tu as pris ce risque juste pour ça ? » → *« Regarde bien s'il te plaît, tu comprendras, tu as un regard extérieur. »*
-- 🔍 « Il y a un téléphone posé sur l'établi. » → *« Ah ouais ! Mais j'ai pas vu ça moi, où ça ? »* ⚠️ *(enquete)*
+- 🔍 « Il y a un téléphone posé sur l'établi. » → *« Ah oui, je le vois maintenant que tu le dis, je ne l'avais même pas remarqué, et pourtant j'ai regardé cette photo cent fois. »* ⚠️ *(enquete)*
 - 🧠 « Qu'est-ce que je suis censé voir ? » → *« Attends, je vais te guider, regarde bien l'image. »*
 
 **[Léna]** Tu vois le trousseau, sur le crochet, juste sous la lumière ? Zoome sur le porte-clés.
