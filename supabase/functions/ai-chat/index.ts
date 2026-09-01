@@ -46,18 +46,35 @@ import {
 const QUOTA_QUOTIDIEN = 50
 
 /**
- * Ses répliques de sortie. Elles restent en personnage, toujours.
+ * Ses répliques de sortie — **chemins dégradés UNIQUEMENT**.
  *
- * Deux variantes pour le raccrochage normal, choisies par `raccrochage()`
- * selon `refus` — pas de branchement tu/vous pour `COUPURE`, hors du
- * périmètre demandé (hostilité/hors-cadre, pas la clôture normale).
+ * Elles servent quand il n'y a pas de modèle pour écrire à sa place : API en
+ * panne, quota atteint, consentement refusé, hors-cadre. Sur le chemin normal,
+ * c'est SA dernière réponse qui referme le moment — voir la sortie du déroulé.
+ *
+ * ⚠️ **Ne jamais les concaténer derrière une réponse du modèle.** C'est ce que
+ * faisait le chemin normal, et ça produisait deux au revoir à la suite : le
+ * sien (« je vais essayer de dormir »), puis celui-ci (« je vais aller me
+ * coucher… merci encore »). Constaté en jouant sur l'appareil, 1er septembre
+ * 2026. Le seul endroit où une réplique du modèle et une réplique scriptée se
+ * suivent encore est l'hostilité, et c'est voulu : `COUPURE` la contredit,
+ * elle ne la répète pas.
+ *
+ * Deux défauts corrigés le même jour :
+ *  • « Tu as raison. » présupposait une suggestion du joueur qui n'existe pas
+ *    sur ces chemins — sur une panne d'API, il n'a rien suggéré du tout ;
+ *  • « Envoie-moi un message demain » prenait congé, alors que le N21 enchaîne
+ *    dans la seconde avec « Je t'ai pas dit, mais je me suis approchée… ». Elle
+ *    disait au revoir et continuait de parler.
+ *
+ * La clôture transitionne donc vers la photo, sans rupture temporelle.
  */
 const RACCROCHAGE_TU =
-  'Tu as raison. Je crois que je vais aller me coucher, essayer de dormir un peu. ' +
-  'Envoie-moi un message demain si tu veux, pour savoir comment ça va de mon côté. Merci encore.'
+  'Bon, je vais essayer de digérer tout ça de mon côté. ' +
+  'Attends, avant que je te laisse, j\'ai quelque chose à te montrer.'
 const RACCROCHAGE_VOUS =
-  'Vous avez raison. Je crois que je vais aller me coucher, essayer de dormir un peu. ' +
-  'Envoyez-moi un message demain si vous voulez, pour savoir comment ça va de mon côté. Merci encore.'
+  'Bon, je vais essayer de digérer tout ça de mon côté. ' +
+  'Attendez, avant que je vous laisse, j\'ai quelque chose à vous montrer.'
 const COUPURE = 'Ok. Laisse tomber. Je rentre.'
 
 /** Choisit la variante tu/vous du raccrochage selon la variable `refus`. */
@@ -178,14 +195,27 @@ Deno.serve(servir(async (req) => {
   // Sa réponse s'affiche même si elle raccroche juste après.
   messages.push(...await ecrireReplique(db, progression.id, contact, contenu.reponse))
 
-  // --- Suite ou raccrochage ------------------------------------------------
+  // --- Suite ou sortie ------------------------------------------------------
   const hostile = contenu.tonalite === 'hostile'
   const dernier = numero >= maxEchanges
 
-  if (hostile || dernier) {
+  // L'hostilité est la seule sortie qui ajoute encore une réplique derrière
+  // celle du modèle, et c'est voulu : `COUPURE` la contredit au lieu de la
+  // répéter — elle claque la porte sur ce qu'il vient d'écrire.
+  if (hostile) {
     return json(await raccrocher(
-      db, courante, histoire.id, noeud, hostile ? COUPURE : raccrochage(variables), messages,
-      detail.valeur, variables))
+      db, courante, histoire.id, noeud, COUPURE, messages, detail.valeur, variables))
+  }
+
+  // Fin normale : **rien n'est concaténé**. Le modèle a reçu la consigne de
+  // dernier message (voir `construireEchange`), sa réponse porte donc déjà la
+  // clôture et l'annonce de la photo. Y ajouter une réplique scriptée était
+  // exactement ce qui produisait deux au revoir à la suite.
+  if (dernier) {
+    const suite = noeud.ai_fallback_node_id
+    if (!suite) throw new ErreurMoteur(409, 'sans_suite', 'Le moment IA n\'a pas de fallback')
+    return json(await entrerNoeudEtRepondre(
+      db, courante, histoire.id, suite, messages, detail.valeur, variables))
   }
 
   await db.from('player_progress').update({
@@ -279,8 +309,19 @@ async function construireEchange(
       : 'Cet inconnu t\'a aidée ce soir. Tu le tutoies.',
     await acquisDeLaSoiree(db, storyId, progression.variables),
     `C'est le message ${numero} sur ${maxEchanges} de cet échange.`,
-    numero >= maxEchanges - 1
-      ? 'L\'échange touche à sa fin : commence à te détacher, sans le dire.'
+    // ⚠️ `=== maxEchanges`, et surtout pas `>= maxEchanges - 1`.
+    //
+    // Le seuil visait un tour trop tôt : à 4 échanges il s'allumait au 3e, et
+    // Léna disait au revoir avant la fin — puis une seconde fois à la sortie.
+    // Le premier échange (celui où elle apprend le prénom) ne doit RIEN
+    // recevoir de tout ça : il reste chaleureux, centré sur le prénom, sans
+    // amorce de clôture.
+    numero === maxEchanges
+      ? 'C\'est ton dernier message de cet échange. Referme en une phrase '
+        + 'courte qui rebondit sur ce que le joueur vient de dire, puis annonce '
+        + 'explicitement que tu as quelque chose à lui montrer avant de '
+        + 'raccrocher pour de vrai (la photo de l\'entrepôt). Pas de nouvelle '
+        + 'question, pas de round supplémentaire.'
       : '',
   ].filter(Boolean).join('\n')
 

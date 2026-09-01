@@ -96,11 +96,16 @@ class PartieIA(Partie):
 
 
 
-# Réplique de raccrochage, variante tutoiement (`refus = false`, le chemin
-# suivi par tous les parcours de ce script — voir ai-chat/index.ts § raccrochage).
+# Réplique de secours, variante tutoiement (`refus = false`, le chemin suivi par
+# tous les parcours de ce script — voir ai-chat/index.ts § répliques de sortie).
+#
+# ⚠️ **Chemins DÉGRADÉS seulement** depuis le 1er septembre 2026 : API en panne,
+# quota, consentement refusé. Sur le chemin normal, c'est la dernière réponse du
+# modèle qui referme le moment — la voir apparaître là serait le retour du
+# défaut des deux au revoir.
 RACCROCHAGE = (
-    "Tu as raison. Je crois que je vais aller me coucher, essayer de dormir un peu. "
-    "Envoie-moi un message demain si tu veux, pour savoir comment ça va de mon côté. Merci encore."
+    "Bon, je vais essayer de digérer tout ça de mon côté. "
+    "Attends, avant que je te laisse, j'ai quelque chose à te montrer."
 )
 COUPURE = 'Ok. Laisse tomber. Je rentre.'
 
@@ -147,14 +152,14 @@ def titre(t: str):
 # ---------------------------------------------------------------------------
 
 def nominal_court():
-    titre('NOMINAL — deux échanges, puis elle raccroche sur une hostilité')
+    titre('HOSTILITÉ — elle coupe court avant la fin du moment')
     p = PartieIA('ia-court@test.local', 'court')
     avant = progression(p.email)['variables']['confiance']
 
     r = p.dire(directive('Ça va aller.', 'sincere', 'prenom', 'Sacha'))
     verifier('Échange 1 · sa réponse arrive', derniere(r), 'Ça va aller.')
     verifier('Échange 1 · le moment continue', r['ai_moment_pending'], True)
-    verifier('Échange 1 · échanges restants', r['exchanges_left'], 3)
+    verifier('Échange 1 · échanges restants', r['exchanges_left'], 1)
     verifier('Échange 1 · le nœud reste le N9', r['node']['code'], 'N9')
     # Générique (nodes.aparte, pas un champ propre au moment IA — voir
     # LOGIQUE.md § L'aparté) : le serveur transmet la valeur telle quelle,
@@ -172,8 +177,12 @@ def nominal_court():
     verifier('detail_perso retenu', etat['detail_perso'], 'Sacha')
     verifier('Compteur d\'échanges incrémenté', etat['ai_exchanges'], 1)
 
+    # L'hostilité tombe ici sur le DERNIER échange (2 sur 2) : les deux sorties
+    # se disputent le même tour, et c'est `hostile` qui doit gagner. Elle claque
+    # la porte, elle ne referme pas poliment sur la photo.
     r = p.dire(directive('Non.', 'hostile'))
     verifier('Une tonalité hostile coupe court', raccroche(r, COUPURE), True)
+    verifier('… et pas la clôture de secours', raccroche(r, RACCROCHAGE), False)
     verifier('Le moment est clos', r['ai_moment_pending'], False)
     verifier('L\'histoire repart au fallback', r['node']['code'], 'N21')
     verifier('Compteur remis à zéro en sortant',
@@ -183,28 +192,42 @@ def nominal_court():
 
 
 def nominal_long():
-    titre('NOMINAL — quatre échanges, le maximum, puis sortie propre')
+    titre('NOMINAL — deux échanges, puis sortie sans réplique ajoutée')
     p = PartieIA('ia-long@test.local', 'long')
 
-    for i in (1, 2, 3):
-        r = p.dire(directive(f'Réponse {i}.', 'evasif'))
-        verifier(f'Échange {i} · restants', r['exchanges_left'], 4 - i)
-        verifier(f'Échange {i} · toujours au N9', r['node']['code'], 'N9')
+    # Échange 1 : celui où elle apprend le prénom. Il ne doit RIEN annoncer de
+    # la suite — le drapeau de dernier message ne s'allume qu'au second.
+    r = p.dire(directive('Enchantée, Sacha.', 'sincere', 'prenom', 'Sacha'))
+    verifier('Échange 1 · restants', r['exchanges_left'], 1)
+    verifier('Échange 1 · toujours au N9', r['node']['code'], 'N9')
+    verifier('Échange 1 · le moment reste ouvert', r['ai_moment_pending'], True)
+    verifier('Échange 1 · le prénom est retenu',
+             progression(p.email)['detail_perso'], 'Sacha')
 
-    r = p.dire(directive('Réponse 4.', 'sincere'))
-    verifier('Le 4e échange est le dernier', r['exchanges_left'], 0)
-    verifier('Sa réplique est bien passée', derniere(r), 'Réponse 4.')
-    verifier('Puis elle raccroche', raccroche(r, RACCROCHAGE), True)
+    # Échange 2 : le dernier. Sa réponse porte elle-même la clôture, donc le
+    # serveur n'ajoute plus rien derrière.
+    r = p.dire(directive('Montre-moi cette photo, Sacha.', 'sincere'))
+    verifier('Le 2e échange est le dernier', r['exchanges_left'], 0)
+    verifier('Sa réplique est bien passée', derniere(r), 'Montre-moi cette photo, Sacha.')
+
+    # ⚠️ **Les assertions qui comptent.** Le défaut d'origine était structurel :
+    # la réplique scriptée était concaténée derrière celle du modèle, donc le
+    # joueur lisait deux au revoir à la suite (« je vais essayer de dormir »,
+    # puis « je vais aller me coucher… merci encore »). Vérifier que le moment
+    # se clôt ne suffisait pas — il se clôturait déjà, proprement, en doublon.
+    # Ce qu'il faut vérifier, c'est que RIEN n'est ajouté.
+    verifier('Aucune réplique de secours sur le chemin normal',
+             raccroche(r, RACCROCHAGE), False)
+    verifier('Ni la coupure d\'hostilité', raccroche(r, COUPURE), False)
+    # Sa réponse OUVRE le lot : ce qui suit appartient au N21, qui déroule ses
+    # propres messages. Si une clôture se réinvitait, elle se glisserait juste
+    # derrière — d'où le contrôle de position, en plus de celui du contenu.
+    verifier('Sa réponse ouvre le lot, le N21 enchaîne derrière',
+             repliques(r)[0], 'Montre-moi cette photo, Sacha.')
     verifier('Le moment est clos', r['ai_moment_pending'], False)
     verifier('Retour au N21', r['node']['code'], 'N21')
-
-    # Un 5e message n'a plus de sens : le nœud a changé.
-    try:
-        p.dire(directive('Encore ?'))
-        verifier('Un message après la sortie est refusé', 'accepté', 'refusé')
-    except RuntimeError as e:
-        verifier('Un message après la sortie est refusé',
-                 'pas_un_moment_ia' in str(e), True)
+    verifier('Compteur remis à zéro en sortant',
+             progression(p.email)['ai_exchanges'], 0)
 
 
 # ---------------------------------------------------------------------------
@@ -224,7 +247,7 @@ def consentement():
 
     r = p.consentir(True)
     verifier('Accepté : le moment s\'ouvre', r['ai_moment_pending'], True)
-    verifier('Accepté : 4 échanges disponibles', r['exchanges_left'], 4)
+    verifier('Accepté : 2 échanges disponibles', r['exchanges_left'], 2)
     verifier('Consentement horodaté', progression(p.email)['ai_consent_at'] is not None, True)
 
     r = p.dire(directive('Ça va ?', 'sincere'))
