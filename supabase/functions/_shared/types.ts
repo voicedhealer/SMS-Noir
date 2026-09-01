@@ -176,6 +176,16 @@ export interface ClientNode {
 }
 
 export interface ChapterEndState {
+  /**
+   * Rythme de la révélation : `user_paced` (défaut) laisse le joueur avancer
+   * phrase par phrase, `timed` rétablirait un minuteur.
+   *
+   * ⚠️ Propre au `chapter_end`. Les écrans noirs narratifs restent minutés par
+   * leur contenu (décalages dans le `body`, durée = délai du message suivant) —
+   * ne pas confondre les deux mécaniques au chapitre 3.
+   */
+  reveal_mode: 'timed' | 'user_paced'
+
   chapter_title: string
   next_chapter_title: string | null
   /** Pour composer « Chapitre N — titre » sans jamais coder N en dur. */

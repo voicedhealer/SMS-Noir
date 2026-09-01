@@ -193,6 +193,125 @@ class Aparte extends StatelessWidget {
       );
 }
 
+/// « Continuer » — le passage vers l'écran de fin de chapitre.
+///
+/// **Un glissement, pas un bouton.** Décision de Vivien après essai sur
+/// l'appareil : un bouton se tape par réflexe, au milieu d'une phrase qu'on
+/// n'a pas fini de lire. Un geste à faire exprès demande d'avoir décidé — et
+/// c'est exactement ce qu'on veut à cet endroit, où la seule chose qui reste
+/// est de quitter le chapitre.
+///
+/// Posé en queue de fil, au même endroit que les réponses, parce que c'en est
+/// une : la dernière décision du chapitre, même si elle n'a qu'une issue.
+///
+/// ⚠️ Rien à voir avec l'écran noir narratif, où la bascule automatique EST
+/// l'effet — Léna se tait, on subit. Voir `RevealMode`.
+class ContinuerVersLaFin extends StatefulWidget {
+  const ContinuerVersLaFin({super.key, required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  State<ContinuerVersLaFin> createState() => _ContinuerVersLaFinState();
+}
+
+class _ContinuerVersLaFinState extends State<ContinuerVersLaFin> {
+  /// Avancée du pouce, de 0 à 1.
+  double _avance = 0;
+  bool _parti = false;
+
+  /// La part de la piste à franchir pour déclencher. Assez haut pour qu'un
+  /// frôlement ne compte pas, assez bas pour ne pas obliger à aller au bout.
+  static const _seuil = 0.75;
+
+  /// Hauteur de la piste, et donc diamètre du pouce.
+  static const _hauteur = 52.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xxl, vertical: AppSpacing.m),
+      child: LayoutBuilder(
+        builder: (context, contraintes) {
+          final course = contraintes.maxWidth - _hauteur;
+          return GestureDetector(
+            onHorizontalDragUpdate: (d) {
+              if (_parti) return;
+              setState(() =>
+                  _avance = (_avance + d.delta.dx / course).clamp(0.0, 1.0));
+            },
+            onHorizontalDragEnd: (_) {
+              if (_avance >= _seuil && !_parti) {
+                _parti = true;
+                widget.onTap();
+                return;
+              }
+              // Pas assez loin : le pouce revient, sans reproche.
+              setState(() => _avance = 0);
+            },
+            onHorizontalDragCancel: () => setState(() => _avance = 0),
+            child: Container(
+              height: _hauteur,
+              decoration: BoxDecoration(
+                color: AppColors.separateurFond,
+                borderRadius: BorderRadius.circular(_hauteur / 2),
+                border: Border.all(color: AppColors.separateurLigne),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Le libellé s'efface à mesure qu'on glisse : le geste
+                  // remplace le mot, il ne se superpose pas à lui.
+                  Opacity(
+                    opacity: (1 - _avance * 1.6).clamp(0.0, 1.0),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Continuer',
+                            style: AppText.libelleChoix
+                                .copyWith(color: AppColors.texteSecondaire)),
+                        const SizedBox(width: AppSpacing.s),
+                        // ⚠️ Trois chevrons FIXES, pas une animation.
+                        //
+                        // Une respiration en boucle dirait mieux « ça se
+                        // glisse » — mais une animation infinie fait tourner
+                        // `pumpAndSettle` sans fin, et ce widget vit dans le
+                        // fil : tout test qui atteint la fin du chapitre s'y
+                        // bloquerait. La carte d'entrée a déjà coûté cette
+                        // leçon (voir son commentaire dans les tests). Le
+                        // dégradé d'opacité porte la direction sans bouger.
+                        for (final o in [0.9, 0.55, 0.25])
+                          Opacity(
+                            opacity: o,
+                            child: const Icon(Icons.chevron_right,
+                                size: 18, color: AppColors.texteTertiaire),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Transform.translate(
+                      offset: Offset(_avance * course, 0),
+                      child: Container(
+                        width: _hauteur,
+                        height: _hauteur,
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.arrow_forward,
+                            size: 20, color: AppColors.textePrincipal),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 /// Ellipse narrative. Le libellé vient du serveur et s'affiche **tel quel**.
 class SeparatorPill extends StatelessWidget {
   const SeparatorPill({super.key, required this.libelle});

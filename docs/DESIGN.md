@@ -1181,6 +1181,28 @@ Le carnet reçoit une **copie** de la liste à l'ouverture : un carnet qui se re
 du joueur pendant qu'il le lit ferait de la trouvaille un événement d'interface. Il la retrouvera à
 la prochaine ouverture, comme un carnet.
 
+### Quitter le chapitre se glisse, ne se tape pas
+
+Le passage vers l'écran de fin est un **glissement** — « Continuer », trois chevrons fixes, un
+pouce à traverser aux trois quarts. Pas un bouton : un bouton se tape par réflexe, au milieu d'une
+phrase qu'on n'a pas fini de lire. Un geste à faire exprès demande d'avoir décidé, et c'est
+exactement ce qu'on veut au seul endroit où la seule chose qui reste est de quitter le chapitre.
+Un geste trop court ramène le pouce, sans reproche.
+
+⚠️ **Les chevrons ne bougent pas, et c'est délibéré.** Une respiration en boucle dirait mieux
+« ça se glisse », mais une animation infinie fait tourner `pumpAndSettle` sans fin — et ce widget
+vit dans le fil, donc tout test atteignant la fin du chapitre s'y bloquerait. La carte d'entrée
+avait déjà coûté cette leçon. Le dégradé d'opacité porte la direction sans mouvement.
+
+### Le rythme du joueur s'arrête à la porte
+
+La révélation, elle, **s'enchaîne toute seule** : les trois phrases tombent l'une après l'autre,
+séparées par un silence. Un « Je continue » entre chaque a été essayé sur l'appareil et écarté —
+demander un geste entre deux temps casse la chute au lieu de la laisser respirer. Un tap n'importe
+où pose la phrase en cours d'un coup, pour qui lit plus vite ; il ne fait jamais avancer.
+
+`RevealMode` gouverne donc **l'entrée** dans l'écran, plus rien à l'intérieur.
+
 ## Le clavier ne masque jamais les choix
 
 Les choix (structurants, micro-choix, interactions cachées) vivent **dans la
@@ -1216,6 +1238,31 @@ pour les options atténuées des interactions cachées : verrouillées pendant l
 ## Le fil ne vole jamais la position de lecture
 
 Remonter dans le fil pour relire ne doit jamais être interrompu par une nouvelle livraison —
-c'est le réflexe de toute vraie messagerie. Le défilement automatique vers le bas ne s'applique
-que si le joueur est **déjà à moins de 120 px du bas** au moment où le nouveau contenu arrive ; au-
-delà, sa position ne bouge pas d'un pixel.
+c'est le réflexe de toute vraie messagerie.
+
+**La règle porte sur le GESTE, pas sur la position.** Le fil suit le direct par défaut, et cesse
+de le faire dès que le joueur remonte **avec son doigt** ; il s'y remet dès qu'il redescend de
+lui-même sous les 120 px du bas. Un recentrage automatique ne pose jamais ce drapeau : il passe
+par `animateTo` et n'émet aucun `dragDetails`.
+
+⚠️ **Elle a d'abord été écrite comme une comparaison de position, et c'était faux.** La garde
+regardait `pixels` contre `maxScrollExtent` à l'instant de la livraison, en supposant que la
+position reflétait encore l'ancien fil. Trace relevée sur l'appareil de Vivien (1er septembre
+2026) : c'est l'inverse. L'étendue est **déjà** celle du nouveau contenu quand le code tourne,
+tandis que `pixels` est en retard, parce que le recentrage précédent est une **animation encore
+en vol**.
+
+Mesuré : un message allonge le fil de 251 px, le recentrage part vers 10094, et 5 ms plus tard la
+livraison suivante lit `pixels = 9843` contre `max = 10094`. Deux cent cinquante et un pixels
+d'écart pour un seuil de 120 : la garde conclut « il a remonté » et **se verrouille pour le reste
+du chapitre** — plus aucune livraison ne ramène le joueur en bas, alors qu'il n'a jamais touché
+l'écran. Une bulle photo monte à 300 px : toute livraison d'image pouvait déclencher ça.
+
+C'est ce que voulait dire le premier signalement, « je me retrouve au milieu de l'historique et je
+dois scroller à la main » — et ça n'avait aucun rapport avec les écrans plein écran, qui étaient
+les premiers suspects.
+
+Le drapeau posé par le geste ne peut pas se tromper : rien d'autre qu'un doigt ne le change. Deux
+tests le tiennent — une livraison ne déloge pas un joueur remonté, et **redescendre rétablit le
+direct** (un drapeau qui ne se lèverait jamais enfermerait le joueur hors du fil, ce que la version
+positionnelle ne risquait pas).

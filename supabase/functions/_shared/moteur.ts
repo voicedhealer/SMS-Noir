@@ -71,6 +71,8 @@ interface NoeudBrut {
   ai_fallback_node_id: string | null
   ai_system_prompt: string | null
   ai_max_exchanges: number | null
+  /** `chapter_end` seulement — voir migration 20260901120000. */
+  reveal_mode: string | null
   effects: Record<string, unknown>
   chapter_id: string
   aparte: string | null
@@ -109,7 +111,7 @@ export interface Progression {
 
 const CHAMPS_NOEUD = 'id, code, kind, next_node_id, ai_fallback_node_id, '
   + 'ai_system_prompt, ai_max_exchanges, effects, chapter_id, aparte, ai_refus_node_id, '
-  + 'attente_saisie'
+  + 'attente_saisie, reveal_mode'
 const CHAMPS_PROGRESSION = 'id, user_id, story_id, current_node_id, variables, '
   + 'chapter_unlocked_at, last_choice_id, last_choice_seq, ai_exchanges, '
   + 'ai_consent_at, ai_consent_refuse, node_cursor, node_gate'
@@ -707,6 +709,11 @@ export async function etatFinDeChapitre(
 
   return {
     chapter_title: actuel?.title ?? '',
+    // `null` vaut `user_paced` : c'est le défaut de CE genre de nœud, dont la
+    // fonction est de laisser absorber une révélation. Il ne se propage à
+    // aucun autre écran plein écran — une narration reste minutée par son
+    // contenu. Voir migration 20260901120000.
+    reveal_mode: (noeud.reveal_mode ?? 'user_paced') as 'timed' | 'user_paced',
     next_chapter_title: suivant?.title ?? null,
     next_chapter_position: suivant?.position ?? null,
     unlocked_at: progression.chapter_unlocked_at,

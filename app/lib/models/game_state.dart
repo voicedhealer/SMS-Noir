@@ -165,12 +165,23 @@ class StoryNode {
       );
 }
 
+/// Rythme de la révélation de fin de chapitre.
+enum RevealMode {
+  /// Le joueur avance phrase par phrase, en tapant « Je continue ».
+  userPaced,
+
+  /// Minuteur fixe entre les phrases. Plus utilisé au chapitre 1 ; gardé parce
+  /// qu'un futur chapitre pourrait vouloir une fin qui défile toute seule.
+  timed,
+}
+
 class ChapterEnd {
   const ChapterEnd({
     required this.chapterTitle,
     required this.nextChapterTitle,
     required this.unlockedAt,
     required this.nextChapterPending,
+    this.revealMode = RevealMode.userPaced,
     this.nextChapterPosition,
     this.nextChapterUnlockDelayMinutes,
     this.nextChapterNotificationText,
@@ -178,6 +189,15 @@ class ChapterEnd {
   });
 
   final String chapterTitle;
+
+  /// Rythme de la révélation. `userPaced` par défaut : c'est la fonction même
+  /// de cet écran que de laisser absorber.
+  ///
+  /// ⚠️ Propre au `chapter_end`. Un écran noir narratif reste minuté par son
+  /// contenu — les deux mécaniques coexistent, aucune n'est le défaut de
+  /// l'autre. Voir migration 20260901120000.
+  final RevealMode revealMode;
+
   final String? nextChapterTitle;
 
   /// Pour composer « Chapitre N — titre » sans jamais coder N en dur.
@@ -200,6 +220,12 @@ class ChapterEnd {
 
   factory ChapterEnd.fromJson(Map<String, dynamic> json) => ChapterEnd(
         chapterTitle: json['chapter_title'] as String? ?? '',
+        // Un mode inconnu (contenu d'un chapitre plus récent que l'app) se
+        // dégrade en `userPaced` : le joueur garde la main, ce qui ne casse
+        // jamais rien — un minuteur inattendu, si.
+        revealMode: json['reveal_mode'] == 'timed'
+            ? RevealMode.timed
+            : RevealMode.userPaced,
         nextChapterTitle: json['next_chapter_title'] as String?,
         nextChapterPosition: json['next_chapter_position'] as int?,
         unlockedAt: json['unlocked_at'] == null

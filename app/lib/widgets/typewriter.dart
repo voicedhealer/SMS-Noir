@@ -28,6 +28,7 @@ class Typewriter extends ConsumerStatefulWidget {
     this.parCaractere = const Duration(milliseconds: 45),
     this.surPause = const Duration(milliseconds: 400),
     this.onFini,
+    this.terminer,
   });
 
   final String texte;
@@ -42,6 +43,17 @@ class Typewriter extends ConsumerStatefulWidget {
 
   final VoidCallback? onFini;
 
+  /// Demande d'affichage immédiat venue de l'extérieur.
+  ///
+  /// Le tap sur le texte lui-même suffit dans un fil, où la bulle EST la cible.
+  /// Sur un écran plein écran de révélation, la phrase occupe le milieu d'un
+  /// grand vide : taper à côté ne doit pas être sans effet. L'écran écoute donc
+  /// toute sa surface et notifie ici.
+  ///
+  /// N'accélère que la ligne en cours, comme le tap : la suite garde son
+  /// rythme, et rien n'est sauté.
+  final Listenable? terminer;
+
   @override
   ConsumerState<Typewriter> createState() => _TypewriterState();
 }
@@ -54,6 +66,7 @@ class _TypewriterState extends ConsumerState<Typewriter> {
   @override
   void initState() {
     super.initState();
+    widget.terminer?.addListener(_tout);
     // Le réglage système n'est lisible qu'une fois le contexte monté.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -71,6 +84,7 @@ class _TypewriterState extends ConsumerState<Typewriter> {
 
   @override
   void dispose() {
+    widget.terminer?.removeListener(_tout);
     _timer?.cancel();
     super.dispose();
   }

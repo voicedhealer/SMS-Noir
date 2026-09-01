@@ -4,6 +4,82 @@
 
 ---
 
+## 2026-09-01 (25) — Le fil se verrouillait tout seul, et il a fallu trois hypothèses fausses pour le voir
+
+Vivien, en jouant : « après un écran plein écran, on se retrouve au milieu de l'historique, jamais
+sur le dernier message ». Trois audits, trois causes proposées, **trois réfutées par la mesure**.
+La bonne n'avait rien à voir avec les écrans plein écran.
+
+### Ce que j'ai cru, et ce que la mesure a dit
+
+| hypothèse | réfutée par |
+|---|---|
+| la liste est démontée et repart à zéro | vrai pour la narration, mais elle revient bien en bas |
+| offset périmé clampé à l'ancien bas | reproduit en test… et `pixels == max` sur l'appareil |
+| les photos se re-résolvent et l'étendue s'effondre | `max` stable pendant 3,6 s après le retour |
+
+Deux captures sur l'appareil montrent le retour du N22 **correct**, au pixel près, avec le même
+`state=` du début à la fin. J'ai eu tort trois fois, et chaque fois j'avais raisonné au lieu de
+mesurer. C'est la trace qui a tranché, pas moi.
+
+### La vraie cause, mesurée
+
+```
+19:25:12.742  versLeBas(livraison)  depuis=9843  cible=10094   ← un message, +251 px
+19:25:12.747  livraison IGNOREE     pixels=9842.9  max=10093.9
+```
+
+La garde comparait `pixels` à `maxScrollExtent` au moment de la livraison, **en supposant que la
+position reflétait encore l'ancien fil** — c'était écrit dans le code. L'inverse est vrai : quand
+le listener tourne, l'étendue est déjà celle du nouveau contenu, et c'est `pixels` qui est en
+retard, parce que le recentrage précédent est **une animation encore en vol**.
+
+251 px d'écart pour un seuil de 120 : la garde conclut « il a délibérément remonté » et se
+verrouille. Plus aucune livraison ne ramène le joueur en bas. **Personne n'a touché l'écran.** Une
+bulle photo monte à 300 px, donc toute livraison d'image pouvait le déclencher.
+
+**La règle porte désormais sur le GESTE** : un drapeau posé uniquement par un `ScrollUpdate` avec
+`dragDetails`, levé dès que le joueur redescend de lui-même. Rien d'autre qu'un doigt ne le change.
+
+### Ce que je n'ai pas pu tester, et je le dis
+
+La course elle-même **n'est pas reproductible dans le harnais** : `pumpAndSettle` termine les
+animations en même temps qu'il pose les frames, donc la fenêtre « position en retard, étendue à
+jour » n'existe jamais. J'ai écrit deux tests qui ratent la cible avant de l'admettre — l'un
+passait à l'identique avec l'ancienne garde, ce qui ne prouvait rien.
+
+Ce que le test tient à la place, c'est **le risque que le correctif introduit** : un drapeau qui ne
+se lèverait jamais enfermerait le joueur hors du direct pour le reste du chapitre — un défaut que
+la version positionnelle ne pouvait pas avoir. Vérifié en le faisant échouer sur une régression
+simulée.
+
+### Le workflow qui a tout débloqué
+
+Trace `debugPrint` bornée par `Env.outilsDebug`, APK debug installé, Vivien joue, je lis
+`adb logcat`. Son mot : « c'est moins de travail pour moi que d'annoter, faire des captures, les
+envoyer ». À refaire pour tout défaut qui ne se reproduit pas en test — c'est la seule chose qui a
+marché après trois audits.
+
+⚠️ La trace est **retirée** du code. Elle appelait `ref` dans `dispose()`, ce que Riverpod interdit,
+et faisait tomber 48 tests — un rappel que même un mouchard temporaire doit respecter le cycle de
+vie.
+
+### Deux corrections d'interface, du même passage
+
+- **Quitter le chapitre se glisse** au lieu de se taper : un bouton se tape par réflexe au milieu
+  d'une phrase. Trois chevrons **fixes**, pas d'animation — une boucle infinie fait tourner
+  `pumpAndSettle` sans fin, et le widget vit dans le fil (la carte d'entrée avait déjà coûté cette
+  leçon).
+- **La révélation de fin s'enchaîne seule.** Le « Je continue » entre chaque phrase, demandé le
+  matin même, a été écarté après essai sur l'appareil : il casse la chute au lieu de la laisser
+  respirer. `RevealMode` gouverne l'entrée dans l'écran, plus rien à l'intérieur.
+
+Au passage : la pause de 1,4 s entre deux phrases était un `Future.delayed` lâché dans la nature.
+Devenue un `Timer` annulé à la destruction — sans conséquence visible, mais c'était une fuite, et
+les tests la signalaient à juste titre.
+
+---
+
 ## 2026-08-30 (24) — ÉTAT DES LIEUX
 
 *Photographie du projet à cette date, demandée par Vivien pour que les décisions discutées mais

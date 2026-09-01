@@ -864,41 +864,137 @@ void main() {
     });
   });
 
-  testWidgets('la fin de chapitre sort du fil et prend tout l\'écran', (tester) async {
-    await monter(tester, getState: {
-      'story': {'slug': 's', 'title': 'T'},
-      'conversations': [conversation(nom: 'Léna', revele: true)],
-      'history': [
-        message(seq: 1, body: 'Et le mien a disparu de mon appart il y a 3 semaines.'),
-        message(seq: 2, body: 'Quelqu\'un est entré chez Léna.', type: 'system'),
-      ],
-      'node': noeud(code: 'N22', kind: 'chapter_end'),
-      'chapter_end': {
-        'chapter_title': 'Le mauvais numéro',
-        'next_chapter_title': 'Chloé',
-        'next_chapter_position': 2,
-        'unlocked_at': DateTime.now().add(const Duration(hours: 8)).toIso8601String(),
-        'next_chapter_pending': true,
-        'next_chapter_unlock_delay_minutes': 480,
-        'next_chapter_notification_text': 'Léna vous attend. Le chapitre 2 est disponible.',
-        'next_chapter_teaser_text': null,
-      },
-      'ai_moment_pending': false,
-    });
+  Map<String, dynamic> etatFinDeChapitre({String? cliffhanger, String? mode}) => {
+        'story': {'slug': 's', 'title': 'T'},
+        'conversations': [conversation(nom: 'Léna', revele: true)],
+        'history': [
+          message(seq: 1, body: 'Et le mien a disparu de mon appart il y a 3 semaines.'),
+          message(
+              seq: 2,
+              body: cliffhanger ?? 'Quelqu\'un est entré chez Léna.',
+              type: 'system'),
+        ],
+        'node': noeud(code: 'N22', kind: 'chapter_end'),
+        'chapter_end': {
+          'chapter_title': 'Le mauvais numéro',
+          'next_chapter_title': 'Chloé',
+          'next_chapter_position': 2,
+          'unlocked_at':
+              DateTime.now().add(const Duration(hours: 8)).toIso8601String(),
+          'next_chapter_pending': true,
+          'next_chapter_unlock_delay_minutes': 480,
+          'next_chapter_notification_text':
+              'Léna vous attend. Le chapitre 2 est disponible.',
+          'next_chapter_teaser_text': null,
+          'reveal_mode': ?mode,
+        },
+        'ai_moment_pending': false,
+      };
+
+  /// Le passage vers l'écran de fin est un GLISSEMENT, pas un tap : on
+  /// traverse la piste pour déclencher.
+  Future<void> glisserVersLaFin(WidgetTester tester) async {
+    await tester.drag(find.byType(ContinuerVersLaFin), const Offset(700, 0));
+    await tester.pumpAndSettle();
+  }
+
+  /// Déroule la révélation en entier.
+  ///
+  /// ⚠️ Ni `pumpAndSettle`, ni un seul `pump` de plusieurs secondes. La
+  /// révélation est une CHAÎNE de minuteurs — frappe, pause, frappe — et
+  /// chaque maillon n'est armé qu'une fois le précédent tombé. Un grand pas
+  /// unique n'en déclenche qu'un ; `pumpAndSettle` rend la main avant la fin
+  /// de la frappe (des `Timer`, pas une animation). On avance donc par pas.
+  Future<void> laisserLaRevelationTomber(WidgetTester tester) async {
+    for (var i = 0; i < 60; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+  }
+
+  // ⚠️ **L'écran ne s'ouvre plus tout seul.** Il se poussait dès la fin du
+  // déroulé, soit 8 s après « …et là... » — huit secondes fixes pour encaisser
+  // une révélation, quel que soit le lecteur (test utilisateur, 1er septembre
+  // 2026). C'est l'assertion qui compte : sans elle, la bascule automatique
+  // pourrait revenir sans que rien ne le dise.
+  testWidgets('la fin de chapitre attend un geste, elle ne s\'impose pas',
+      (tester) async {
+    await monter(tester, getState: etatFinDeChapitre());
     await tester.pumpAndSettle();
 
+    expect(find.byType(ChapterEndScreen), findsNothing,
+        reason: 'la bascule ne doit jamais se faire toute seule');
+    expect(find.byType(ContinuerVersLaFin), findsOneWidget);
+
+    // Un geste trop court ne déclenche rien : le pouce revient, sans reproche.
+    await tester.drag(find.byType(ContinuerVersLaFin), const Offset(120, 0));
+    await tester.pumpAndSettle();
+    expect(find.byType(ChapterEndScreen), findsNothing,
+        reason: 'un frôlement ne doit pas quitter le chapitre');
+
+    await glisserVersLaFin(tester);
     expect(find.byType(ChapterEndScreen), findsOneWidget);
+  });
 
-    // Le cliffhanger s'écrit maintenant caractère par caractère : on laisse la
-    // frappe se terminer avant de chercher la phrase entière.
-    await tester.pump(const Duration(seconds: 6));
+  testWidgets('la fin de chapitre sort du fil et prend tout l\'écran',
+      (tester) async {
+    await monter(tester, getState: etatFinDeChapitre());
     await tester.pumpAndSettle();
+    await glisserVersLaFin(tester);
+    await laisserLaRevelationTomber(tester);
+
     expect(find.text('Quelqu\'un est entré chez Léna.'), findsOneWidget);
     expect(find.text('CHAPITRE 2 — CHLOÉ'), findsOneWidget);
     // Plus de compte à rebours en chiffres : un bouton pour programmer un
     // rappel, jamais un chiffre qui descend.
     expect(find.textContaining(':'), findsNothing);
     expect(find.text('Me prévenir dans 8h'), findsOneWidget);
+  });
+
+  // Le rythme mené par le joueur s'arrête à la PORTE de cet écran. Un geste
+  // entre chaque phrase a été essayé sur l'appareil et écarté : le cliffhanger
+  // tombe en trois temps, et demander un tap entre chaque casse la chute au
+  // lieu de la laisser respirer (Vivien, 1er septembre 2026).
+  testWidgets('les trois phrases s\'enchaînent seules, sans rien à taper',
+      (tester) async {
+    await monter(tester,
+        getState: etatFinDeChapitre(
+            cliffhanger: 'Quelqu\'un est entré chez Léna. '
+                'Et ce quelqu\'un a votre numéro.'));
+    await tester.pumpAndSettle();
+    await glisserVersLaFin(tester);
+    await laisserLaRevelationTomber(tester);
+
+    expect(find.text('Quelqu\'un est entré chez Léna.'), findsOneWidget);
+    expect(find.text('Et ce quelqu\'un a votre numéro.'), findsOneWidget,
+        reason: 'la seconde phrase tombe d\'elle-même');
+    expect(find.text('Je continue'), findsNothing,
+        reason: 'aucun geste à faire entre les phrases');
+    expect(find.text('CHAPITRE 2 — CHLOÉ'), findsOneWidget);
+  });
+
+  // Taper pendant la frappe pose la phrase EN ENTIER : le joueur reprend la
+  // main sur SA lecture, pas sur le déroulé de la scène. Même règle que le tap
+  // dans le fil.
+  testWidgets('un tap pendant la frappe pose la phrase en cours',
+      (tester) async {
+    await monter(tester,
+        getState: etatFinDeChapitre(
+            cliffhanger: 'Quelqu\'un est entré chez Léna. '
+                'Et ce quelqu\'un a votre numéro.'));
+    await tester.pumpAndSettle();
+
+    // ⚠️ Surtout pas `pumpAndSettle` après l'ouverture : il terminerait la
+    // frappe du même geste, et le test n'aurait plus rien à observer.
+    await tester.drag(find.byType(ContinuerVersLaFin), const Offset(700, 0));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(find.text('Quelqu\'un est entré chez Léna.'), findsNothing,
+        reason: 'la frappe est encore en cours');
+
+    await tester.tap(find.byType(ChapterEndScreen));
+    await tester.pump();
+    expect(find.text('Quelqu\'un est entré chez Léna.'), findsOneWidget);
   });
 
   testWidgets('la bascule d\'identité change le nom de l\'en-tête', (tester) async {
@@ -1159,6 +1255,109 @@ void main() {
       await tester.tap(find.text('Réponse A'));
       await tester.pumpAndSettle();
       expect(find.text('Réponse de Léna'), findsOneWidget);
+    });
+
+    // ⚠️ **Le risque introduit par le correctif du 1er septembre 2026.**
+    //
+    // La garde était positionnelle : elle se rétablissait toute seule dès que
+    // le joueur redescendait. Elle est maintenant un DRAPEAU posé par le
+    // geste — et un drapeau qui ne se lève jamais enfermerait le joueur hors
+    // du direct pour le reste du chapitre. C'est ce test-là qui compte : il
+    // vérifie que redescendre au bas de soi-même redemande le direct.
+    //
+    // (La course d'origine — position en retard pendant qu'une animation de
+    // recentrage est en vol, alors que l'étendue est déjà à jour — n'est pas
+    // reproductible dans ce harnais : `pumpAndSettle` termine les animations
+    // en même temps qu'il pose les frames, donc la fenêtre n'existe jamais.
+    // Elle est mesurée dans la trace de l'appareil, citée dans
+    // `conversation_screen.dart`.)
+    testWidgets('remonter suspend le suivi, redescendre le rétablit',
+        (tester) async {
+      // Posé explicitement : sans ça le test ne passe que si un autre l'a
+      // fait avant lui, et il dépend alors de l'ordre d'exécution.
+      SharedPreferences.setMockInitialValues({});
+      var tour = 0;
+      final api = EngineApi(
+        jetonAcces: () => 'jeton',
+        baseUrl: 'http://test.local',
+        apiKey: 'k',
+        httpClient: MockClient((requete) async {
+          if (requete.url.path.endsWith('advance')) {
+            tour++;
+            return http.Response.bytes(
+                utf8.encode(jsonEncode({
+                  'new_messages': [message(seq: 40 + tour, body: 'Livraison $tour')],
+                  'node': noeud(code: 'N2', choix: [
+                    {'id': 'a', 'position': 0, 'label': 'Réponse A', 'kind': 'reply'},
+                  ]),
+                  'conversations': [conversation()],
+                  'chapter_end': null,
+                  'ai_moment_pending': false,
+                  'idempotent_replay': false,
+                })),
+                200);
+          }
+          return http.Response.bytes(
+              utf8.encode(jsonEncode({
+                'story': {'slug': 's', 'title': 'T'},
+                'conversations': [conversation()],
+                'history': [
+                  for (var i = 1; i <= 40; i++)
+                    message(seq: i, body: 'Message assez long numéro $i pour '
+                        'occuper de la place à l\'écran et faire défiler le fil'),
+                ],
+                'node': noeud(choix: [
+                  {'id': 'a', 'position': 0, 'label': 'Réponse A', 'kind': 'reply'},
+                ]),
+                'chapter_end': null,
+                'ai_moment_pending': false,
+              })),
+              200);
+        }),
+      );
+      final conteneur = ProviderContainer(overrides: [
+        authPreteProvider.overrideWith((ref) async => 'joueur-test'),
+        engineApiProvider.overrideWithValue(api),
+      ]);
+      addTearDown(conteneur.dispose);
+      await tester.pumpWidget(UncontrolledProviderScope(
+        container: conteneur,
+        child: MaterialApp(theme: AppTheme.sombre, home: const ConversationScreen()),
+      ));
+      await tester.pumpAndSettle();
+
+      final liste =
+          find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable));
+      final scroll = tester.state<ScrollableState>(liste).position;
+
+      // 1. Il remonte au doigt : le suivi se suspend.
+      await tester.drag(liste, const Offset(0, 800));
+      await tester.pumpAndSettle();
+      final remonte = scroll.pixels;
+      expect(remonte, lessThan(scroll.maxScrollExtent - 120));
+
+      // Remonté loin du bas, « Réponse A » n'est plus construit par la liste
+      // lazy : on déclenche le choix sur le contrôleur, comme le test voisin.
+      await tester.pump(const Duration(seconds: 2));
+      conteneur.read(conversationProvider.notifier).choisir('a');
+      await tester.pumpAndSettle();
+      expect(scroll.pixels, closeTo(remonte, 1),
+          reason: 'une livraison ne doit pas le déloger pendant qu\'il relit');
+
+      // 2. Il redescend de lui-même : le direct doit reprendre.
+      await tester.drag(liste, const Offset(0, -3000));
+      await tester.pumpAndSettle();
+      // « Revenu en bas » au sens de la garde : sous le seuil, pas au pixel
+      // près — un drag s'arrête où la physique le pose.
+      expect(scroll.pixels, greaterThan(scroll.maxScrollExtent - 120),
+          reason: 'le drag l\'a ramené dans la zone du direct');
+
+      await tester.pump(const Duration(seconds: 2));
+      conteneur.read(conversationProvider.notifier).choisir('a');
+      await tester.pumpAndSettle();
+      expect(scroll.pixels, closeTo(scroll.maxScrollExtent, 1),
+          reason: 'redescendu de lui-même, il redemande le direct — un drapeau '
+              'qui ne se lève jamais enfermerait le joueur hors du fil');
     });
   });
 

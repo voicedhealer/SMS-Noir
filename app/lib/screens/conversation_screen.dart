@@ -95,15 +95,42 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     super.dispose();
   }
 
-  /// Le joueur était-il déjà en bas AVANT cette mise à jour ?
+  /// Le joueur a remonté le fil **avec son doigt**, et veut y rester.
   ///
-  /// Appelé depuis `ref.listen`, donc avant que le nouveau contenu soit posé
-  /// dans la liste : `_scroll.position` reflète encore l'ancien fil. C'est ce
-  /// qui permet de distinguer « il lit le direct » de « il est remonté ».
-  bool get _procheDuBas {
-    if (!_scroll.hasClients) return true;
-    final pos = _scroll.position;
-    return pos.pixels >= pos.maxScrollExtent - _seuilProcheDuBas;
+  /// ⚠️ **Ce drapeau remplace un calcul de position, et ce n'est pas un
+  /// détail.** L'ancienne version comparait `pixels` à `maxScrollExtent` au
+  /// moment de la livraison, en supposant — c'était écrit — que « la position
+  /// reflète encore l'ancien fil ». La trace sur l'appareil (1er septembre
+  /// 2026) dit l'inverse : au moment où le listener tourne, l'étendue est
+  /// DÉJÀ celle du nouveau contenu, et c'est `pixels` qui est en retard,
+  /// parce que le recentrage précédent est une animation encore en vol.
+  ///
+  /// Mesuré : un message allonge le fil de 251 px, `_versLeBas` part vers
+  /// 10094, et 5 ms plus tard la livraison suivante lit `pixels=9843` contre
+  /// `max=10094` — 251 px d'écart pour un seuil de 120. La garde conclut
+  /// « il a remonté » et se verrouille, alors que personne n'a touché
+  /// l'écran. Une bulle photo monte à 300 px : toute livraison d'image
+  /// pouvait déclencher ça.
+  ///
+  /// Un drapeau posé par le GESTE ne peut pas se tromper : il ne change que
+  /// quand un doigt scrolle. La règle « ne jamais voler la position de
+  /// lecture » est intacte — elle ne s'applique plus qu'à un vrai
+  /// remontage.
+  bool _remonteVolontairement = false;
+
+  /// Un scroll à l'origine d'un geste : c'est le seul qui compte. Les
+  /// recentrages programmatiques passent par `ScrollPosition.animateTo` et
+  /// n'émettent aucun `dragDetails`.
+  bool _surNotificationScroll(ScrollNotification n) {
+    // Seul un scroll PORTÉ PAR UN DOIGT compte : les recentrages
+    // programmatiques passent par `animateTo` et n'émettent aucun
+    // `dragDetails`.
+    if (n is! ScrollUpdateNotification || n.dragDetails == null) return false;
+    final m = n.metrics;
+    // Le drapeau se lève dès que le joueur revient au bas de lui-même : il
+    // redemande le direct, et le fil doit le suivre à nouveau.
+    _remonteVolontairement = m.pixels < m.maxScrollExtent - _seuilProcheDuBas;
+    return false;
   }
 
   void _versLeBas() {
@@ -141,7 +168,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       // Ne jamais voler la position de lecture : seul un joueur déjà proche du
       // bas suit le fil automatiquement.
       final premiereFois = previous == null || previous is! AsyncData;
-      if (premiereFois || _procheDuBas) _versLeBas();
+      if (premiereFois || !_remonteVolontairement) _versLeBas();
     });
 
     // Un lot de messages vient de s'installer (déroulé arrêté, choix présents
@@ -158,25 +185,49 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       }
     }
 
-    // Fin de chapitre : plein écran, une fois le déroulé terminé.
+    // Fin de chapitre : plein écran, mais **jamais tout seul**.
+    //
+    // L'écran se poussait ici même dès la fin du déroulé. Le dernier message
+    // du N22 se termine par « …impossible de mettre la main dessus, et là... »,
+    // et le joueur avait 8 s — le délai du message `system` invisible qui
+    // porte le cliffhanger — avant que tout bascule. Huit secondes fixes pour
+    // encaisser ça, quel que soit le lecteur (test utilisateur, 1er septembre
+    // 2026).
+    //
+    // ⚠️ **Ne pas confondre avec l'écran noir narratif.** Là-bas, la bascule
+    // automatique EST l'effet : Léna se tait, le joueur subit. Ici il vient de
+    // lire une révélation, et c'est lui qui décide quand la suite arrive.
+    // Voir `RevealMode` et la migration 20260901120000.
     final etatCourant = async.value;
-    if (etatCourant != null &&
+    final finPrete = etatCourant != null &&
         !_finMontree &&
         !etatCourant.enDeroule &&
         etatCourant.chapterEnd != null &&
-        etatCourant.texteFinDeChapitre != null) {
+        etatCourant.texteFinDeChapitre != null;
+
+    void ouvrirLaFin() {
+      if (!mounted || etatCourant == null) return;
+      setState(() => _finMontree = true);
+      Navigator.of(context)
+          .push(MaterialPageRoute(
+            builder: (_) => ChapterEndScreen(
+              fin: etatCourant.chapterEnd!,
+              texte: etatCourant.texteFinDeChapitre!,
+              musique: etatCourant.musiqueFin,
+              onFermer: () => Navigator.of(context).pop(),
+            ),
+            fullscreenDialog: true,
+          ));
+    }
+
+    // `timed` garde le comportement d'avant : la bascule suit le déroulé.
+    // Aucun nœud du chapitre 1 ne l'utilise, mais le contenu peut le demander.
+    if (finPrete &&
+        etatCourant.chapterEnd!.revealMode == RevealMode.timed) {
       _finMontree = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => ChapterEndScreen(
-            fin: etatCourant.chapterEnd!,
-            texte: etatCourant.texteFinDeChapitre!,
-            musique: etatCourant.musiqueFin,
-            onFermer: () => Navigator.of(context).pop(),
-          ),
-          fullscreenDialog: true,
-        ));
+        ouvrirLaFin();
       });
     }
 
@@ -244,6 +295,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           // titre. Une liste, elle, ne déborde jamais — elle défile.
           final queue = <Widget>[
             if (etat.typing != TypingState.aucun) const TypingIndicator(),
+            // Le passage à l'écran de fin, offert et jamais imposé. Il vit au
+            // même endroit que les choix — en queue de fil, dans la liste
+            // défilable — parce que c'en est un : la dernière décision du
+            // chapitre, même si elle n'a qu'une issue.
+            if (finPrete &&
+                etatCourant.chapterEnd!.revealMode == RevealMode.userPaced)
+              ContinuerVersLaFin(onTap: ouvrirLaFin),
             // L'aparté : générique, piloté par le contenu (`nodes.aparte`),
             // pas propre au moment IA. `aparteEnCours` porte déjà toute la
             // logique de visibilité (ni déroulé, ni typing) — rien à
@@ -281,7 +339,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           return Column(
           children: [
             Expanded(
-              child: Listener(
+              child: NotificationListener<ScrollNotification>(
+                onNotification: _surNotificationScroll,
+                child: Listener(
                 // Toute action repousse l'affordance de continuation.
                 onPointerDown: (_) => ctrl.signalerActivite(),
                 // Le fil s'empile depuis le BAS, contre le champ de saisie,
@@ -316,6 +376,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                     },
                   ),
                 ),
+              ),
               ),
             ),
             Composer(

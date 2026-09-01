@@ -100,6 +100,32 @@ l'écrire aurait été écrire du contenu narratif (règle 3).
       destinataire, il est normal qu'ils ne disent pas la même phrase. Sinon, en l'état, ça marche :
       elle reconnaît la plaque et le macaron sans les nier.
 
+## 🔴 À DÉPLOYER — les corrections du 1er septembre ne sont pas sur l'hébergé
+
+Vérifié le 1er septembre : l'hébergé est encore à `ai_max_exchanges = 4`, sans la règle des deux
+échanges, et le N21 dit toujours « Ah ouais ! … où ça ? ». Vivien joue donc une version où **Léna
+dit deux fois qu'elle va dormir** — c'est attendu, et le déploiement le corrige.
+
+- [ ] `repair` + `db push --include-all` (contenu + `reveal_mode`), puis `functions deploy`, puis
+      un APK. Séquence complète dans ARCHITECTURE.md.
+
+⚠️ **Ce que le déploiement ne corrigera PAS** : l'esquive relevée sur « On peut suivre le véhicule
+une prochaine fois ? » → « Je ne sais pas. Pour l'instant, je n'ai rien de plus… ». Les corrections
+d'esquive du 30/08 **sont déjà déployées** : c'est le prompt corrigé qui a produit ça. Elle admet
+bien son ignorance (la règle marche), mais la question était une **proposition** — elle devrait
+accepter, hésiter ou refuser, pas répondre « je ne sais pas » à un projet. Cas non couvert par la
+règle actuelle, voir ci-dessous.
+
+## ❓ À trancher — Léna face à une proposition, pas à une question
+
+« On peut suivre le véhicule une prochaine fois ? » n'appelle pas un fait qu'elle ignore, mais une
+réaction à un plan. La règle « admettre l'ignorance plutôt que trancher » ne dit rien de ce cas, et
+le modèle retombe donc sur l'esquive par défaut.
+
+- [ ] Décider ce qu'elle fait d'une proposition : elle s'y accroche (elle est seule et désespérée),
+      elle refuse par peur, ou elle renvoie au lendemain. C'est un choix de personnage, pas de
+      mécanique — donc de Vivien.
+
 ## ❓ À trancher — le N9, deux points laissés ouverts le 1er septembre
 
 **1. La section « Ce moment dure exactement deux échanges » du prompt.** Elle implémente la règle

@@ -80,15 +80,76 @@ class _ChapterEndScreenState extends State<ChapterEndScreen> {
   var _phraseEcrite = 0;
   late final _phrases = widget.phrases;
 
+  /// La phrase en cours a fini de s'écrire : « Je continue » peut apparaître.
+  var _phrasePosee = false;
+
   var _etatNotification = _EtatNotification.initial;
 
-  /// Un temps de silence entre deux phrases : c'est lui qui fait tomber la
-  /// troisième. Sans pause, les trois se lisent comme un paragraphe.
-  void _phraseSuivante(int i) {
-    if (i != _phraseEcrite) return;
-    Future<void>.delayed(const Duration(milliseconds: 1400), () {
-      if (mounted) setState(() => _phraseEcrite = i + 1);
+  /// Canal vers le [Typewriter] de la phrase en cours : un tap n'importe où
+  /// sur l'écran la termine d'un coup.
+  final _terminerPhrase = _Signal();
+
+  /// Le silence entre deux phrases, annulable.
+  Timer? _pause;
+
+  /// ⚠️ **Ce rythme n'est PAS celui des écrans noirs narratifs.**
+  ///
+  /// Une narration (N14, N19) est minutée par son CONTENU : les décalages de
+  /// chaque ligne vivent dans le `body`, la durée de l'écran est le délai du
+  /// message suivant, et le générateur calcule le dernier repère pour que la
+  /// dernière lettre tombe pile (contrôle 62 de verify-graph). Là-bas, le
+  /// joueur ne mène rien — c'est le sujet, il subit l'attente.
+  ///
+  /// Ici c'est l'inverse : une révélation s'absorbe, et le temps qu'il faut
+  /// pour l'absorber n'appartient qu'au lecteur. Chaque phrase attend donc un
+  /// « Je continue ». Le minuteur fixe de 1,4 s qui vivait ici convenait à
+  /// celui qui l'avait réglé, et à personne d'autre (test utilisateur, 1er
+  /// septembre 2026).
+  ///
+  /// Les deux mécaniques coexistent, aucune n'est le défaut de l'autre : ne
+  /// pas les confondre en écrivant les écrans des chapitres 2 à 5.
+  ///
+  /// ⚠️ **Le rythme mené par le joueur s'arrête à la PORTE de cet écran.**
+  /// Un « Je continue » entre chaque phrase a été essayé sur l'appareil, et
+  /// Vivien l'a écarté : le cliffhanger tombe en trois temps, et lui demander
+  /// un geste entre chaque casse la chute au lieu de la laisser respirer.
+  /// `RevealMode` gouverne donc l'ENTRÉE dans l'écran (voir
+  /// `conversation_screen`), plus rien à l'intérieur — les trois phrases
+  /// s'enchaînent seules, et un tap les pose d'un coup si on lit plus vite.
+  void _phrasePoseeAt(int i) {
+    if (i != _phraseEcrite || _phrasePosee) return;
+    setState(() => _phrasePosee = true);
+    // Le silence entre deux phrases : c'est lui qui fait tomber la troisième.
+    // Sans pause, les trois se lisent comme un paragraphe.
+    //
+    // Un `Timer` retenu, et non un `Future.delayed` lâché dans la nature :
+    // quitter l'écran pendant la pause laissait un minuteur en vol. Sans
+    // conséquence visible ici (`_phraseSuivante` vérifie `mounted`), mais
+    // c'est une fuite, et les tests la signalent à juste titre.
+    _pause?.cancel();
+    _pause = Timer(const Duration(milliseconds: 1400), _phraseSuivante);
+  }
+
+  void _phraseSuivante() {
+    if (!mounted || _phraseEcrite >= _phrases.length - 1) return;
+    setState(() {
+      _phraseEcrite++;
+      _phrasePosee = false;
     });
+  }
+
+  /// Un tap pendant que ça s'écrit **termine la phrase en cours**, sans jamais
+  /// passer à la suivante ni sauter de texte : le joueur reprend la main sur SA
+  /// lecture, pas sur le déroulé de la scène. Même règle que dans le fil.
+  void _tapSurEcran() {
+    if (!_phrasePosee) _terminerPhrase.declencher();
+  }
+
+  @override
+  void dispose() {
+    _pause?.cancel();
+    _terminerPhrase.dispose();
+    super.dispose();
   }
 
   @override
@@ -148,8 +209,15 @@ class _ChapterEndScreenState extends State<ChapterEndScreen> {
     final position = widget.fin.nextChapterPosition;
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        child: AnimatedOpacity(
+      // Toute la surface est tapable pendant que ça s'écrit : la phrase occupe
+      // le milieu d'un grand vide, et taper à côté d'elle ne doit pas rester
+      // sans effet. `deferToChild` laisse les boutons prendre leurs propres
+      // taps une fois la phrase posée.
+      body: GestureDetector(
+        onTap: _tapSurEcran,
+        behavior: HitTestBehavior.deferToChild,
+        child: SafeArea(
+          child: AnimatedOpacity(
           opacity: _visible ? 1 : 0,
           duration: const Duration(milliseconds: 1200),
           child: LayoutBuilder(
@@ -179,13 +247,15 @@ class _ChapterEndScreenState extends State<ChapterEndScreen> {
                             style: AppText.titreFinChapitre.copyWith(
                               color: AppColors.textePrincipal,
                             ),
-                            onFini: () => _phraseSuivante(i),
+                            terminer:
+                                i == _phraseEcrite ? _terminerPhrase : null,
+                            onFini: () => _phrasePoseeAt(i),
                           ),
                         ),
                     // Rien de ce qui suit ne s'affiche avant que le cliffhanger
-                    // soit posé : ni le teaser ni les actions ne doivent voler
-                    // la fin.
-                    if (_phraseEcrite >= _phrases.length) ...[
+                    // soit posé EN ENTIER : ni le teaser ni les actions ne
+                    // doivent voler la fin.
+                    if (_phrasePosee && _phraseEcrite >= _phrases.length - 1) ...[
                       const SizedBox(height: AppSpacing.xxl),
                       if (suivant != null && position != null) ...[
                         _Separateur(),
@@ -291,8 +361,14 @@ class _ChapterEndScreenState extends State<ChapterEndScreen> {
           ),
         ),
       ),
+      ),
     );
   }
+}
+
+/// Notifie sans exposer `notifyListeners`, protégé par Flutter.
+class _Signal extends ChangeNotifier {
+  void declencher() => notifyListeners();
 }
 
 /// Ligne discrète entre le cliffhanger et le teaser — assez peu marquée pour
